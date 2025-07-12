@@ -790,11 +790,12 @@ delpv = """(%coredelpv% and %robustdelpv%)"""
 Vobij = """(@pt="bw" and (contains(@frame,"er_adverb" ) or contains(@frame, "tmp_adverb") or contains(@frame, "waar_adverb")) and 
 @lemma!="er" and @lemma!="daar" and @lemma!="hier" and @lemma!="waar" and @lemma!="waarom" and @lemma!="waarvoor" and @lemma!="daarom" and @lemma!="daarvoor" and (starts-with(@lemma, 'er') or starts-with(@lemma, 'daar') or starts-with(@lemma, 'hier') or starts-with(@lemma, 'waar')))"""
 
-Tarsp_VzN = """(%vzn1xpath% or %vzn2xpath% ) """
+Tarsp_VzN = """(%vzn1xpath% or %vzn2xpath% or %vzn4xpath%) """
 
 vzn1xpath = """(@cat="pp" and (node[@pt="vz"] and node[(@pt="n" or @pt="vnw") and not (%Rpronoun%) and @rel="obj1"] and not(node[@pt="vz" and @vztype="fin"])))"""
 vzn2xpath = """(node[@lemma="in" and @rel="mwp"] and node[@lemma="deze" and @rel="mwp"])"""
 vzn3xpath = """(@pt="vz" and ../node[(@lemma="dit" or @lemma="dat")  and @begin>=../node[@pt="vz"]/@end and count(node)<=3] )"""
+vzn4xpath = """(@cat="pp" and (node[@pt="vz"] and node[@cat="np" and @rel="obj1" and count(node)=1] and not(node[@pt="vz" and @vztype="fin"])))"""
 
 noRpronounx = """not(ancestor::node[@cat="top"]/descendant::node[%Rpronounx%])"""
 

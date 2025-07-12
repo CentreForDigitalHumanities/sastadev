@@ -11,7 +11,7 @@ tab = '\t'
 comma = ','
 underscore = '_'
 
-punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actally use unicod categories
+punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actually use unicode categories
 
 # for selecting nonempty tokens from a csvstring ; comma between single quotes is allowed
 csvre = "'[^']+'|[^,' ]+"
@@ -60,6 +60,22 @@ dupre = re.compile(duppattern)
 purechatxxxcodes = {'xxx', 'yyy', 'www'}
 chatxxxcodes = purechatxxxcodes | {'xx'}
 
+
+def simple_tokenise(sent: str) -> List[str]:
+    """
+    simple tokenisation. Interpunction symbols are surrounded by space, then split by space
+    :param sent: input string
+    :return: list of strings that make up the tokens of the input sentence
+    """
+
+    cleansent = ''
+    for c in sent:
+        if c in punctuationchars:
+            cleansent += f' {c} '
+        else:
+            cleansent += c
+    tokens = cleansent.split()
+    return tokens
 
 def str2list(instr: str, sep=comma) -> List[str]:
     if instr == '':

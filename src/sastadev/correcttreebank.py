@@ -4,14 +4,15 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from lxml import etree
 
-from sastadev.basicreplacements import basicreplacements, ervzvariantsdict, is_er_pronoun
+from sastadev.basicreplacements import basicreplacements, ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
 from sastadev.cleanCHILDEStokens import cleantext
 from sastadev.conf import settings
 from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
 from sastadev.corrector import (Correction, disambiguationdict, getcorrections,
                                 mkuttwithskips, initialmaarvgxpath)
-from sastadev.lexicon import de, dets, nochildword, nochildwords, validnouns, validword, \
+from sastadev.celexlexicon import celex2dcoi
+from sastadev.lexicon import de, dets, getwordposinfo,nochildword, nochildwords, validnouns, validword, \
     wordsunknowntoalpinolexicondict, wrongposwordslexicon
 from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, defaultpenalty,
                                bpl_none, bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, insertion,
@@ -33,7 +34,7 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         getcompoundcount, getnodeyield, getorigutt,
                                         getptsubclass,
                                         getsentid, getsentence, gettokposlist, getxsid,
-                                        getyield, myfind, showflatxml,
+                                        getyield, is_infl_different, mkattrib, myfind, showflatxml,
                                         showtree, simpleshow, subclasscompatible, transplant_node,
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
@@ -200,10 +201,52 @@ def adaptpv(node):
         node.attrib['postag'] = 'WW(pv,tgw,mv)'
 
 
+def get_newnode_from_celex(word: str, node:SynTree) -> Optional[SynTree]:
+    """
+    check whether word has a pt equal to the node's pt in CELEX. If so, create a node for one of them with
+    DCOI-properties derived from the CELEX properties. If the inflectional properties differ, return it as the
+    result. In all other cases, return None . Example word=pas, node for past
+    :param word:
+    :param node:
+    :return:
+    """
+    nodept = getattval(node, 'pt')
+    nodelemma = getattval(node, 'lemma')
+    wordinfos = getwordposinfo(word, nodept)
+    for wordinfo in wordinfos:
+        (pt, dehet, infl, lemma) = wordinfo
+        if lemma == nodelemma:
+            dcoi_infl = celex2dcoi(word, infl, lemma)
+            if is_infl_different(dcoi_infl, node.attrib):
+                newnodeattrib = mkattrib(word, lemma, pt, dcoi_infl)
+                newnode = etree.Element('node', attrib=newnodeattrib)
+                return newnode
+    return None
+
+
+def corresponding(lemma1, lemma2) -> bool:
+    result1 = len(lemma1) > 4 and lemma1[0:4] == 'daar' and lemma2 == 'dat'
+    result2 = len(lemma1) > 4 and lemma1[0:4] == 'hier' and lemma2 == 'dit'
+    result3 = len(lemma1) > 2 and lemma1[0:2] == 'er' and lemma2 == ' het'
+    result = result1 or result2 or result3
+    return result
+
+def is_pronadv_dempro(node, newnode) -> bool:
+    nodept = getattval(node, 'pt')
+    newnodept = getattval(newnode, 'pt')
+    nodelemma = getattval(node, 'lemma')
+    newnodelemma = getattval(newnode, 'lemma')
+    result = nodept == 'bw' and newnodept == 'vnw' and is_pronominal_adverb(nodelemma) and \
+            corresponding(nodelemma, newnodelemma)
+    return result
+
 def smartreplace(node: SynTree, word: str, method: Method) -> SynTree:
     '''
     replaces *node* by a different node if the parse of *word* yields a node with a valid word and the same word class and
-     if it does not occur in nochildwords;  otherwise by
+     if it does not occur in nochildwords;
+     other special cases: the word has an entry in CELEX with the right pt
+     demonstrative pronouns and pronominal adverbs  are also ok
+     otherwise by
     a node with *word* and *lemma* attributes replaced by *word*
     :param node:
     :param word:
@@ -213,12 +256,16 @@ def smartreplace(node: SynTree, word: str, method: Method) -> SynTree:
     mn = method.name
     wordtree = settings.PARSE_FUNC(word)
     newnode = find1(wordtree, './/node[@pt]')
+    if not issamewordclass(node, newnode):
+        maybenewnode = get_newnode_from_celex(word, node)
+        if maybenewnode is not None:
+            newnode = maybenewnode
     newnodept = getattval(newnode, 'pt')
     nodept = getattval(node, 'pt')
     nodelemma = getattval(node, 'lemma')
     newnodelemma = getattval(newnode, 'lemma')
     if isvalidword(word, mn) and \
-            issamewordclass(node, newnode) and \
+            (issamewordclass(node, newnode) or is_pronadv_dempro(node, newnode)) and \
             not isrobustnoun(newnode) and \
             newnodelemma not in nochildwords:
         result = newnode

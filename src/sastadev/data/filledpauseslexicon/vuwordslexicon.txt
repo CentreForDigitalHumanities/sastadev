@@ -12,4 +12,5 @@ stap	100,
 toe	100
 wel	100,
 wip	100,
-zo	100,
+zo	103,
+hoehoehoe	103,

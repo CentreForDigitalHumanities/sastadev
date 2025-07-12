@@ -335,6 +335,26 @@ def getinflforms(thesubj: SynTree, thepv: SynTree, inversion: bool) -> List[str]
         results = []
     return results
 
+
+def alldutchwords(correct: str) -> bool:
+    newcorrect = correct
+    words = newcorrect.split()
+    result = all([isvalidtoken(word) for word in words])
+    return result
+
+# def allenglishwords(correct:str) -> bool:
+#     newcorrect = correct
+#     words = newcorrect.split()
+#     result = all([word in englishlexicon for word in words])
+#     result = result and len(words) > 1
+#     return result
+
+
+def isvalidtoken(wrd:str) -> bool:
+    result = known_word(wrd) or ispunctuation(wrd)
+    return result
+
+
 nochildwordsfilename = 'nochildwords.txt'
 nochildwordsfolder = 'data/nochildwords'
 nochildwordsfullname = os.path.join(settings.SD_DIR, nochildwordsfolder, nochildwordsfilename)
@@ -388,4 +408,32 @@ cardinallexiconfilename = 'cardinalnumerals.tsv'
 cardinallexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, cardinallexiconfilename)
 cardinallexicon = geninitializelexicondict(cardinallexiconfullname, 0)
 
-junk = 0  # to have a breapoint after the last lexicon read
+junk = 0  # to have a breakpoint after the last lexicon read
+
+
+interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'mama', 'okee', 'hé', 'ah', 'oeh', 'au',
+                 'oja', 'joh', 'jee', 'mam', 'bah', 'jawel', 'mamma', 'ho', 'boem', 'ha', 'sorry',
+                 'ooh', 'daag', 'haha', 'nou', 'papa', 'pappa', 'toe', 'maar', 'oei', 'aah', 'hallo', 'dankjewel',
+                 'oeps', 'oo', 'toch', 'wauw', 'goh', 'aha', 'vooruit', 'dan', 'tjonge',
+                 'hèhè', 'jaja', 'hoi', 'waar', 'bb', 'help', 'meneer', 'hi', 'ach', 'ee', 'hup', 'oooh', 'heh', 'm',
+                 'ma', 'sst', 'och', 'tja', 'lieverd', 'hahaha', 'hoera', 'pap',
+                 'echt', 'lalala', 'hopla', 'da', 'pff', 'hai', 'jongens', 'juffrouw', 'jeetje', 'tot', 'ziens', 'hihi',
+                 'jonge', 'ohh', 'poeh', 'oef',
+                 'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx', 'dat',
+                 'doei', 'tjongejonge', 'ooooh', 'hoewel',
+                 'oke', 'neenee', 'pfff', 'mens', 'ps', 'oow', 'fff', 'juf', 'mevrouw', 'baby', 'dankuwel', 'waw',
+                 'welterusten', 'sehhahahaha', 'hihihi', 'aaaah', 'wee', 'shit',
+                 'pa', 'grr', 'weltrusten', 'pats', 'weh', 'stouterd', 'dag', 'joepie', 'neej', 'hoho', 'rara',
+                 'joehoe', 'schatje', 'hierzo', 'pffff', 'ahh', 'ahah', 'tjee',
+                 'liefje', 'pf', 'ahaha', 'hoppa', 'ahahaha', 'verdorie', 'ssst', 'foei', 'gossie', 'ok', 'joe', 'tsja',
+                 'gatverdamme', 'grrr', 'welnee', 'god', 'tjeetje', 'doeg',
+                 'wah', 'getver', 'ohja', 'hej', 'zak', 'alhoewel', 'neen', 'goedzo', 'ahahah', 'allee', 'jo', 'jongen',
+                 'pardon', 'hihihihi', 'floep', 'lieve', 'gatver', 'kut', 'bro',
+                 'mja', 'tsjonge', 'hohoho', 'klopt', 'man', 'jezus', 'truste', 'ppf', 'goedemorgen', 'domoor',
+                 'aaaaah', 'okeee', 'yes', 'ahahahaha', 'zo']
+fillers = ['eh', 'ehm', 'ah', 'boe', 'hm', 'hmm',
+           'uh', 'uhm', 'ggg', 'mmm', 'ja', 'nee']
+allfillers = fillers + ['&-' + filler for filler in fillers] + \
+    interjections + ['&-' + intj for intj in interjections]
+
+junk = 0

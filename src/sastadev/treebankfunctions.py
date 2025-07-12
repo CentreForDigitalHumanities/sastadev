@@ -2,7 +2,7 @@
 various treebank functions
 
 """
-
+import functools
 import re
 # import logging
 from copy import copy, deepcopy
@@ -131,6 +131,19 @@ monthnames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'a
               'september', 'oktober', 'november', 'december']
 
 origuttxpath = './/meta[@name="origutt"]/@value'
+
+
+inflectional_attributes = {'ww': {'buiging', 'getalN',  'pvagr', 'pvtijd', 'wvorm'},
+                           'n': {'getal', 'graad'},
+                           'adj': {'buiging', 'graad', 'naamval'},
+                           'bw': {},
+                           'vz': {},
+                           'tsw': {},
+                           'lid': {'naamval', 'npagr'},
+                           'vnw': {'buiging', 'getal', 'naamval', 'npagr', 'persoon', 'status' }
+                           }
+
+all_inflectional_attributes = functools.reduce(lambda x, y: x.union(y), [inflectional_attributes[pt] for pt in inflectional_attributes])
 
 
 def adjacent(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
@@ -2350,6 +2363,26 @@ def getneighbourwordnode(node: SynTree, step: int) -> SynTree:
     else:
         result = None
     return result
+
+
+def is_infl_different(props1: dict, props2: dict) -> bool:
+    for att in all_inflectional_attributes:
+        if att in props1:
+            if att in props2:
+                if props1[att] != props2[att]:
+                    return True
+            else:
+                return True
+        elif att in props2:
+            return True
+    return False
+
+def mkattrib(word, lemma, pt, dcoi_infl) -> dict:
+    resultdict = dcoi_infl
+    resultdict['lemma'] = lemma
+    resultdict['pt'] = pt
+    resultdict['word'] = word
+    return resultdict
 
 
 

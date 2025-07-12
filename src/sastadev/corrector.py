@@ -251,7 +251,7 @@ def inuitloop(tok, tokens) -> bool:
     else:
         thetoken = tokens[-1]
         prectoken = tokens[-2]
-    result = tok = thetoken and prectoken is not None and prectoken.word == comma
+    result = tok == thetoken and prectoken is not None and prectoken.word == comma
     return result
 def mustberemoved(tok, reducedtokens) -> bool:
     wordprops = vuwordslexicon[tok.word]

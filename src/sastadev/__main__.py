@@ -172,7 +172,7 @@ from sastadev.history import (donefiles, donefilesfullname, gathercorrections, m
                               putdonefilenames, children_samplecorrections, children_samplecorrectionsfullname,
                               adult_samplecorrections, adult_samplecorrectionsfullname)
 from sastadev.macros import expandmacros
-from sastadev.mismatches import exactmismatches, literalmissedmatches
+from sastadev.mismatches import exactmismatches, literalmissedmatches, informcol, markingcol, samplecol, uttidcol
 from sastadev.methods import (Method, astamethods, stapmethods,
                               supported_methods, tarspmethods, treatmethod)
 from sastadev.permcomments import getallcomments, pcheaders, platinumcheck_column_widths
@@ -1438,6 +1438,7 @@ def main():
 
     # breakpoint()
 
+# filters=[(informcol, "inform == yes")]
     wb = mkworkbook(platinumcheckxlfullname, pcheaders, allrows, freeze_panes=(1, 9),
                     column_widths=platinumcheck_column_widths)
     wb.close()
@@ -1447,9 +1448,6 @@ def main():
     # add filelist
     # first remove not in form messages
     # first create tuples
-    samplecol = 0
-    uttidcol = 10
-    informcol = 6
     filteredrows = [row for row in allrows if row[informcol] == 'yes']
     datasetname, samplename = get_dataset_samplename(options.infilename)
     sample_uttids_tuples = get_samplename_uttids_tuples(filteredrows, samplecol, uttidcol)

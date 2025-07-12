@@ -26,6 +26,11 @@ usercommentdefaultvalue = eps
 more = 'More examples'
 less = 'Missed examples'
 
+samplecol = 0
+informcol = 6
+uttidcol = 10
+markingcol = 15
+
 def getparsedas(tree: SynTree, uttstr:str) -> str:
     cleanedtokenisationliststr = str(find1(tree, f'.//xmeta[@name="{correctionlabels.cleanedtokenisation}"]/@value')) \
                                      if tree is not None else '["**"]'
