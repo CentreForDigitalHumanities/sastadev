@@ -27,9 +27,11 @@ positionatt = 'end'
 
 xmetaxpath = './/xmeta'
 
-samplesizemdvalues = {repeatedjaneenou,
-                      shortrep,  unknownsymbol, filled_pause}
-mlumdvalues = {repeated, repeatedseqtoken, intj, longrep, unknownword, substringrep, janeenou,
+samplesizemdvalues = {repeatedjaneenou, intj,
+                      shortrep,  unknownsymbol, filled_pause}   # intj really belong to samplesize:
+# Voor de tussenwerpsels: in de appendix 2022 beschrijven we dat interjecties als au, goh, tjongejonge, jeetje,
+# en ook geluidsnabootsingen, dat we deze niet meetellen voor samplesize.
+mlumdvalues = {repeated, repeatedseqtoken, longrep, unknownword, substringrep, janeenou,
                fstoken}
 
 filled_pause_exceptions = ['e', 'ə', 'ee']
