@@ -34,7 +34,7 @@ samplesizemdvalues = {repeatedjaneenou, intj,
 mlumdvalues = {repeated, repeatedseqtoken, longrep, unknownword, substringrep, janeenou,
                fstoken}
 
-filled_pause_exceptions = ['e', 'ə', 'ee']
+filled_pause_exceptions = ['e', 'ə', 'ee', 'n', 't']
 
 class DupInfo:
     '''

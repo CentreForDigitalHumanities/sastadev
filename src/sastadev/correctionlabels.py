@@ -1,6 +1,7 @@
 
 agreementerror = 'Agreement Error'
 alpinoimprovement = 'Alpino Improvement'
+apomiss = 'Omitted Apoe'
 ambiguityavoidance = 'Ambiguity Avoidance'
 casevariant = 'Grammatical Case variant'
 charactercase = 'Character Case'

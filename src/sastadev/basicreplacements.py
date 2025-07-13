@@ -261,6 +261,7 @@ basicreplacementlist: List[BasicReplacement] = [('as', 'als', pron, infpron, cod
                                                 ('nogge', 'nog', pron, infpron, infpron, dp),
                                                 ('əs', 'eens', pron, infpron, reduction, dp),
                                                 ('moetə', 'moeten', pron, infpron, infpron, dp),
+                                               # ('n', "'n", orth, spellerr, apomiss, dp), moved to corrector
                                                 ('moetə' , 'moet', pron, infpron, infpron, dp),
                                                 ('pot', 'kapot', pron, infpron, sylldrop, -2 * dp),
                                                 ('almaal', 'allemaal', pron, infpron, sylldrop, dp),

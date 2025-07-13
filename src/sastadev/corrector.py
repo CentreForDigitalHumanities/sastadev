@@ -17,7 +17,7 @@ from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
 from sastadev.cleanCHILDEStokens import cleantokens
 from sastadev.conf import settings
-from sastadev.dedup import (cleanwordofnort, find_duplicates2,
+from sastadev.dedup import (cleanwordofnort, filled_pause_exceptions, find_duplicates2,
                             find_janeenouduplicates, find_simpleduplicates,
                             find_substringduplicates2, getfilledpauses,
                             getprefixwords, getrepeatedtokens,
@@ -320,7 +320,7 @@ def reduce(tokens: List[Token], tree: Optional[SynTree]) -> Tuple[List[Token], L
     # we must exclude here the vuwords unless they are in the appropriate position (hoor at the end, but toe only at the beginning
     # remove tsw incl goh och hé oke but not ja, nee, nou
     tswtokens = [n for n in reducedtokens if n.pos in token2nodemap
-                 and n.word not in ['e', 'ee', 'ə']
+                 and n.word not in filled_pause_exceptions
                  and getattval(token2nodemap[n.pos], 'pt') == 'tsw'
                  and getattval(token2nodemap[n.pos], 'lemma') not in {'ja', 'nee', 'nou'}
                  and getattval(token2nodemap[n.pos], 'lemma') not in tswnouns
@@ -1519,6 +1519,21 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                             cat=correctionlabels.pronunciation,
                                             subcat=correctionlabels.codareduction,
                                             backplacement=bpl_word, penalty=mp(30))
+
+    if token.word in ['n', 't']:
+        newwords = [f"'{token.word}"]
+        newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                        name=correctionlabels.spellingcorrection, value=correctionlabels.apomiss,
+                                        cat=correctionlabels.orthography,
+                                        subcat=correctionlabels.apomiss,
+                                        backplacement=bpl_word, penalty=mp(30))
+
+        newwords = ['']
+        newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                        name=EXTRAGRAMMATICAL, value=filled_pause,
+                                        cat=correctionlabels.syntax,
+                                        backplacement=bpl_word, penalty=mp(100))
+
 
     # een blauwe tentje -> een blauw tentje; een grotere tentje -> een groter tentje
     # print(getxsid(tree))
