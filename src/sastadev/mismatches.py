@@ -12,7 +12,7 @@ from sastadev.allresults import mkresultskey, ResultsKey, showreskey
 from typing import Tuple
 from sastadev.sastatypes import Position, SynTree, UttId
 from sastadev.treebankfunctions import (find1, getattval, getmarkedyield,
-                                        getyield)
+                                        getyield, getparsedas)
 
 tab = '\t'
 space = ' '
@@ -30,16 +30,6 @@ samplecol = 0
 informcol = 6
 uttidcol = 10
 markingcol = 15
-
-def getparsedas(tree: SynTree, uttstr:str) -> str:
-    cleanedtokenisationliststr = str(find1(tree, f'.//xmeta[@name="{correctionlabels.cleanedtokenisation}"]/@value')) \
-                                     if tree is not None else '["**"]'
-    cleanedtokenisationlist = eval(cleanedtokenisationliststr)
-    cleanedtokenisation = space.join(cleanedtokenisationlist) if cleanedtokenisationlist is not None else uttstr
-    parsedas_str = find1(tree,
-                 f'.//xmeta[@name="{correctionlabels.parsedas}"]/@value') if tree is not None else '**'
-    parsedas_str = cleanedtokenisation if parsedas_str is None else parsedas_str
-    return parsedas_str
 
 
 def getmarkedutt(m, syntree):

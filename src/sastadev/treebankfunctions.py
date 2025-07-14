@@ -15,6 +15,7 @@ from sastadev.anonymization import pseudonymre
 # from sastadev.lexicon import informlexiconpos, isa_namepart_uc, informlexicon, isa_namepart
 # import lexicon as lex
 from sastadev.conf import settings
+from sastadev import correctionlabels
 from sastadev.metadata import Meta
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import (FileName, OptPhiTriple, PhiTriple, Position,
@@ -2384,6 +2385,20 @@ def mkattrib(word, lemma, pt, dcoi_infl) -> dict:
     resultdict['word'] = word
     return resultdict
 
+def getparsedas(tree: SynTree, uttstr:str) -> str:
+    cleanedtokenisationliststr = str(find1(tree, f'.//xmeta[@name="{correctionlabels.cleanedtokenisation}"]/@value')) \
+                                     if tree is not None else '["**"]'
+    cleanedtokenisationlist = eval(cleanedtokenisationliststr)
+    cleanedtokenisation = space.join(cleanedtokenisationlist) if cleanedtokenisationlist is not None else uttstr
+    parsedas_str = find1(tree,
+                 f'.//xmeta[@name="{correctionlabels.parsedas}"]/@value') if tree is not None else '**'
+    parsedas_str = cleanedtokenisation if parsedas_str is None else parsedas_str
+    return parsedas_str
+
+def getpreorigutt(tree: SynTree) -> str:
+    preorigutt_meta = find1(tree, './/xmeta[@name="preorigutt"]/@value') if tree is not None else None
+    preorigutt = str(preorigutt_meta) if preorigutt_meta is not None else ''
+    return preorigutt
 
 
 if __name__ == '__main__':
