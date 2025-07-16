@@ -1068,6 +1068,17 @@ def get_lemma(token: Token, tokenpos:str) -> str:
     return token.word
 
 
+def isnoun(token: Token) -> bool:
+    if token is None:
+        return False
+    wordinfos, _ = getdehetwordinfo(token.word)
+    for wordinfo in wordinfos:
+        (pt, _, _, _) = wordinfo
+        if pt in ['n']:
+            return True
+    return False
+
+
 def isnounsg(token: Token) -> bool:
     if token is None:
         return False
@@ -1528,11 +1539,13 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                         subcat=correctionlabels.apomiss,
                                         backplacement=bpl_word, penalty=mp(30))
 
-        newwords = ['']
-        newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
-                                        name=EXTRAGRAMMATICAL, value=filled_pause,
-                                        cat=correctionlabels.syntax,
-                                        backplacement=bpl_word, penalty=mp(100))
+        nexttoken = tokens[tokenctr + 1] if tokenctr < len(tokens) - 1 else None
+        if nexttoken is None or not isnoun(nexttoken):
+            newwords = ['']
+            newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                            name=EXTRAGRAMMATICAL, value=filled_pause,
+                                            cat=correctionlabels.syntax,
+                                            backplacement=bpl_word, penalty=mp(100))
 
 
     # een blauwe tentje -> een blauw tentje; een grotere tentje -> een groter tentje

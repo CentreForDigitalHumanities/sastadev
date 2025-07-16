@@ -41,7 +41,8 @@ def transformmodinnp(instree: SynTree, modxpath: XpathExpression) -> SynTree:
             # create a new clause node under
             clausebegin = getattval(theparent, 'begin')
             clauseend = getattval(theparent, 'end')
-            clausenode = etree.Element('node', {'cat': 'smain', 'begin': clausebegin, 'end': clauseend, 'id': "1000"})
+            clausenode = etree.Element('node', {'cat': 'smain', 'rel': '--', 'begin': clausebegin, 'end': clauseend,
+                                                'id': "1000"})
             grandparent.append(clausenode)
             # put the np under this clausenode
             clausenode.append(theparent)

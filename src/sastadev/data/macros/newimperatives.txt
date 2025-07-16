@@ -115,7 +115,9 @@ onlythesearerealwords = """(count(.//node[%bxrealwordnode%]) = count(%allbxrealw
 
 
 partofwhquestion = """((@cat="sv1" or @cat="ssub") and @rel="body" and parent::node[@cat="whq" or @cat="whsub" ]) """
-declarative = """(@cat="smain" or (@cat="ssub" and not(%partofwhquestion%)) or (@cat="sv1" and not(%basicimperative%) and not(%ynquery%) and not(%partofwhquestion%)) )"""
+declarative = """(@cat="smain" or %nonfindeclarative% or (@cat="ssub" and not(%partofwhquestion%)) or (@cat="sv1" and not(%basicimperative%) and not(%ynquery%) and not(%partofwhquestion%)) )"""
+
+nonfindeclarative = """((@cat="inf" or @cat="ppart") and @rel!="vc" and  %onlythesearerealwords% )"""
 
 Tarsp_OndB = """((%Ond% or node[@naamval="nomin"] or node[@cat and node[@rel="hd" and @naamval="nomin"]]) and  node[%Tarsp_Basic_B%]  and count(node) = 2 and %onlythesearerealwords% and not(%Tarsp_BX%) and not(%Xneg%)) """
 Tarsp_OndVC = """((%coreondvc% or %dpdpondvc%)  and count(node) = 2 and %onlythesearerealwords%) """
@@ -308,7 +310,7 @@ Tarsp_coreW = """ ( @pt="ww" and (@wvorm="pv" or parent::node[@rel!="vc"] or %Ta
 
 Tarsp_BarenonfinW = """parent::node[@rel="vc" and  parent::node[@cat="smain" and count(node)=1]]"""
 
-Tarsp_coreHwwi = """ ( @pt="ww" and @rel="hd" and @wvorm="pv" and
+Tarsp_coreHwwi = """ ( @pt="ww" and @rel="hd" and (@wvorm="pv" or @wvorm="inf") and
                        %Tarsp_hww% and
                        ((parent::node[node[@cat="inf" and @rel="vc" and node[@rel="hd" and @pt="ww"]]]) or
                         (parent::node[node[@pt="ww" and @rel="vc" and @wvorm="inf"]]) or

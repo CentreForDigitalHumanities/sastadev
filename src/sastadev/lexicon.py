@@ -436,4 +436,10 @@ fillers = ['eh', 'ehm', 'ah', 'boe', 'hm', 'hmm',
 allfillers = fillers + ['&-' + filler for filler in fillers] + \
     interjections + ['&-' + intj for intj in interjections]
 
+tsw_non_words = ['ee']
+
+modalverbs = ['hoeven', 'moeten', 'mogen', 'kunnen', 'willen', 'zullen']
+
+preferably_intransitive_verbs = ['gaan', 'slapen'] + modalverbs
+
 junk = 0

@@ -2,7 +2,8 @@ from editdistance import distance
 from sastadev.basicreplacements import basicreplacements
 from sastadev.conf import settings
 from sastadev.corrector import (disambiguationdict, initialmaarvgxpath)
-from sastadev.lexicon import de, dets, nochildword, validnouns, validword, \
+from sastadev.lexicon import de, dets, nochildword, preferably_intransitive_verbs, tsw_non_words, validnouns, \
+    validword, \
     wordsunknowntoalpinolexicondict, wrongposwordslexicon
 from sastadev.macros import expandmacros
 from sastadev.metadata import (Meta,  defaultpenalty,
@@ -197,8 +198,10 @@ def countambigwords(tree: SynTree, mds: List[Meta] = [], method: Method = defaul
     return len(ambignodes)
 
 def getunknownwordcount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
+    tsw_words = [w for w in tree.xpath('.//node[@pt="tsw"]/@word')]
+    unknownwords = [w for w in tsw_words if w in tsw_non_words]
     words = [w for w in tree.xpath('.//node[@pt!="tsw"]/@word')]
-    unknownwords = [w for w in words if not isvalidword(w.lower(), methodname) ]
+    unknownwords += [w for w in words if not isvalidword(w.lower(), methodname) ]
     return len(unknownwords)
 
 wrongposwordxpathtemplate = './/node[@lemma="{word}" and @pt="{pos}"]'
@@ -499,7 +502,16 @@ def compute_penalty(nt: SynTree, md: List[Meta], method: Method = defaultmethod)
         totalpenalty += meta.penalty
     return totalpenalty
 
+condlist = [f'@lemma="{lemma}"' for lemma in preferably_intransitive_verbs]
+cond = ' or '.join(condlist)
+intransitive_obj_query = f'.//node[@pt="ww" and @rel="hd" and ({cond}) and ../node[@rel="obj1"]]'
+def get_intransitive_obj(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> List[SynTree]:
+    result = tree.xpath(intransitive_obj_query)
+    return result
 
+def get_intransitive_obj_count(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> int:
+    intransitive_objs = get_intransitive_obj(tree, mds, method)
+    return len(intransitive_objs)
 
 # The constant *criteria* is a list of objects of class *Criterion* that are used, in the order given, to evaluate parses
 criteria = [
@@ -508,6 +520,11 @@ criteria = [
     Criterion("wrongposwordcount", getwrongposwordcount, negative, "Number of words with the wrong part of speech"),
     Criterion("unknownnouncount", getunknownnouncount, negative, "Count of unknown nouns according to Alpino"),
     Criterion("unknownnamecount", getunknownnamecount, negative, "Count of unknown names"),
+  # next one put off gives errors for small clauses in which a modal has been inserted
+  #  Criterion("intransitive_obj_count", get_intransitive_obj_count, negative, "Count of number of "
+  #                                                                                         "preferably intransitive "
+  #                                                                                         "verbs with a direct "
+  #                                                                                         "object"),
     Criterion('semincompatibilitycount', semincompatiblecount, negative, "Count of the number of semantic incompatibilities"),
     Criterion('maaradvcount', getmaaradvcount, negative, "Count of number of occurrences of clause initial 'maar' as an adverb"),
     Criterion("ambigcount", countambigwords, negative, "Number of ambiguous words"),

@@ -129,6 +129,9 @@ def filterbymetadata(
     for item in rawresults:
         (wn, message, suggestions) = item
         wnword = getattval(wn, 'word')
+        if wnword == '':
+            unknownwordnodes.append(item)
+            continue
         normalised_wnword = normalise_word(wnword)
         if normalised_wnword in valid_ambiguous_words:
             continue

@@ -470,6 +470,8 @@ disambiguation_replacements: List[Tuple[TokenTreePredicate, List[str], str]] = \
      (dtp, ['Roy'], 'Jan'),
      # (dtp, ['kijke'], 'he'),
      (dtp, ['surf'], 'turf'),
+     # (dtp, ['weg'], 'boven'),  # disprefer 'weg' as noun, prefer it as an adverb problematic because weg is often
+     # an svp
      # (dtp, ['zijn'], "z'n"),
      (welnietttp, ['wel', 'niet'], 'ietsjes')  # find a different adverb that does not get inside constituents (ietsjes?)
      ]

@@ -346,6 +346,8 @@ def canbeinfinitive(wrd: str) -> bool:
     result = any([wordinfo[2] == 'i' for wordinfo in wordinfos])
     return result
 
+
+
 def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     '''
 
@@ -396,7 +398,8 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     if treewords != tokenwords:
         settings.LOGGER.error('Token mismatch: {} v. {}'.format(treewords, tokenwords))
         return []
-    themap = {bg(tokennode): token for (tokennode, token) in zip(leaves, tokens)}
+    reducedtokens = [token for token in tokens if not token.skip]
+    themap = {bg(tokennode): token for (tokennode, token) in zip(leaves, reducedtokens)}
     if len(verbs) == 1:
         theverb = verbs[0]
         verbtoken = themap[bg(theverb)]
@@ -414,10 +417,10 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     metadata = copy.deepcopy(tokensmd.metadata)
 
     if len(reducedleaves) >= 2:
-        first = leaves[0]
-        second = leaves[1]
+        first = reducedleaves[0]
+        second = reducedleaves[1]
     if len(reducedleaves) >= 3:
-        third = leaves[0]
+        third = reducedleaves[2]
 
     if len(reducedleaves) == 2:
         if (aanwvnw(first) or knownnoun(first) or perspro(first)) and (predadv(second) or vz(second) or bw(second)):
@@ -440,18 +443,22 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             fpos = int(getattval(first, 'begin'))
             inserttokens = [Token('is' if getal(first) != 'mv' else 'zijn', fpos, subpos=5)]
             resultlist = mktokenlist(tokens, fpos, inserttokens)
-        elif knownnoun(first) and knownnoun(second) and not ispropernoun(second) and not (lemma(first) == lemma(second)):
-            if hasgenitive(first):
-                genform = makegen(lemma(first))
-                fpos = int(getattval(first, 'begin'))
-                inserttokens = [Token("z'n", fpos, subpos=5)]
-                resultlist = mktokenlist(tokens, fpos, inserttokens)
-                metadata += mkinsertmeta(inserttokens, resultlist)
+        elif knownnoun(first) and knownnoun(second)  and not (lemma(first) == lemma(second)):
+            if ishuman(second):
+                insertform = 'zijn' if getal(first) == 'mv' else 'is'
             else:
-                fpos = int(getattval(first, 'begin'))
-                inserttokens = [Token('is' if getal(first) != 'mv' else 'zijn', fpos, subpos=5)]
-                resultlist = mktokenlist(tokens, fpos, inserttokens)
-                metadata += mkinsertmeta(inserttokens, resultlist)
+                insertform = 'willen' if getal(first) == 'mv' else 'wil'
+
+            # if hasgenitive(first):        # Alpino does not parse this right, so it makes no sense
+            #     genform = makegen(lemma(first))
+            #     fpos = int(getattval(first, 'begin'))
+            #     inserttokens = [Token("z'n", fpos, subpos=5)]
+            #     resultlist = mktokenlist(tokens, fpos, inserttokens)
+            #     metadata += mkinsertmeta(inserttokens, resultlist)
+            fpos = int(getattval(first, 'begin'))
+            inserttokens = [Token(insertform, fpos, subpos=5)]
+            resultlist = mktokenlist(tokens, fpos, inserttokens)
+            metadata += mkinsertmeta(inserttokens, resultlist)
         elif (aanwvnw(first) or knownnoun(first) or istswnoun(first) or perspro(first)) and inf(second):
             firstsubject = isfirstsubject(first, second)
             if firstsubject:
@@ -491,8 +498,10 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             inserttokens = [Token(insertform, fpos, subpos=5)]
             resultlist = mktokenlist(tokens, fpos, inserttokens)
             metadata += mkinsertmeta(inserttokens, resultlist)
-    elif len(reducedleaves) >= 2:
-        if theverb is not None and nomperspro(first):  # jij zelf  doen, DLD11,19
+    elif len(reducedleaves) > 2:
+        if theverb is not None and (nomperspro(first) or (knownnoun(first) and intransitive(theverb))) :
+            # jij zelf doen         # DLD11,19
+            # poppie netjes zitten # TD01, 40
             fpos = int(getattval(first, 'begin'))
             insertform = 'moeten' if getal(first) == 'mv' else 'moet'
             inserttokens = [Token(insertform, fpos, subpos=5)]
@@ -505,6 +514,16 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             inserttokens = [Token(insertform, fpos, subpos=5)]
             resultlist = mktokenlist(tokens, fpos, inserttokens)
             metadata += mkinsertmeta(inserttokens, resultlist)
+        elif theverb is None and knownnoun(first) and pt(second) == 'bw' and knownnoun(third):
+            fpos = int(getattval(first, 'begin'))
+            if ishuman(second):
+                insertform = 'zijn' if getal(first) == 'mv' else 'is'
+            else:
+                insertform = 'willen' if getal(first) == 'mv' else 'wil'
+            inserttokens = [Token(insertform, fpos, subpos=5)]
+            resultlist = mktokenlist(tokens, fpos, inserttokens)
+            metadata += mkinsertmeta(inserttokens, resultlist)
+
 
 
     if resultlist == []:

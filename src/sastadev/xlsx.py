@@ -109,7 +109,7 @@ def cond_translate(col: int, cond: str) -> Callable:
             operator = cond[op_start:op_start+len(operator)]
             val =  cond[op_start+len(operator):].strip()
             break
-    goodval = eval(val) if val.isnumeric() else f'"{val}"'
+    goodval = eval(val) if val.isnumeric() else f"{val}"
     if operator == '==':
         return lambda x: x[col] == goodval
     elif operator == '>=':

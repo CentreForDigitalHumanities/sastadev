@@ -106,6 +106,8 @@ def get_prefix_and_core(tokens: List[Token], explanation: List[str]) -> Tuple[Li
     # remove initial interjection, interjection + comma, en/maar if these do not occur in the explanation
     # done: add kijk (eens/maar/ hier/daar...)
 
+    if tokens == [] or explanation == []:
+        return [], tokens
     if tokens[0].word.lower() == explanation[0].lower():
         return [], tokens
     if len(tokens) > 3 and \
