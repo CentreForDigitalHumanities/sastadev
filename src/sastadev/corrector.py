@@ -45,6 +45,7 @@ from sastadev.metadata import (Meta, bpl_word_delprec, bpl_indeze, bpl_node, bpl
                                CHILDRENSPELLINGCORRECTION,
                                EXTRAGRAMMATICAL
                               )
+from sastadev.queryfunctions import get_aanloop_and_core, getuitloop
 from sastadev.sasta_explanation import explanationasreplacement
 from sastadev.sastatoken import Token, tokenlist2stringlist
 from sastadev.sastatypes import (BackPlacement, MethodName, Nort, Penalty,
@@ -236,7 +237,7 @@ def inaanloop(tok, tokens) -> bool:
         return False
     if tokens[0] == tok:
         if len(tokens) == 1:
-            return True
+            return False
         else:
             return tokens[1].word == comma
     else:
@@ -253,14 +254,16 @@ def inuitloop(tok, tokens) -> bool:
         prectoken = tokens[-2]
     result = tok == thetoken and prectoken is not None and prectoken.word == comma
     return result
-def mustberemoved(tok, reducedtokens) -> bool:
+def mustberemoved(tok, toknode, reducedtokens, reducednodeyield) -> bool:
     wordprops = vuwordslexicon[tok.word]
-    removeinaanloop = '1' in wordprops and inaanloop(tok, reducedtokens)
+    aanloop, core = get_aanloop_and_core(reducednodeyield)
+    removeinaanloop = '1' in wordprops and toknode in aanloop
     removefirst = '1' in wordprops and ',' not in wordprops and tok == reducedtokens[0]
-    removeinuitloop = '3' in wordprops and inuitloop(tok, reducedtokens)
+    core, uitloop = getuitloop(core)
+    removeinuitloop = '3' in wordprops and toknode in uitloop
     removelast = '3' in wordprops and ',' not in wordprops and tok == reducedtokens[-1]
-    removeincore = '2' in vuwordslexicon[tok.word] and not inuitloop(tok, reducedtokens) and \
-                   not inaanloop(tok, reducedtokens)
+    removeincore = '2' in vuwordslexicon[tok.word] and not toknode not in uitloop and \
+                   toknode not in aanloop
     result = removeinaanloop or removefirst or removeinuitloop or removelast or removeincore
     return result
 
@@ -307,8 +310,9 @@ def reduce(tokens: List[Token], tree: Optional[SynTree]) -> Tuple[List[Token], L
     allmetadata += metadata
 
     # remove vuwords partially dependent on their position
+    reducednodes = [token2nodemap[token.pos] for token in reducedtokens]
     vutokens = [tok for tok in reducedtokens if tok.word in vuwordslexicon and
-                mustberemoved(tok, reducedtokens)
+                mustberemoved(tok, token2nodemap[tok.pos], reducedtokens, reducednodes)
                 ]
     allremovetokens += vutokens
     reducedtokens = [n for n in reducedtokens if n not in vutokens]

@@ -48,7 +48,7 @@ modalframe = """(contains(@frame,"modal"))"""
 zijnimpok = """(not(@lemma="zijn") or @word="wees" or @word="weest")"""
 potentialimpverb = """(not(contains(@lemma,"moeten") or contains(@lemma,"hoeven") or
               contains(@lemma,"zullen") or contains(@lemma,"kunnen") or
-              contains(@lemma,"mogen") or @lemma="hebben" or contains(@lemma, "_hebben") or contains(@lemma, "weten")
+              contains(@lemma,"mogen") or @lemma="hebben" or contains(@lemma, "_hebben") or contains(@lemma, "weten") or @lemma="vast_zitten"
              )
          )"""
      
@@ -74,7 +74,7 @@ nonsuindexnodecount = """(count(node[%nonsuindexnode%]))"""
 
 fillednode = """node[not(%indexnode%)]"""
 
-particlesvp = """(@rel="svp" and (@pt="vz" or @pt="bw") and not(%svpofhww%))"""
+particlesvp = """(@rel="svp"  and not(%svpofhww%))"""
 
 realcomplormodnodecount = """count(%realcomplormodnode% | node[%nonfinvc%]/%realcomplormodnode%)"""
 
@@ -124,7 +124,9 @@ Tarsp_OndVC = """((%coreondvc% or %dpdpondvc%)  and count(node) = 2 and %onlythe
 
 beetje = """(@word="beetje")"""
 
-coreondvc = """(((node[%subject% and not(%beetje%) and not(node[%ooknogmod%])]) or node[@naamval="nomin" and not(node[%ooknogmod%])]) and  node[%Tarsp_Basic_VC% and not(node[%ooknogmod%])]) """
+adj_n_svp = """node[@rel="svp" and (@pt="adj" or @pt="n")]"""
+
+coreondvc = """(((node[%subject% and not(%beetje%) and not(node[%ooknogmod%])]) or node[@naamval="nomin" and not(node[%ooknogmod%])]) and  (node[%Tarsp_Basic_VC%  and not(node[%ooknogmod%])] or %adj_n_svp%)) """
 dpdpondvc = """(node[@rel="dp" and %nominal% and not(node[%ooknogmod%]) and not(%beetje%) and @end<../node/@end] and node[@rel="dp" and (@cat="ap" or @pt="adj")and not(node[%ooknogmod%])])"""
 
 nominal = """(@pt="n" or @pt="vnw" or (@cat="np" ))"""
@@ -214,7 +216,7 @@ Tarsp_VC_X_count = """count(node[%Tarsp_VC%] | node[%nonfinvc%]/node[%Tarsp_VC%]
 Tarsp_VC_X = """(node[%Tarsp_VC%] or node[%nonfinvc%]/node[%Tarsp_VC%])"""
 Tarsp_W = """node[@rel="hd" and @pt="ww"]"""
 Tarsp_VCr1 = """node[%Tarsp_VC%] """
-Tarsp_VC = """((@rel="obj1" or (@rel="pc" and not(%Tarsp_pc_vc_exception%)) or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% or (@rel="svp" and @pt!="vz" and @pt!="bw")) and not(%Tarsp_B%) )"""
+Tarsp_VC = """((%independentobj1% or (@rel="pc" and not(%Tarsp_pc_vc_exception%)) or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% ) and not(%Tarsp_B%) )"""
 Tarsp_finvc = """(@rel="vc" and (@cat="cp" or @cat="whsub"))"""
 Tarsp_vcvnw = """(@rel="vc" and @pt="vnw")"""
 
@@ -275,7 +277,17 @@ vabcBBX = """((@cat!="smain" and @cat!="sv1") and
               ) """
 
 nadvpbbBBX = """(node[not(%Tarsp_B%) and (not(@pt) or (@pt!="ww" and @pt!="let")) and @cat!="advp"] and node[@cat="advp" and node[@rel="mod" ] and node[@rel="hd" ]] and count(node) = 2 and %onlythesearerealwords%) """
-bplusxpbBBX = """(node[%Tarsp_B% and @rel!="tag"] and not(node[@pt="ww"]) and node[not(%Tarsp_B%) and count(.//node[%Tarsp_B%]) = 1]and %onlythesearerealwords%)"""
+oldbplusxpbBBX = """(node[%Tarsp_B% and @rel!="tag" ] and not(node[@pt="ww"]) and node[not(%Tarsp_B%) and count(.//node[%Tarsp_B%]) = 1] and %onlythesearerealwords%)"""
+
+
+bplusxpbBBX = """(count(.//node[@pt and %Tarsp_B%]) = 2 and 
+                  ((count(.//node[@pt and not(%Tarsp_B%) and  @pt!="vg"]) = 1 and ancestor::node[@cat="top" and count(.//node[%realwordnode%]) = 3]) or
+                   (count(.//node[@pt="ww" and @wvorm="pv"]) = 1 and
+                    count(.//node[@pt="ww" and (@wvorm="inf" or @wvorm="vd")]) = 1 and
+		            ancestor::node[@cat="top" and count(.//node[%realwordnode%]) = 4]
+                   )
+                  )
+                 )"""
 
 smallclausebbx = """(@cat="smain" and node[%complement%] and count(node[%coreB%])=2 and count(node)=3 and %onlythesearerealwords% )"""
 		
@@ -334,14 +346,15 @@ oldrobusthwwi = """ (@cat="top" and
 				  )
 				  
 """
-				
+
+nosvpnode = """node[not(%svp_verb_part%)]"""			
 	   
 Tarsp_hehe = """ (@lemma="hè" and @end = ancestor::node[@cat="top"]/descendant::node[@lemma="hè"]/@begin)"""
 
 simplevcw = """
 ( node[@rel="hd" and @pt="ww" and not(%Tarsp_kijkVU%)] and
   node[%Tarsp_Basic_VC%] and
-  count(node) = 2 and
+  count(%nosvpnode%) = 2 and
   %onlythesearerealwords%
 )
 """
@@ -350,7 +363,7 @@ infsuvcw = """
 ( node[@rel="hd" and @pt="ww" and not(%Tarsp_kijkVU%)] and
   node[%Tarsp_Basic_VC%] and
   node[@rel="su" and not(@cat) and not(@word)] and
-  count(node) = 3 and
+  count(%nosvpnode%) = 3 and
   %onlythesearerealwords%
 )
 """
@@ -359,7 +372,7 @@ infsuvcw = """
 infvcw = """
 ( node[@rel="hd" and @pt="ww" and not(%Tarsp_kijkVU%)] and
   node[%Tarsp_Basic_VC%] and
-  count(node) = 2 and
+  count(%nosvpnode%) = 2 and
   %onlythesearerealwords%
 )
 """
@@ -373,7 +386,7 @@ vcvcw = """
 suvcw = """
 ( node[@rel="su"] and
   node[@rel="vc" and @cat="inf" and node[@rel="su" and not(@cat) and not(@word)] and node[@rel="hd" and @pt="ww"] and count(node)=2]
-  and count(node) = 2
+  and count(%nosvpnode%) = 2
   and %onlythesearerealwords%
 )
 """
@@ -388,8 +401,10 @@ Tarsp_vcw = """
 
 singlecharnoun = """(@pt="n" and string-length(@word) = 1)""" 
 chatcode = """(@word="xxx" or @word="xx" or @word="yyy" or @word="yy") """
+extragrammaticalvuword = """(contains(ancestor::alpino_ds/descendant::xmeta[@name="ExtraGrammatical"]/@annotatedposlist, @begin))"""
 
-realwordnode = """ (@word and @pt!="let" and (@pt!="tsw" or %tswnoun%) and not(%Tarsp_kijkVU%) and not(%singlecharnoun%) and not(%chatcode%))
+
+realwordnode = """ (@word and @pt!="let" and (@pt!="tsw" or %tswnoun%) and not(%Tarsp_kijkVU%) and not(%singlecharnoun%) and not(%chatcode%) and not(%extragrammaticalvuword%))
 """
 
 horenaux = """(@lemma="horen" and 
