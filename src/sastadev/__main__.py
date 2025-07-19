@@ -1438,9 +1438,9 @@ def main():
 
     # breakpoint()
 
-# filters=[(informcol, "inform == yes")]
+# filters=[(informcol, "inform == yes")] added again
     wb = mkworkbook(platinumcheckxlfullname, pcheaders, allrows, freeze_panes=(1, 9),
-                    column_widths=platinumcheck_column_widths)
+                    column_widths=platinumcheck_column_widths, filters=[(informcol, "inform == yes")])
     wb.close()
 
     writecsv(allrows, platinumcheckfilename, header=pcheaders[0])

@@ -96,6 +96,9 @@ def mkworkbook(outfullname, headers, allrows, sheetname='Sheet1', freeze_panes=N
             if not pythoncond(row):
                 worksheet1.set_row(rowctr + 1, options={"hidden": True})
 
+    # put the cursor on top again
+    worksheet1.set_row(1, options={"hidden": False})
+
     return workbook
 
 
@@ -109,22 +112,27 @@ def cond_translate(col: int, cond: str) -> Callable:
             operator = cond[op_start:op_start+len(operator)]
             val =  cond[op_start+len(operator):].strip()
             break
-    goodval = eval(val) if val.isnumeric() else f"{val}"
-    if operator == '==':
-        return lambda x: x[col] == goodval
-    elif operator == '>=':
-        return lambda x: x[col] >= goodval
-    elif operator == '<=':
-        return lambda x: x[col] <= goodval
-    elif operator == '!=':
-        return lambda x: x[col] != goodval
-    elif operator == '>':
-        return lambda x: x[col] > goodval
-    elif operator == '<':
-        return lambda x: x[col] < goodval
+    if val == 'NonBlanks':             # we allow any operator here
+        return lambda x: x[col] is not None and x[col].strip() != ''
+    elif val == 'Blanks':
+        return lambda x: x[col] is None or x[col].strip() != ''
     else:
-        ## issue an errro
-        return lambda x: False
+        goodval = eval(val) if val.isnumeric() else f"{val}"
+        if operator == '==':
+            return lambda x: x[col].strip() == goodval
+        elif operator == '>=':
+            return lambda x: x[col].strip() >= goodval
+        elif operator == '<=':
+            return lambda x: x[col].strip() <= goodval
+        elif operator == '!=':
+            return lambda x: x[col].strip() != goodval
+        elif operator == '>':
+            return lambda x: x[col].strip() > goodval
+        elif operator == '<':
+            return lambda x: x[col].strip() < goodval
+        else:
+            ## issue an error
+            return lambda x: False
 
 
 
@@ -157,7 +165,7 @@ def adaptformats(formats, workbook):
     return realformats
 
 
-def add_worksheet(workbook, headers, allrows, sheetname='Sheet2', freeze_panes=None, formats=[]):
+def add_worksheet(workbook, headers, allrows, sheetname='Sheet2', freeze_panes=None, formats=[], filters=[]):
     bold = workbook.add_format({'bold': True})
 
     realformats = adaptformats(formats, workbook)
@@ -190,6 +198,19 @@ def add_worksheet(workbook, headers, allrows, sheetname='Sheet2', freeze_panes=N
         rowctr += 1
 
     worksheet1.autofilter(0, 0, rowctr, colctr)
+
+    # filter for any values
+    for col, cond in filters:
+        worksheet1.filter_column(col, cond)
+        # hide the non-matching rows
+        pythoncond = cond_translate(col, cond)
+        for rowctr, row in enumerate(allrows):
+            if not pythoncond(row):
+                worksheet1.set_row(rowctr + 1, options={"hidden": True})
+
+    # put the cursor on top again
+    worksheet1.set_row(1, options={"hidden": False})
+
     return worksheet1
 
 

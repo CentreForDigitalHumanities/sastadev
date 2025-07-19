@@ -134,8 +134,7 @@ nominal = """(@pt="n" or @pt="vnw" or (@cat="np" ))"""
 Tarsp_OndBVC = """(%Ond% and node[%Tarsp_Basic_B%]  and node[%Tarsp_Basic_VC%]  and count(node) = 3) """
 
 coreXneg = """( count(node) = 2 and node[ %realwordnode% and @lemma!="niet"] and 
-                (node[@lemma="niet" ] or 
-	             node[@cat="advp" and node[@lemma="niet"] ]
+                (node[@lemma="niet" ]  
 	            )
 			  ) """
 

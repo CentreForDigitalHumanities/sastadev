@@ -282,6 +282,7 @@ basicreplacementlist: List[BasicReplacement] = [('as', 'als', pron, infpron, cod
                                                 ('hun', 'zij', grammar, regionalform, casevariant, mp(0) ),
                                                 ('zijn', "z'n", avoidambiguity, avoidambiguity, ww_vnw_ambiguity, dp),
                                                 ('teefee', 'tv', pron, infpron, vzdevoicing, dp),
+                                                ('itte', 'eerst', pron, wrongpron, codared, dp),
                                                 # ('kijke', 'kijk', pron, infpron, emphasis, dp), # TD05, 32 moved to disambuguationdict
                                                 # ('geel', 'mooi', avoidambiguity, adjnambiguity, dp), #TD05, 24
                                                 # ('Roy', 'Jan', avoidambiguity, pnnambiguity, dp)
