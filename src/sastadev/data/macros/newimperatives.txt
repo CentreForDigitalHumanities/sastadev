@@ -63,7 +63,7 @@ nonfincat = """(@cat="inf" or @cat="ppart")"""
 nonfinvc = """(@rel="vc" and %nonfincat%) """
 
 realcomplormodnode = """node[%realcomplormod%]"""
-realcomplormod = """(not(%particlesvp%) and (not(%indexnode%) or %includeindexnode%) and not(%nonfinvc%) and not(@rel="hd"))"""
+realcomplormod = """(not(%particlesvp%) and (not(%indexnode%) or %abarboundtrace%) and not(%nonfinvc%) and not(@rel="hd"))"""
 indexnode = """(@index and not (@cat or @pt or @pos))"""
 indexnodecount = """(count(node[%indexnode%]))"""
 includeindexnode = """(%indexnode% and  parent::node[@cat="ssub" and parent::node[@cat="rel" ]])"""
@@ -114,7 +114,7 @@ wond5plus = """(%ynquery% and %realcomplormodnodecount% >= 4)"""
 onlythesearerealwords = """(count(.//node[%bxrealwordnode%]) = count(%allbxrealwordnodes%))"""
 
 
-partofwhquestion = """((@cat="sv1" or @cat="ssub") and @rel="body" and parent::node[@cat="whq" or @cat="whsub" ]) """
+partofwhquestion = """((@cat="sv1" or @cat="ssub") and @rel="body" and parent::node[@cat="whq" or @cat="whsub" or (@cat="whrel" and %indeprel%) ]) """
 declarative = """(@cat="smain" or %nonfindeclarative% or (@cat="ssub" and not(%partofwhquestion%)) or (@cat="sv1" and not(%basicimperative%) and not(%ynquery%) and not(%partofwhquestion%)) )"""
 
 nonfindeclarative = """((@cat="inf" or @cat="ppart") and @rel!="vc" and  %onlythesearerealwords% )"""
@@ -228,13 +228,15 @@ Tarsp_WOnd4 = """(%ynquery% and not(%basicimperative%) and %topcontainsquestionm
 Tarsp_WOnd5plus = """(%ynquery% and not(%basicimperative%) and %topcontainsquestionmark% and %Tarsp_W% and %Ond% and %realcomplormodnodecount% =4)
 """
 
-Tarsp_whq = """((@cat="whq" and @rel="--") or (@cat="whsub") or (@cat="whrel" and @rel="--"))"""
+indeprel = """(@rel="--" or @rel="nucl" or @rel="cnj" or @rel="dp")""" 
+
+Tarsp_whq = """((@cat="whq" and %indeprel%) or (@cat="whsub") or (@cat="whrel" and %indeprel%))"""
 
 Tarsp_whqhead = """(@rel="whd" or @rel="rhd") """
 whqbody = """((@cat="sv1" or @cat="ssub") and @rel="body")"""
 Tarsp_coreVrXY = """(%Tarsp_whq% and
         node[%Tarsp_whqhead%] and
-        node[%whqbody%   and %realcomplormodnodecount% < 2])"""
+        node[%whqbody%   and %realcomplormodnodecount% < 3])"""
 		
 		
 vraagwoord = """((@pt="vnw" and @vwtype="vb") or @lemma="hoe" or @lemma="wanneer" or  starts-with(@lemma, "waar") or @lemma="welk")"""
@@ -242,15 +244,15 @@ vraagwoord = """((@pt="vnw" and @vwtype="vb") or @lemma="hoe" or @lemma="wanneer
 Vr = """(%vraagwoord% or (@cat=pp and node[@rel="obj1" and %vraagwoord%]) )""" 
 
 
-Tarsp_VrXY = """(%Tarsp_coreVrXY% or (%Vr% and not(../node[%whqbody%]) and count(..//node[%realnode%]) <= 3)) """
+Tarsp_VrXY = """(%Tarsp_coreVrXY% or (%Vr% and not(../node[%whqbody%]) and count(..//node[%realnode%]) < 3)) """
 
 Tarsp_Vr4 = """(%Tarsp_whq% and
         node[%Tarsp_whqhead%] and
-        node[%whqbody%  and %realcomplormodnodecount% = 2])"""
+        node[%whqbody%  and %realcomplormodnodecount% = 3])"""
 
 Tarsp_Vr5plus = """(%Tarsp_whq% and
         node[%Tarsp_whqhead%] and
-        node[%whqbody%  and %realcomplormodnodecount% > 2])"""
+        node[%whqbody%  and %realcomplormodnodecount% > 3])"""
 		
 old_Tarsp_BBX = """((@cat="top" and
    count(.//node[@pt!='let' and @pt!='vg'])=3 and 

@@ -244,7 +244,9 @@ independentobj1 = """(@rel="obj1" and
 	   )
 	  )"""
 
-Tarsp_Basic_VC = """((%independentobj1% or @rel="pc"  or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% ) and not(%Tarsp_Basic_B%) )"""
+countin = """(@pt or @cat or %abarboundtrace%)"""
+
+Tarsp_Basic_VC = """((@rel="obj1" or @rel="pc"  or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% ) and %countin% and not(%Tarsp_Basic_B%) )"""
 
 
 Tarsp_Basic_B = """(@rel="mod" or @rel="ld" or @rel="predm"  or %Tarsp_B_predc%) """
@@ -895,6 +897,8 @@ bvb = """(not(%bvbvraagwoord%) and
 						 
 covertnonfinsubj = """(@rel="su" and not(@pt) and not(@cat) and @index and parent::node[@cat="inf" or @cat="ppart"])"""
 
-abarboundtrace = """(not(@rel="su"  and parent::node[@cat="inf" or @cat="ppart"]) and not(@pt) and not(@cat) and @index = parent::node/parent::node/node[@rel!="su"]/@index)"""
+abarboundtrace = """(not(%aboundtrace%) and not(@rel="su"  and parent::node[@cat="inf" or @cat="ppart"]) and not(@pt) and not(@cat) and @index = ancestor::node/node[@rel="rhd" or @rel="whd"]/@index)"""
 
-aboundtrace = """(@rel="obj1" or @rel="obj2") and not(@pt) and not(@cat) and @index = parent::node/parent::node/node[@rel="su"]/@index)""" 
+aboundtrace = """((@rel="obj1" or @rel="obj2") and not(@pt) and not(@cat) and @index = parent::node/parent::node/node[@rel="su"]/@index)""" 
+
+ellipticgap = """(not(@pt) and not@cat) and not(@pos) and not(%covertnonfinsubj%) and not(%abarboundtrace%) and not(%aboundtrace%)"""
