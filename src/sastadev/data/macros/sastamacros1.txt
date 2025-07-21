@@ -901,4 +901,4 @@ abarboundtrace = """(not(%aboundtrace%) and not(@rel="su"  and parent::node[@cat
 
 aboundtrace = """((@rel="obj1" or @rel="obj2") and not(@pt) and not(@cat) and @index = parent::node/parent::node/node[@rel="su"]/@index)""" 
 
-ellipticgap = """(not(@pt) and not@cat) and not(@pos) and not(%covertnonfinsubj%) and not(%abarboundtrace%) and not(%aboundtrace%)"""
+ellipticgap = """(not(@pt) and not(@cat) and not(@pos) and not(%covertnonfinsubj%) and not(%abarboundtrace%) and not(%aboundtrace%))"""
