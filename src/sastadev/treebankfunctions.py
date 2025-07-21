@@ -2191,8 +2191,8 @@ def subclasscompatible(sc1, sc2):
     result = (sc1 == sc2) or \
              (sc1 in ['pr', 'refl'] and sc2 in ['pr', 'refl']) or \
              (sc1 in ['pr', 'pers'] and sc2 in ['pr', 'pers']) or \
-             (sc1 in ['init', 'versm'] and sc2 in ['init', 'versm']) or \
-             (sc1 in ['pv', 'inf']) and sc2 in ['pv', 'inf']
+             (sc1 in ['init', 'versm'] and sc2 in ['init', 'versm'])
+            #  (sc1 in ['pv', 'inf']) and sc2 in ['pv', 'inf']    # put off for dldl07,23 hij kan loop
     return result
 
 

@@ -268,7 +268,8 @@ old_corebb = """ ((@special="er_loc" or @pt="bw" or @pt="vz" or (@pt="adj" and @
    
 coreBBX = """((@cat!="smain" and @cat!="sv1") and count(node[%coreB%])=2 and count(node) = 3 and %onlythesearerealwords% )"""
 clausalBBX = """((@cat="sv1" or @cat="smain") and not(%basicimperative%) and not(%ynquery%) and not(%Ond%) and  %Tarsp_W% and count(node[%Tarsp_B%]) = 2 and  count(node) = 3 and %onlythesearerealwords%)"""
-wvcBBX = """((@cat="sv1" or @cat="smain") and not(%basicimperative%) and not(%ynquery%) and not(%Ond%) and  %Tarsp_W%  and node[@rel="vc" and count(node[%Tarsp_B%]) = 2 and  count(node) = 3 ] and %onlythesearerealwords%) """ 
+wvcBBX = """((@cat="sv1" or @cat="smain") and not(%basicimperative%) and not(%ynquery%) and not(%Ond%) and  %Tarsp_W%  and 
+              node[@rel="vc" and count(node[%Tarsp_B%]) = 2 and  count(%realcomplormodnode%) = 2 and node[@pt="ww"] ] and %onlythesearerealwords%) """ 
 abcBBX = """((@cat!="smain" and @cat!="sv1") and node[%Tarsp_B% and @rel!="tag"] and node[node[%Tarsp_B%] and count(node) =2 ] and count(node[%realnode%]) = 2 and %onlythesearerealwords%)"""		
 vabcBBX = """((@cat!="smain" and @cat!="sv1") and 
                count(node[%realnode%]) = 2 and 

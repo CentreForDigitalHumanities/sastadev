@@ -18,7 +18,7 @@ from sastadev.sastatypes import Nort, SynTree
 from sastadev.stringfunctions import deduplicate, string2list
 from sastadev.tblex import asta_recognised_wordnode
 from sastadev.treebankfunctions import (all_lower_consonantsnode, find1,
-                                        getattval, getnodeyield,
+                                        getattval, getnodeyield, getsentence, getxsid,
                                         lastmainclauseof, openclasspts)
 
 nodetype = etree._Element
@@ -955,9 +955,11 @@ def samplesize2(stree: SynTree) -> Tuple[List[SynTree], DupInfo]:
                 if newnode is not None:
                     mdnodes.append(newnode)
                 else:
+                    xsid = getxsid(stree)
+                    sentence = getsentence(stree)
                     settings.LOGGER.error(
-                        'Metadata node not found in tree: md.begin={}'.format(tokenbegin))
-                    etree.dump(stree)
+                        f'Metadata node not found in tree: md.begin={tokenbegin}\n{xsid}: {sentence}')
+                    # etree.dump(stree)
     excludednodes += mdnodes
     tokennodelist = [n for n in tokennodelist if n not in excludednodes]
     resultlist += mdnodes
