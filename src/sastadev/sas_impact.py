@@ -1,15 +1,16 @@
 """"
 The module sas_impact ..(to be completed)
 """
-from collections import Counter
 import copy
+from collections import Counter
+from typing import Dict, List, Tuple
+
 from sastadev.allresults import AllResults
 from sastadev.conf import settings
 from sastadev.methods import Method
-from sastadev.rpf1 import getscores, getevalscores, sumfreq
 from sastadev.resultsbyutterance import getresultsbyutt, getscoresbyutt2
+from sastadev.rpf1 import getevalscores, getscores, sumfreq
 from sastadev.sastatypes import ResultsDict, UttId
-from typing import Dict, List, Tuple
 
 # maximum nuber of utterances to be reviewed
 maxutt = 15
@@ -53,35 +54,6 @@ def sas_impact(results: ResultsDict, silverrefscores: ResultsDict, method: Metho
             break
     return allscores
 
-
-def oldgetcomparisonscores(resultsbyutt, refbyutt) -> dict:
-    resultdict = {}
-    for uttid in resultsbyutt:
-        if uttid in refbyutt:
-            ref = refbyutt[uttid]
-        else:
-            settings.LOGGER.error(f'Utterance {uttid} in results but not in reference')
-            ref = Counter()
-        res = resultsbyutt[uttid]
-        score = oldgetcomparisonscore(res, ref)
-        resultdict[uttid] = score
-
-    for uttid in refbyutt:
-        if uttid not in resultsbyutt:
-            settings.LOGGER.error(f'Utterance {uttid} in reference but not in results')
-            res = Counter()
-            ref = refbyutt[uttid]
-            score = oldgetcomparisonscore(res, ref)
-            resultdict[uttid] = score
-    return resultdict
-def oldgetcomparisonscore(res, ref) -> int:
-    intersection = res & ref
-    resminint = res - intersection
-    refminint = ref - intersection
-    cresminint = sum(resminint.values())
-    crefminint = sum(refminint.values())
-    score = (crefminint, cresminint)
-    return score
 
 def getcomparisonscores(resultsbyutt, refbyutt) -> dict:
     basescore = getscoresallutts(resultsbyutt, refbyutt)

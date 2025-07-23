@@ -10,6 +10,6 @@ The SASTAdev modules can be found in the  git repository https://github.com/UUDi
 
 There is also a whole range of scripts that are useful in developing SASTAdev but that are not part of it. It has separate documentation, which can be found here: https://github.com/UUDigitalHumanitieslab/sasta-scripts.
 
-Data for the development of SASTA and SASTdev are maintained in the git repository https://github.com/UUDigitalHumanitieslab/sasta-datasets.
+Data for the development of SASTA and SASTAdev are maintained in the git repository https://github.com/UUDigitalHumanitieslab/sasta-datasets.
 
 The SASTA application itself is maintained in the git repository https://github.com/UUDigitalHumanitieslab/sasta.

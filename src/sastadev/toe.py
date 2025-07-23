@@ -1,12 +1,13 @@
-from sastadev.treebankfunctions import getattval, getnodeyield, mktoken2nodemap
-from sastadev.conf import settings
-from sastadev.alpino import getdehetwordinfo
-from sastadev.lexicon import isalpinonouncompound
-from sastadev.sastatypes import SynTree
-from sastadev.sastatoken import Token
 from typing import List
+
+from sastadev.alpino import getdehetwordinfo
+from sastadev.conf import settings
+from sastadev.lexicon import isalpinonouncompound
+from sastadev.sastatoken import Token
+from sastadev.sastatypes import SynTree
 from sastadev.smallclauses import bg, mkinsertmeta, realword, word
 from sastadev.tokenmd import TokenListMD
+from sastadev.treebankfunctions import getattval, getnodeyield, mktoken2nodemap
 
 lonelytoe = 'Lonely toe'
 
@@ -34,7 +35,8 @@ def lonelytoe(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     treewords = [word(tokennode) for tokennode in leaves]
     tokenwords = [token.word for token in tokens if not token.skip]
     if treewords != tokenwords:
-        settings.LOGGER.error('Token mismatch: {} v. {}'.format(treewords, tokenwords))
+        settings.LOGGER.warning(
+            'Token mismatch: {} v. {}'.format(treewords, tokenwords))
         return []
     token2nodemap = mktoken2nodemap(tokens, tree)
     metadata = tokensmd.metadata

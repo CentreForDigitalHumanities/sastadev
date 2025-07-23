@@ -147,7 +147,7 @@ Determiner agreement errors
 
 Determiner Agreement errors (e.g. *de huis* instead of *het huis*) are dealt with by the function *getwrongdetalternatives* from the module *corrector*.
 
-.. autofunction:: sastdev.corrector::getwrongdetalternatives
+.. autofunction:: sastadev.corrector::getwrongdetalternatives
 
 
   

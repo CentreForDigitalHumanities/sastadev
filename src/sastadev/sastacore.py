@@ -59,7 +59,7 @@ def doauchann(intreebank: SynTree) -> SynTree:
 
 def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
               annotatedfileresults: Optional[AllResults],
-              scp: SastaCoreParameters):
+              scp: SastaCoreParameters) -> Tuple[AllResults, SampleSizeTuple]:
     invalidqueries = {}
 
     annotationinput = scp.annotationinput
@@ -129,7 +129,7 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
                 # uttno = getuttno(syntree)
                 # allutts[uttno] = getyield(syntree)
                 allutts[uttid] = getyield(syntree)
-                junk = 0
+
 
         # determine exactresults and apply the filter to catch interdependencies between prequeries and corequeries
         # rawexactresults = getexactresults(allmatches)
@@ -199,7 +199,6 @@ def doqueries(syntree: SynTree, queries: QueryDict, exactresults: ExactResultsDi
         syntree, 'Omitted Word', poslistname='annotatedposlist')
     # print(uttid)
     # core queries
-    junk = 0
     for queryid in queries:  # @@ dit aanpassen voor literals en voor Resultskey; check read_referencefile
         # if queryid not in exactresults: # not needed becaysetaken care of below
         #     exactresults[queryid] = []

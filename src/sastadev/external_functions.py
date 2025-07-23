@@ -28,7 +28,9 @@ from sastadev.compounds import getcompounds
 from sastadev.dedup import correct, mlux, onvolledig, samplesize
 from sastadev.imperatives import bbx, wond4, wond5plus, wondx, wx, wxy, wxyz, wxyz5
 from sastadev.methods import allok, astalemmafilter
-from sastadev.queryfunctions import hequery, tarsp_mvzn, tarsp_verkl, VzN, vobij, voslashbij, vudivers, xneg_neg, xneg_x
+from sastadev.queryfunctions import (VzN, hequery, tarsp_mvzn, tarsp_verkl,
+                                     vobij, voslashbij, vudivers, xneg_neg,
+                                     xneg_x)
 from sastadev.stapforms import makestapform
 from sastadev.STAPpostfunctions import GL5LVU, GLVU, BB_totaal
 from sastadev.Sziplus import sziplus6, vr5plus
@@ -85,8 +87,6 @@ str2functionmap: Dict[str, QueryFunction] = {}
 for f in thefunctions:
     fname = getfname(f)
     str2functionmap[fname] = f
-
-junk = 0
 
 # Used by SASTA to find form functions
 form_map: Dict[str, Callable] = {

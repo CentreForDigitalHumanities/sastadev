@@ -1,10 +1,12 @@
+import os
 from collections import defaultdict
+from typing import Dict, List, Tuple
+
+from spellchecker import SpellChecker
+
 from sastadev.conf import settings
 from sastadev.lexicon import spellingadditions
 from sastadev.readcsv import readcsv
-import os
-from spellchecker import SpellChecker
-from typing import Dict, List, Tuple
 
 comma = ','
 hyphen = '-'
@@ -159,13 +161,15 @@ trgfrqdict, othfrqdict, allfrqdict = getchildesfrq()
 children_correctionsfilename = 'children_storedcorrections.txt'
 correctionspath = os.path.join(settings.SD_DIR, 'data/storedcorrections')
 children_correctionsfullname = os.path.join(correctionspath, children_correctionsfilename)
-children_correctionsdict = getstoredcorrections(children_correctionsfullname)
+children_correctionsdict = getstoredcorrections(
+    children_correctionsfullname) if os.path.isfile(children_correctionsfullname) else {}
 
 # read the stored corrections for adults into a dictionary
 adult_correctionsfilename = 'adult_storedcorrections.txt'
 correctionspath = os.path.join(settings.SD_DIR, 'data/storedcorrections')
 adult_correctionsfullname = os.path.join(correctionspath, adult_correctionsfilename)
-adult_correctionsdict = getstoredcorrections(adult_correctionsfullname)
+adult_correctionsdict = getstoredcorrections(
+    adult_correctionsfullname) if os.path.isfile(adult_correctionsfullname) else {}
 
 
 

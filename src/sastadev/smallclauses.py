@@ -39,11 +39,12 @@ from typing import List
 
 from sastadev.conf import settings
 from sastadev.dedup import filledpauseslexicon
-from sastadev.lexicon import known_word, tswnouns, getwordinfo
+from sastadev.lexicon import getwordinfo, known_word, tswnouns
 from sastadev.metadata import (SASTA, Meta, bpl_delete, bpl_none,
                                defaultpenalty, insertion,
-                               insertiontokenmapping, modifypenalty as mp, smallclause,
-                               tokenmapping)
+                               insertiontokenmapping)
+from sastadev.metadata import modifypenalty as mp
+from sastadev.metadata import smallclause, tokenmapping
 from sastadev.namepartlexicon import namepart_isa_namepart
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import SynTree
@@ -396,7 +397,8 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     treewords = [word(tokennode) for tokennode in leaves]
     tokenwords = [token.word for token in tokens if not token.skip]
     if treewords != tokenwords:
-        settings.LOGGER.error('Token mismatch: {} v. {}'.format(treewords, tokenwords))
+        settings.LOGGER.warning(
+            'Token mismatch: {} v. {}'.format(treewords, tokenwords))
         return []
     reducedtokens = [token for token in tokens if not token.skip]
     themap = {bg(tokennode): token for (tokennode, token) in zip(leaves, reducedtokens)}

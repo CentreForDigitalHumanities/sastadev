@@ -36,6 +36,7 @@ sastalog.txt
 
 # documentation
 Documentation/_build/
+src/sastadev/docs/_build
 
 # Distribution / packaging
 bin/

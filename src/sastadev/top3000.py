@@ -125,6 +125,3 @@ for row in lexicondata:
     rawgens = row[9].split(semicolon)
     gens = [el.strip() for el in rawgens]
     genlexicon[(lemma, pt)] = gens
-
-#next statement for debugging purposes
-junk = 0

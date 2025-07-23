@@ -1,8 +1,8 @@
-from sastadev.lexicon import known_word, initializelexicon
-import re
 import os
-from sastadev.conf import settings
+import re
 
+from sastadev.conf import settings
+from sastadev.lexicon import initializelexicon, known_word
 
 space = ' '
 interpunction = """.,/:;?!"'"""
@@ -31,7 +31,6 @@ vuwordslexiconfullname = os.path.join(lexiconfoldername, vuwordslexiconfilename)
 vuwordslexicon = initializelexicon(vuwordslexiconfullname)
 
 
-junk = 0
 
 
 def alldutchwords(correct: str) -> bool:

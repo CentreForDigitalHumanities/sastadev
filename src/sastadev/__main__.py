@@ -134,16 +134,15 @@ Sastadev logs its actions through:
 # to do
 # -Excel output, cleanup output code
 
+import copy
 import datetime
+import json
 import logging
 import os
 import re
 import sys
-import copy
 import time
-import json
 from collections import Counter, defaultdict
-from dataclasses import dataclass
 from optparse import OptionParser
 from typing import Any, Callable, Dict, List, Optional, Pattern, Tuple
 
@@ -151,62 +150,64 @@ import xlsxwriter
 from lxml import etree
 
 from sastadev import compounds
-from sastadev.allresults import (AllResults, ExactResultsDict, MatchesDict,
-                                 ResultsKey, mkresultskey, scores2counts,
+from sastadev.allresults import (AllResults, mkresultskey, scores2counts,
                                  showreskey)
 from sastadev.conf import settings
-from sastadev.constants import (analysissuffix, bronzefolder, bronzesuffix, byuttscoressuffix, checksuffix, checkeditedsuffix,
-                                correctedsuffix, formsfolder, intreebanksfolder,
-                                loggingfolder, outtreebanksfolder, permprefix, platinumsuffix,
-                                platinumeditedsuffix,
-                                resultsfolder, silverfolder, silverpermfolder, silversuffix)
+from sastadev.constants import (analysissuffix, bronzefolder, bronzesuffix,
+                                byuttscoressuffix, checksuffix,
+                                correctedsuffix, formsfolder,
+                                intreebanksfolder, loggingfolder,
+                                outtreebanksfolder, resultsfolder,
+                                silverfolder, silverpermfolder, silversuffix)
 from sastadev.context import getcontextdict
 from sastadev.correctionparameters import CorrectionParameters
-from sastadev.correcttreebank import (correcttreebank, corr0, corrn, errorwbheader, validcorroptions)
+from sastadev.correcttreebank import (corr0, correcttreebank, corrn,
+                                      errorwbheader, validcorroptions)
 from sastadev.counterfunctions import counter2liststr
 from sastadev.datasets import dsname2ds
-from sastadev.filefunctions import make_filelist, get_dataset_samplename, getsamplename
 from sastadev.external_functions import str2functionmap
+from sastadev.filefunctions import get_dataset_samplename, make_filelist
 from sastadev.goldcountreader import get_goldcounts
-from sastadev.history import (donefiles, donefilesfullname, gathercorrections, mergecorrections, putcorrections,
-                              putdonefilenames, children_samplecorrections, children_samplecorrectionsfullname,
-                              adult_samplecorrections, adult_samplecorrectionsfullname)
+from sastadev.history import (adult_samplecorrections,
+                              adult_samplecorrectionsfullname,
+                              children_samplecorrections,
+                              children_samplecorrectionsfullname, donefiles,
+                              donefilesfullname, gathercorrections,
+                              mergecorrections, putcorrections,
+                              putdonefilenames)
 from sastadev.macros import expandmacros
-from sastadev.mismatches import exactmismatches, literalmissedmatches, informcol, markingcol, samplecol, uttidcol
-from sastadev.methods import (Method, astamethods, stapmethods,
-                              supported_methods, tarspmethods, treatmethod)
-from sastadev.permcomments import getallcomments, pcheaders, platinumcheck_column_widths
-from sastadev.query import (Query, is_preorcore,
-                            post_process, query_exists, query_inform)
+from sastadev.methods import Method, supported_methods, treatmethod
+from sastadev.mismatches import exactmismatches, informcol, literalmissedmatches, samplecol, uttidcol
+from sastadev.permcomments import (getallcomments, pcheaders,
+                                   platinumcheck_column_widths)
+from sastadev.query import (Query, is_preorcore, post_process, query_exists,
+                            query_inform)
 from sastadev.readcsv import writecsv
 from sastadev.readmethod import itemseppattern, read_method
-from sastadev.resultsbyutterance import getexactbyutt, exactbyuttdict2table, exactresultsbyuttheader, getscoresbyutt, \
-    mkscoresbyuttrows, \
-    byuttheader, silverf1col
-from sastadev.sample_uttid_tuples import get_samplename_uttids_tuples
-from sastadev.sas_impact import getcomparisoncounts, mksas_impactrows, sas_impact
-from sastadev.sastatypes import (AltCodeDict, DataSetName, ExactResultsDict, FileName,
-                                 GoldTuple, MatchesDict, MethodName, MethodVariant, QId,
-                                 QIdCount, QueryDict, ResultsCounter,
-                                 SynTree, TreeBank, UttId)
-from sastadev.reduceresults import (exact2results, reduceallresults,
-                                    reduceexactgoldscores, reduceresults)
+from sastadev.reduceresults import exact2results, reduceexactgoldscores
+from sastadev.resultsbyutterance import (byuttheader, exactbyuttdict2table,
+                                         exactresultsbyuttheader,
+                                         getexactbyutt, mkscoresbyuttrows,
+                                         silverf1col)
 from sastadev.rpf1 import getevalscores, getscores, sumfreq
 from sastadev.SAFreader import (get_golddata, richexact2global,
                                 richscores2scores)
+from sastadev.sample_uttid_tuples import get_samplename_uttids_tuples
+from sastadev.sas_impact import mksas_impactrows, sas_impact
 from sastadev.sastacore import (SastaCoreParameters, doauchann, dopostqueries,
                                 isxpathquery, sastacore)
-from sastadev.sastatypes import (AltCodeDict, GoldTuple, QId, QIdCount,
-                                 QueryDict, ResultsCounter, SynTree, UttId)
+from sastadev.sastatypes import (AltCodeDict, DataSetName, ExactResultsDict,
+                                 FileName, GoldTuple, MatchesDict,
+                                 MethodVariant, QId, QIdCount, QueryDict,
+                                 ResultsCounter, ResultsKey, SynTree, TreeBank,
+                                 UttId)
 from sastadev.SRFreader import read_referencefile
-from sastadev.stringfunctions import getallrealwords
 from sastadev.targets import get_mustbedone, get_targets, target_all
 from sastadev.treebank2trees import treebank2trees
-from sastadev.treebankfunctions import (find1, getattval, getnodeendmap, getuttid,
+from sastadev.treebankfunctions import (find1, getattval,
                                         getxmetatreepositions, getxsid,
                                         getyield, showtree)
-from sastadev.xlsx import mkworkbook, add_worksheet
-
+from sastadev.xlsx import add_worksheet, mkworkbook
 
 start_time = time.time()
 
@@ -284,7 +285,6 @@ altcodes: AltCodeDict = {}
 
 emptycounter: Counter = Counter()
 invalidqueries: Dict[QId, Exception] = {}
-
 
 
 def checkplatinum(goldscores: Dict[ResultsKey, Counter], platinumscores: Dict[ResultsKey, Counter],
@@ -456,7 +456,6 @@ def doqueries(syntree: SynTree, queries: QueryDict, exactresults: ExactResultsDi
         syntree, 'Omitted Word', poslistname='annotatedposlist')
     # print(uttid)
     # core queries
-    junk = 0
     for queryid in queries:
         if queryid not in exactresults:
             exactresults[queryid] = []
@@ -813,6 +812,7 @@ def passfilter(rawexactresults: ExactResultsDict, method: Method) -> ExactResult
 
 # defaulttarsp = r"TARSP Index Current.xlsx"
 defaulttarsp = supported_methods[tarsp]
+
 
 def addxsid(xsid, stree: SynTree) -> SynTree:
     outstree = copy.deepcopy(stree)

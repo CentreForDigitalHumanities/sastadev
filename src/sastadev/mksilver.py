@@ -7,11 +7,6 @@ from sastadev.counterfunctions import counter2liststr
 from sastadev.xlsx import getxlsxdata, mkworkbook
 
 
-
-
-
-
-
 def getsilverannotations(perm_silverfullname, platinumcheckeditedfullname,
                          platinumcheckfullname, silvercheckfullname,
                          platinumfullname, platinumeditedfullname, goldscores):
@@ -75,7 +70,7 @@ def mksilver(permsilverdict, silvercheckfullname, platinumfullname, platinumedit
         else:
             pass
             #settings.LOGGER.warning('No Silver remark for row {}: {}. File {}; qid={}, uttid={}, pos={}'.format(row, moreorless, silvercheckfullname, qid, uttid, pos))
-    junk = 0
+
     if undecidedcounter > 0:
         settings.LOGGER.info('{} undecided in file {}'.format(undecidedcounter, silvercheckfullname))
     # read the platinumfile

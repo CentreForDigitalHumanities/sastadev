@@ -1024,5 +1024,3 @@ def get_CHATpatterns(annotations):
 
 
 (CHAT_patterns, openbrackets, closebrackets) = get_CHATpatterns(annotations)
-
-junk = 0

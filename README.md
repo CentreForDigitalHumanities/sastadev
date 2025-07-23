@@ -2,7 +2,7 @@
 
 [![Actions Status](https://github.com/UUDigitalHumanitieslab/sastadev/workflows/Unit%20tests/badge.svg)](https://github.com/UUDigitalHumanitieslab/sastadev/actions)
 
-[pypi sastadev](https://pypi.org/project/sastadev)
+[![PyPi/sastadev](https://img.shields.io/pypi/v/sastadev)](https://pypi.org/project/sastadev/)
 
 Method definitions for use in SASTA
 

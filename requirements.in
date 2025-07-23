@@ -4,4 +4,5 @@ lxml
 mypy
 openpyxl
 pytest
+pyspellchecker
 xlsxwriter

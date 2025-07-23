@@ -1,9 +1,5 @@
 from sastadev.lexicon import getwordinfo, isa_inf, isa_vd
 
-
-
-
-
 words = ['trouwen', 'getrouwd', 'getrouwen', 'geheb']
 for word in words:
     if isa_vd(word):
@@ -13,5 +9,3 @@ for word in words:
     else:
         result = 'NO'
     print(f'{word}: {result}')
-
-junk = 0

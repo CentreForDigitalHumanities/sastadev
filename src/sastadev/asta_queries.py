@@ -89,7 +89,7 @@ def asta_noun(
 
     The *expanded_noun_path* is the expansion of the macro **noun_path**.
 
-    .. autofunction:: sastadev.treebankfunctions::asta_recognised_nounnode
+    .. autofunction:: sastadev.tblex::asta_recognised_nounnode
 
     '''
     results = asta_x(stree, expanded_noun_xpath, asta_recognised_nounnode)
@@ -102,7 +102,7 @@ def asta_lex(stree: SynTree) -> List[SynTree]:
 
     The *expanded_lex_path* is the expansion of the macro **lex_path**.
 
-    .. autofunction:: sastadev.treebankfunctions::asta_recognised_lexnode
+    .. autofunction:: sastadev.tblex::asta_recognised_lexnode
          :noindex:
 
     '''

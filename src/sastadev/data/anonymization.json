@@ -17,7 +17,7 @@
   {
     "category": "profession",
     "codes": ["BEROEP"],
-    "common": ["timmerman", "chirurgh", "leraar", "ober", "verslaggever"]
+    "common": ["timmerman", "chirurg", "leraar", "ober", "verslaggever"]
   },
   {
     "category": "country",

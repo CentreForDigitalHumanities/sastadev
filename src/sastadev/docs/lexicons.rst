@@ -61,11 +61,6 @@ The relevant module is the namepartlexicon module.
 
 .. automodule:: sastadev.namepartlexicon
 
-The dictionary with nameparts has been derived by the SASTA script getnamepartslexicon:
-
-.. automodule:: sastadev.getnamepartslexicon
-.. automodule:: sastadev.namelexicons
-
  
 .. _filledpauseslexicon:
 

@@ -4,16 +4,15 @@ This module contains definitions of types used in multiple modules
 
 from collections import Counter
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-from typing_extensions import TypeAlias
 
 from lxml import etree
+from typing_extensions import TypeAlias
 
 from sastadev.query import Query
 from sastadev.sastatoken import Token
 
 Level = str  # in the future perhaps NewType('Level', str)
 Position = int  # in the future perhaps NewType('Position', int)
-PhiTriple = Tuple[str, str, str]
 QId = str  # in the future perhaps NewType('QId', str)
 ResultsKey = Tuple[QId, str]
 SynTree = etree.Element  # type: ignore
@@ -67,34 +66,8 @@ ExactResultsDict = Dict[ResultsKey, ExactResults]  # qid
 SampleName = str
 AllExactResultsDict = Dict[SampleName, ExactResultsDict]
 Gender = str
-Penalty = int
-PhiTriple = Tuple[str, str, str]
-OptPhiTriple = Optional[PhiTriple]
-PositionMap = Dict[Position, Position]
-QueryDict = Dict[QId, Query]
-QIdCount = Dict[QId, int]
-MethodName = str  # perhaps in the future NewType('MethodName', str)
-FileName = str  # perhaps in the future NewType('FileName', str)
-ReplacementMode = int
-ResultsCounter = Counter  # Counter[UttId]  # Dict[UttId, int]
-ResultsDict = Dict[QId, ResultsCounter]
-SampleSizeTuple = Tuple[List[UttId], int, Optional[PositionStr]]
-SAS_Result_List = List[Tuple[SynTree, str, List[str]]]
-Span = Tuple[PositionStr, PositionStr]
-Item_Level2QIdDict = Dict[Item_Level, QId]
-Nort = Union[SynTree, Token]
-ExactResultsFilter = Callable[[Query, ExactResultsDict, ExactResult], bool]
 Table = List[List[Any]]
 Header = List[str]
-Targets = int
-Treebank = etree.Element
-TreePredicate = Callable[[SynTree], bool]
-TokenTreePredicate = Callable[[Token, SynTree], bool]
-URL = str
-UttTokenDict = Dict[UttId, List[Token]]
-UttWordDict = Dict[UttId, List[str]]
-WordInfo = Tuple[Optional[CELEXPosCode], Optional[DeHet],
-                 Optional[CELEX_INFL], Optional[Lemma]]
 Pattern = str
 Penalty: TypeAlias = int
 PhiTriple: TypeAlias = Tuple[str, str, str]
@@ -107,14 +80,14 @@ FileName: TypeAlias = str  # perhaps in the future NewType('FileName', str)
 ReplacementMode: TypeAlias = int
 ResultsCounter: TypeAlias = Counter  # Counter[UttId]  # Dict[UttId, int]
 ResultsDict: TypeAlias = Dict[QId, ResultsCounter]
-SampleSizeTuple = Tuple[List[UttId], int, Optional[PositionStr]]
+SampleSizeTuple: TypeAlias = Tuple[List[UttId], int, Optional[PositionStr]]
 Span: TypeAlias = Tuple[PositionStr, PositionStr]
 Item_Level2QIdDict: TypeAlias = Dict[Item_Level, QId]
 Nort: TypeAlias = Union[SynTree, Token]
 ExactResultsFilter: TypeAlias = Callable[[
     Query, ExactResultsDict, ExactResult], bool]
 Targets: TypeAlias = int
-Treebank: TypeAlias = etree.Element
+Treebank: TypeAlias = etree._Element
 TreePredicate: TypeAlias = Callable[[SynTree], bool]
 TokenTreePredicate: TypeAlias = Callable[[Token, SynTree], bool]
 URL: TypeAlias = str

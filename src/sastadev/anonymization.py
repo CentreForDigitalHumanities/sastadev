@@ -6,8 +6,9 @@ See https://github.com/UUDigitalHumanitieslab/sasta/blob/develop/backend/anonymi
 '''
 
 import json
-import re
 import os.path
+import re
+
 from sastadev.conf import settings
 
 vertbar = '|'
@@ -30,10 +31,6 @@ sasta_pseudonyms = [key for key in anonymisationdict]
 pseudonym_patternlist = [r'^{}\d?$'.format(el) for el in sasta_pseudonyms]
 pseudonym_pattern = vertbar.join(pseudonym_patternlist)
 pseudonymre = re.compile(pseudonym_pattern)
-
-
-junk = 0
-
 
 def getname(rawcode: str) -> str:
     code = rawcode.upper()    # the code must be in all uppercase otherwise we do too much
