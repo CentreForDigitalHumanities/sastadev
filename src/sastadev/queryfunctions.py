@@ -267,6 +267,10 @@ def aanloopuitloopvu(stree: SynTree) -> List[SynTree]:
     if len(uitloop) >= 2:
         vunode = uitloop[1]
         results.append(vunode)
+    for node in core:
+        nodelemma = getattval(node, 'lemma')
+        if nodelemma in vuwordslexicon and '2' in vuwordslexicon[nodelemma]:
+            results.append(node)
     return results
 
 

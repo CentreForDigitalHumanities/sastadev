@@ -204,7 +204,7 @@ robustinversion = """(@cat="top" and
                @end>..//node[@pt="ww" and @wvorm="pv"]/@end])
 			   """
 
-locverb = """(@lemma="staan" or @lemma="zitten" or @lemma="rijden" or @lemma="vallen" or @lemma="doen" or @lemma="gaan" or @lemma="komen" or @lemma="zijn"  or %locmodalverb% )
+locverb = """(@lemma="staan" or @lemma="zitten" or @lemma="rijden" or @lemma="vallen" or @lemma="af_vallen" or @lemma="doen" or @lemma="gaan" or @lemma="komen" or @lemma="zijn"  or %locmodalverb% )
 """
 
 locmodalverb = """ (@lemma="kunnen" or @lemma="moeten" or @lemma="hoeven" or @lemma="willen" or @lemma="mogen")"""
@@ -258,7 +258,8 @@ Tarsp_B = """( not(%adjacentnogeen%) and
 			  not(%extragrammaticalvuword%) and
        (((((@rel="mod" or @rel="ld" or @rel="predm") and
           (not(@cat) or @cat!="conj") and
-		  (not(@pt) or @pt!="tsw")
+		  (not(@pt) or @pt!="tsw") and
+		  not(%Tarsp_ofmod%)
          )or 
          (%predcB%
          )

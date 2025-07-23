@@ -115,9 +115,10 @@ onlythesearerealwords = """(count(.//node[%bxrealwordnode%]) = count(%allbxrealw
 
 
 partofwhquestion = """((@cat="sv1" or @cat="ssub") and @rel="body" and parent::node[@cat="whq" or @cat="whsub" or (@cat="whrel" and %indeprel%) ]) """
-declarative = """(@cat="smain" or %nonfindeclarative% or (@cat="ssub" and not(%partofwhquestion%)) or (@cat="sv1" and not(%basicimperative%) and not(%ynquery%) and not(%partofwhquestion%)) )"""
+declarative = """(@cat="smain" or %nonfindeclarative% or %npnonfindeclarative% or (@cat="ssub" and not(%partofwhquestion%)) or (@cat="sv1" and not(%basicimperative%) and not(%ynquery%) and not(%partofwhquestion%)) )"""
 
 nonfindeclarative = """((@cat="inf" or @cat="ppart") and @rel!="vc" and  %onlythesearerealwords% )"""
+npnonfindeclarative = """(@cat="np" and node[@rel="hd" and @pt="ww" and @wvorm="inf"])"""
 
 Tarsp_OndB = """((%Ond% or node[@naamval="nomin"] or node[@cat and node[@rel="hd" and @naamval="nomin"]]) and  node[%Tarsp_Basic_B%]  and count(node) = 2 and %onlythesearerealwords% and not(%Tarsp_BX%) and not(%Xneg%)) """
 Tarsp_OndVC = """((%coreondvc% or %dpdpondvc%)  and count(node) = 2 and %onlythesearerealwords%) """
@@ -215,8 +216,9 @@ Tarsp_VC_X_count = """count(node[%Tarsp_VC%] | node[%nonfinvc%]/node[%Tarsp_VC%]
 Tarsp_VC_X = """(node[%Tarsp_VC%] or node[%nonfinvc%]/node[%Tarsp_VC%])"""
 Tarsp_W = """node[@rel="hd" and @pt="ww"]"""
 Tarsp_VCr1 = """node[%Tarsp_VC%] """
-Tarsp_VC = """((%independentobj1% or (@rel="pc" and not(%Tarsp_pc_vc_exception%)) or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% ) and not(%Tarsp_B%) )"""
+Tarsp_VC = """((%independentobj1% or (@rel="pc" and not(%Tarsp_pc_vc_exception%)) or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% or %Tarsp_ofmod%) and not(%Tarsp_B%) )"""
 Tarsp_finvc = """(@rel="vc" and (@cat="cp" or @cat="whsub"))"""
+Tarsp_ofmod = """(@rel="mod" and node[@rel="cmp" and @pt="vg" and @lemma="of"])"""
 Tarsp_vcvnw = """(@rel="vc" and @pt="vnw")"""
 
 Tarsp_WOndX = """(%ynquery% and not(%basicimperative%) and %topcontainsquestionmark% and %Tarsp_W% and %Ond% and %realcomplormodnodecount% <= 2 and not(%vrwondplus%))
@@ -234,7 +236,7 @@ Tarsp_whq = """((@cat="whq" and %indeprel%) or (@cat="whsub") or (@cat="whrel" a
 
 Tarsp_whqhead = """(@rel="whd" or @rel="rhd") """
 whqbody = """((@cat="sv1" or @cat="ssub") and @rel="body")"""
-Tarsp_coreVrXY = """(%Tarsp_whq% and
+Tarsp_coreVrXY = """(%Tarsp_whq% and @cat!="whsub" and
         node[%Tarsp_whqhead%] and
         node[%whqbody%   and %realcomplormodnodecount% < 3])"""
 		

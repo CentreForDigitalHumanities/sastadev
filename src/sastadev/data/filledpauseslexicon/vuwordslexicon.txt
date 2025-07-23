@@ -14,3 +14,5 @@ wel	100,
 wip	100,
 zo	103,
 hoehoehoe	103,
+alsjeblieft	123
+alstublieft	123
