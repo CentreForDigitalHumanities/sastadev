@@ -51,6 +51,7 @@ UttId = str  # in the future perhaps NewType('UttId', str)
 Position = int  # in the future perhaps NewType('Position', int)
 PositionStr = str
 Relation = str
+SAS_Result_List = Tuple[SynTree, str, List[str]]
 Stage = int
 SynTree = etree._Element  # type: ignore
 GoldTuple = Tuple[str, str, Counter]
