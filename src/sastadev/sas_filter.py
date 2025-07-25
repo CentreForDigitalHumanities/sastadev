@@ -35,6 +35,7 @@ from sastadev.lexicon import valid_ambiguous_words
 from sastadev.metadata import (
     ALLSAMPLECORRECTIONS,
     BASICREPLACEMENTS,
+    EXTRAGRAMMATICAL,
     SASTA,
     THISSAMPLECORRECTIONS,
     HISTORY
@@ -95,6 +96,7 @@ sourcecondition = "or ".join([f'@source="{SASTA}/{source}"' for source in source
 
 fullcondition = f"({namecondition}) or ({sourcecondition})"
 
+extragrammatical_xpath = f""".//xmeta[@name="{EXTRAGRAMMATICAL}"]"""
 
 def getnormalisedwnposition(wn: SynTree, stree: SynTree) -> int:
     theyield = getnodeyield(stree)
@@ -115,6 +117,14 @@ def wnisanASTAX(wn: SynTree, tree: SynTree, exactresult: ExactResults) -> bool:
     ]
     result = foundastax != []
     return result
+
+def is_recognised_extra_grammatical(wn: SynTree, tree: SynTree) -> bool:
+    wnbegin = getattval(wn, 'begin')
+    extragrammatical_metadata = tree.xpath(extragrammatical_xpath)
+    for extragrammatical_meta in extragrammatical_metadata:
+        if wnbegin in getattval(extragrammatical_meta, 'annotatedposlist'):
+            return True
+    return False
 
 
 def filterbymetadata(
@@ -151,7 +161,7 @@ def filterbymetadata(
         isASTAX = (
             wnisanASTAX(wn, fulltree, exact_results) if method_name == asta else False
         )
-
-        if replacements == [] and not isASTAX:
+        recognised_extra_grammatical = is_recognised_extra_grammatical(wn, fulltree)
+        if replacements == [] and not isASTAX and not recognised_extra_grammatical:
             unknownwordnodes.append((wn, message, suggestions))
     return unknownwordnodes
