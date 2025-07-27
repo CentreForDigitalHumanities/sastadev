@@ -60,7 +60,10 @@ def transformtreenogeen(stree:SynTree) -> SynTree:
         for een in eens:
             if immediately_precedes(nog, een, newstree):
                 nog.getparent().remove(nog)
-                een.getparent().append(nog)
+                een.getparent().insert(0, nog)
+                nog.set('rel', 'mod')      # it can have rel dp when outside the NP
+                nogbegin = getattval(nog, 'begin')
+                een.getparent().set('begin', nogbegin)
     if debug:
         showtree(newstree, 'outtree')
     return newstree

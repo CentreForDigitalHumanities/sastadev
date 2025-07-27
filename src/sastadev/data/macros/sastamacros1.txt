@@ -907,3 +907,17 @@ ellipticgap = """(not(@pt) and not(@cat) and not(@pos) and not(%covertnonfinsubj
 hasantecedent = """(@index = ancestor::node[@cat="top"]/descendant::node[@cat or @word]/@index)"""
 
 unboundtrace = """(not(%hasantecedent%))"""
+
+BvBepZn = """((@cat="np" and node[@rel="det"] and node[@rel="mod" and @pt="bw" and (not(@special) or @special!="er")] and count(node)=3))"""
+
+BepBvZn = """(@cat="np" and
+    node[@rel="det" ] and
+    node[@rel="mod" and @pt="adj"] and
+    node[@rel="hd" and @pt="n"])"""
+
+OvWG4 = """((@cat="np" or @cat="ap") and count(.//node[@word and @rel!="mwp"]) + count(.//node[@cat="mwu"]) =3 and not(%BvBepZn%) and not(%BepBvZn%) and not(node[@rel="hd" and @pt="ww"]) and not(.//node[@rel="cnj"]))"""
+
+BezZn = """(@cat="np" and
+            node[@pdtype="det" and @rel="det" and @positie="prenom"  and @vwtype="bez" and @pt="vnw" ] and
+            node[((@pt="n"  or ((@pt="adj" or pt="vnw") and @positie="nom") or @cat="mwu") )and @rel="hd"])""" 
+			
