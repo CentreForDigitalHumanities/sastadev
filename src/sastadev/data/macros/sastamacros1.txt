@@ -351,7 +351,11 @@ AVn = """(%coreavn% or %avnrel% or %dittedatte% or %betravn%)""""
 
 corephrase = """(@cat="np" or @cat="pp" or @cat="advp" or @cat="ap")"""
 
-coreB = """( ((@pt="bw" or @pt="vz" or @cat="advp" or @cat="pp" or %Rpronoun%) and
+basicBsyncat = """(@pt="bw" or @pt="vz" or @cat="advp" or @cat="pp" or %Rpronoun%)"""
+
+conjB = """(@cat="conj" and node[@rel="cnj" and %basicBsyncat%] )"""
+
+coreB = """( ((%basicBsyncat% or %conjB%) and
               (@rel="mod" or @rel="predm" or @rel="dp" or @rel="--" or @rel="ld" or 
 			   @rel="tag" or @rel="nucl" or @rel="predc"  or 
 			   (@pt!="vz" and @rel="svp") or

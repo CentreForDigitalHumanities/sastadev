@@ -329,8 +329,8 @@ def isditdat(node: SynTree) -> bool:
     return result
 def iscoord(node: SynTree) -> bool:
     pt = getattval(node, 'pt')
-    vgtype = getattval(node, 'vgtype')
-    result = pt == 'vg' and vgtype == 'neven'
+    conjtype = getattval(node, 'conjtype')
+    result = pt == 'vg' and conjtype == 'neven'
     return result
 
 def isnominalexception(node: SynTree) -> bool:
@@ -386,12 +386,15 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     reducedleaves = [leave for leave in leaves if realword(leave)]
     if reducedleaves != [] and iscoord(reducedleaves[0]):
         reducedleaves = reducedleaves[1:]
-    if not (len(reducedleaves) > 1 and len(reducedleaves) <= 5):
-        return resultlist
     verbs = [leave for leave in reducedleaves if getattval(leave, 'pt') == 'ww' and
              getattval(leave.getparent(), 'cat') not in trueclausecats]
     if len(verbs) > 1:
         return resultlist
+    if verbs != [] and not (len(reducedleaves) > 1 and len(reducedleaves) <= 5):
+        return resultlist
+    elif not(len(reducedleaves) > 1):
+        return resultlist
+
 
     tokens = tokensmd.tokens
     treewords = [word(tokennode) for tokennode in leaves]
@@ -522,6 +525,18 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                 insertform = 'zijn' if getal(first) == 'mv' else 'is'
             else:
                 insertform = 'willen' if getal(first) == 'mv' else 'wil'
+            inserttokens = [Token(insertform, fpos, subpos=5)]
+            resultlist = mktokenlist(tokens, fpos, inserttokens)
+            metadata += mkinsertmeta(inserttokens, resultlist)
+        elif theverb is None and (knownnoun(first) or aanwvnw(first)) and predadv(second):
+            fpos = int(getattval(first, 'begin'))
+            insertform = 'moeten' if getal(first) == 'mv' else 'moet'
+            inserttokens = [Token(insertform, fpos, subpos=5)]
+            resultlist = mktokenlist(tokens, fpos, inserttokens)
+            metadata += mkinsertmeta(inserttokens, resultlist)
+        elif theverb is None and (knownnoun(first) or aanwvnw(first)) and pt(second) == 'bw' and predadv(third):
+            fpos = int(getattval(first, 'begin'))
+            insertform = 'moeten' if getal(first) == 'mv' else 'moet'
             inserttokens = [Token(insertform, fpos, subpos=5)]
             resultlist = mktokenlist(tokens, fpos, inserttokens)
             metadata += mkinsertmeta(inserttokens, resultlist)
