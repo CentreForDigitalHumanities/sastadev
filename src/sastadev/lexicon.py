@@ -418,7 +418,7 @@ interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'ma
                  'echt', 'lalala', 'hopla', 'da', 'pff', 'hai', 'jongens', 'juffrouw', 'jeetje', 'tot', 'ziens', 'hihi',
                  'jonge', 'ohh', 'poeh', 'oef',
                  'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx', 'dat',
-                 'doei', 'tjongejonge', 'ooooh', 'hoewel',
+                 'doei', 'tjongejonge', 'ooooh', 'hoewel', 'of',
                  'oke', 'neenee', 'pfff', 'mens', 'ps', 'oow', 'fff', 'juf', 'mevrouw', 'baby', 'dankuwel', 'waw',
                  'welterusten', 'sehhahahaha', 'hihihi', 'aaaah', 'wee', 'shit',
                  'pa', 'grr', 'weltrusten', 'pats', 'weh', 'stouterd', 'dag', 'joepie', 'neej', 'hoho', 'rara',
@@ -428,9 +428,9 @@ interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'ma
                  'wah', 'getver', 'ohja', 'hej', 'zak', 'alhoewel', 'neen', 'goedzo', 'ahahah', 'allee', 'jo', 'jongen',
                  'pardon', 'hihihihi', 'floep', 'lieve', 'gatver', 'kut', 'bro',
                  'mja', 'tsjonge', 'hohoho', 'klopt', 'man', 'jezus', 'truste', 'ppf', 'goedemorgen', 'domoor',
-                 'aaaaah', 'okeee', 'yes', 'ahahahaha', 'zo']
+                 'aaaaah', 'okeee', 'yes', 'ahahahaha', 'zo', 'huh']
 fillers = ['eh', 'ehm', 'ah', 'boe', 'hm', 'hmm',
-           'uh', 'uhm', 'ggg', 'mmm', 'ja', 'nee']
+           'uh', 'uhm', 'ggg', 'mmm', 'ja', 'nee', 'veh']
 allfillers = fillers + ['&-' + filler for filler in fillers] + \
     interjections + ['&-' + intj for intj in interjections]
 
@@ -439,6 +439,11 @@ tsw_non_words = ['ee']
 modalverbs = ['hoeven', 'moeten', 'mogen', 'kunnen', 'willen', 'zullen']
 
 preferably_intransitive_verbs = ['gaan', 'slapen'] + modalverbs
+
+kijkvuadverbs = ['eens', 'dan', 'hier', 'zo']
+
+chatcodes = ["xxx", "xx", "yyy", "yy"]
+
 
 junk = 0
 

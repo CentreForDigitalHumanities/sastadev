@@ -2305,6 +2305,30 @@ def normalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
             stree.attrib['begin'] = minbegin
             stree.attrib['end'] = maxend
 
+def denormalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
+    """
+    adapts the begins and ends of a tree to the sortedbegins: first word will get the first sortedegin, etc
+    :param stree: syntactic structure
+    :param sortedbegins: sorted list of begin values of @pt or @pos nodes
+    :return: None
+    """
+    children = list(stree) if stree is not None else [] # adapt this to seelct only children with tag node (because of
+    # the  ud extensions)
+    for child in children:
+        denormalisebeginend2(child, sortedbegins)
+    if stree.tag == "node":
+        if children == []:
+            nodebegin = getattval(stree, 'begin')
+            intnodebegin = int(nodebegin)
+            newbegin = sortedbegins[intnodebegin]
+            newend = str(int(newbegin) + 1)
+            stree.attrib['begin'] = newbegin
+            stree.attrib['end'] = newend
+        else:
+            (minbegin, maxend) = getbeginend(children)
+            stree.attrib['begin'] = minbegin
+            stree.attrib['end'] = maxend
+
 
 def updatebeginend(stree: SynTree, begin: PositionStr) -> None:  # do not use this anymore
     """
@@ -2403,6 +2427,8 @@ def getpreorigutt(tree: SynTree) -> str:
     preorigutt_meta = find1(tree, './/xmeta[@name="preorigutt"]/@value') if tree is not None else None
     preorigutt = str(preorigutt_meta) if preorigutt_meta is not None else ''
     return preorigutt
+
+
 
 
 if __name__ == '__main__':

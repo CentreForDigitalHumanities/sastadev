@@ -15,8 +15,9 @@ from typing import Dict, List, TextIO
 
 from sastadev.conf import settings
 from sastadev.generatemacros import generatemacros
-from sastadev.lexicon import tswnouns
+from sastadev.lexicon import interjections, fillers, tswnouns
 from sastadev.sastatypes import XpathExpression
+from sastadev.stringfunctions import punctuationchars
 
 idpat = r'([A-z_][A-z0-9_]*)'
 eqpat = r'='
@@ -78,12 +79,15 @@ def expandmacrosdict(expr: str, macrodict: Dict[str, str]) -> str:
 
 
 def list2xpath(vlist: List[str], attr: str) -> XpathExpression:
-    alts = [f'@{attr}="{v}"' for v in vlist]
+    alts = [f'@{attr}="{v}"'  if v!='"' else f"@{attr}='{v}'" for v in vlist]
     expr = ' or '.join(alts)
     result = f"({expr})"
     return result
 
 tswnounsexpansion = f'(@pt="tsw" and {list2xpath(tswnouns, "lemma")})'
+interjectionsexpansion = list2xpath(interjections, "lemma")
+fillersexpansion = list2xpath(fillers, "lemma")
+punctuationexpansion = list2xpath(punctuationchars, "lemma")
 
 macrodir = op.join(settings.SD_DIR, 'data', 'macros')
 macrofilenames = [op.join(macrodir, 'sastamacros1.txt'), op.join(macrodir, 'sastamacros2.txt'), op.join(macrodir, 'newimperatives.txt')]
@@ -94,3 +98,8 @@ for macrofilename in macrofilenames:
     macrodict = readmacros(macrofile, macrodict)
 
 macrodict['tswnoun'] = tswnounsexpansion
+macrodict['interjection'] = interjectionsexpansion
+macrodict['filler'] = fillersexpansion
+macrodict['punctuation'] = punctuationexpansion
+
+junk =0

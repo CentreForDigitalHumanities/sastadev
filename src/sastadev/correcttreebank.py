@@ -17,7 +17,8 @@ from sastadev.lexicon import de, dets, getwordposinfo,nochildword, nochildwords,
 from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, defaultpenalty,
                                bpl_none, bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, insertion,
                                ADULTSPELLINGCORRECTION, ALLSAMPLECORRECTIONS, BASICREPLACEMENTS, CONTEXT,
-                               HISTORY, CHILDRENSPELLINGCORRECTION, THISSAMPLECORRECTIONS, replacementsubsources
+                               EXTRAGRAMMATICAL, HISTORY, CHILDRENSPELLINGCORRECTION, THISSAMPLECORRECTIONS,
+                               replacementsubsources
                                )
 from sastadev.methods import Method
 from sastadev.parse_criteria import compute_penalty, criteria, isvalidword
@@ -28,13 +29,16 @@ from sastadev.sastatypes import (AltId, CorrectionMode, ErrorDict, MetaElement,
                                  SynTree, Targets, Treebank, UttId, ExactResults, ExactResultsDict)
 from sastadev.syllablecount import countsyllables
 from sastadev.targets import get_mustbedone
+from sastadev.tblex import isrealwordnode
 from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_metadata, clausecats, countav, deflate,
-                                        deletewordnodes, fatparse, find1,
+                                        denormalisebeginend2, deletewordnodes, fatparse, find1,
                                         getattval, getbeginend,
                                         getcompoundcount, getnodeyield, getorigutt,
                                         getptsubclass,
                                         getsentid, getsentence, gettokposlist, getxsid,
-                                        getyield, is_infl_different, mkattrib, myfind, showflatxml,
+                                        getyield, is_infl_different, mkattrib, myfind,
+                                        normalisebeginend2,
+                                        showflatxml,
                                         showtree, simpleshow, subclasscompatible, transplant_node,
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
@@ -432,12 +436,13 @@ def findskippednodes2(stree: SynTree, tokenposset: Set[Position]) -> List[SynTre
     return resultlist
 
 
-def insertskips(newstree: SynTree, tokenlist: List[Token], stree: SynTree) -> SynTree:
+def insertskips(newstree: SynTree, tokenlist: List[Token], stree: SynTree, metadata: List[Meta]) -> SynTree:
     '''
 
     :param newstree: the corrected tree, with skipped elements absent
     :param tokenposlist: list of all tokens with skips marked
     :param stree: original stree with parses of the skipped elements
+    :param metadta: metadata of the new tree
     :return: adapted tree, with the skipped elements inserted (node from the original stree as -- under top, begin/ends updates
     '''
     debug = False
@@ -472,7 +477,23 @@ def insertskips(newstree: SynTree, tokenlist: List[Token], stree: SynTree) -> Sy
     # etree.dump(resulttree)
 
     # insert skipped elements
-    nodestoinsert = findskippednodes(stree, tokenlist)
+    allnodestoinsert = findskippednodes(stree, tokenlist)
+    uitloopnodes = getuitloopnodes(allnodestoinsert, metadata)
+    uitlooprealwordnodes = [n for n in uitloopnodes if isrealwordnode(n)]
+    if uitloopnodes != [] and len(uitlooprealwordnodes) > 1:
+        sortedbegins = [getattval(node, 'begin') for node in uitloopnodes]
+        uitloopstring = space.join([getattval(node, 'word') for node in uitloopnodes])
+        uitloop_parse = settings.PARSE_FUNC(uitloopstring)
+        if uitloop_parse is None:
+            settings.LOGGER.error(f'No parse for {uitloopstring}')
+        else:
+            denormalisebeginend2(uitloop_parse, sortedbegins)
+        uitlooptopnode = find1(uitloop_parse, """.//node[@cat="top"]""") if uitloop_parse is not None else None
+        nodestoinsert = [node for node in allnodestoinsert if node not in uitloopnodes]
+        uitloopnodestoinsert = [child for child in uitlooptopnode] if uitlooptopnode is not None else []
+        nodestoinsert += uitloopnodestoinsert
+    else:
+        nodestoinsert = allnodestoinsert
     nodestoinsertcopies = [deepcopy(n) for n in nodestoinsert]
     if debug:
         showtree(stree, text='insertskips: stree:')
@@ -510,6 +531,22 @@ def insertskips(newstree: SynTree, tokenlist: List[Token], stree: SynTree) -> Sy
 
     return resulttree
 
+
+def isuitloopnode(node: SynTree, metadata: List[Meta]) -> bool:
+    nodebegin = int(getattval(node, 'begin'))
+    for meta in metadata:
+        if meta.name == EXTRAGRAMMATICAL and meta.value == correctionlabels.uitloop and meta.annotatedposlist == [
+            nodebegin]:
+            return True
+    return False
+
+def getuitloopnodes(nodes: List[SynTree], metadata:List[Meta]) -> List[SynTree]:
+    results = []
+    for node in nodes:
+        if isuitloopnode(node, metadata):
+            results.append(node)
+    sortedresults = sorted(results, key=lambda n: int(getattval(n, 'begin')) )
+    return sortedresults
 
 def getomittedwordbegins(metalist: List[Meta]) -> List[Position]:
     from sastadev.CHAT_Annotation import omittedword
@@ -710,7 +747,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                 # insert the leftout words and adapt the begin/ends of the nodes
                 # simpleshow(stree)
                 fatnewstree = insertskips(
-                    fatnewstree, correctiontokenlist, fatstree)
+                    fatnewstree, correctiontokenlist, fatstree, cwmdmetadata)
                 # newstree = insertskips(newstree, correctiontokenlist, stree)
                 # simpleshow(stree)
                 mdcopy = deepcopy(origmetadata)

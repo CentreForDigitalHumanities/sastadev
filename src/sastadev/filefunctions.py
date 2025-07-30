@@ -95,3 +95,13 @@ def make_filelist(cat: str, datasetname: str, sample_uttids_tuples: Tuple[str, L
             fullname = os.path.join(treespath, foldername, filename)
             filelist.append([fullname])
     writecsv(filelist, file_list_fullname)
+
+
+def get_corrected_tree_fullname(datasetname, samplename, uttid) -> str:
+    correctedname = f'{samplename}{correctedsuffix}'
+    fullpath = os.path.join(settings.DATAROOT, datasetname,
+                            outtreebanksfolder, treesfolder, correctedname)
+    filename = f'{correctedname}_{lpad(uttid)}.xml'
+    fullname = os.path.join(fullpath, filename)
+    return fullname
+

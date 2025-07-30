@@ -408,7 +408,8 @@ chatcode = """(@word="xxx" or @word="xx" or @word="yyy" or @word="yy") """
 extragrammaticalvuword = """(contains(ancestor::alpino_ds/descendant::xmeta[@name="ExtraGrammatical"]/@annotatedposlist, @begin))"""
 
 
-realwordnode = """ (@word and @pt!="let" and (@pt!="tsw" or %tswnoun%) and not(%Tarsp_kijkVU%) and not(%singlecharnoun%) and not(%chatcode%) and not(%extragrammaticalvuword%))
+realwordnode = """ (@word and @pt!="let" and (@pt!="tsw" or %tswnoun%) and not(%Tarsp_kijkVU%) and 
+                    not(%singlecharnoun%) and not(%chatcode%) and not(%extragrammaticalvuword%) and not(%filler%) and not(%punctuation%))
 """
 
 horenaux = """(@lemma="horen" and 

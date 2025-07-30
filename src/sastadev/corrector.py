@@ -54,8 +54,9 @@ from sastadev.smallclauses import smallclauses
 from sastadev.spellingerrors import getbabylemma, isbabyword, correctbaby
 from sastadev.stringfunctions import (chatxxxcodes, consonants, dutchdeduplicate,
                                       endsinschwa, fullworddehyphenate, ispunctuation,
-                                      monosyllabic, vowels)
+                                      monosyllabic, sentencefinalpuncs, vowels)
 from sastadev.sva import getsvacorrections
+from sastadev.tblex import getaanloop_core_uitloop
 from sastadev.toe import lonelytoe
 from sastadev.tokenmd import TokenListMD, TokenMD, mdlist2listmd
 from sastadev.treebankfunctions import (fatparse, getattval, getmeta, getnodeyield, getxsid, isdefdet, keycheck,
@@ -104,7 +105,6 @@ wrongdet_excluded_words = ['zijn', 'dicht', 'met', 'ik', 'mee', 'wat', 'alles', 
 #: therefore have to be excluded from determiner replacement.
 e2een_excluded_nouns = ['kijke', 'kijken', 'weer']
 
-interpunction = '.?!'
 comma = ","
 
 initialmaarvgxpath = expandmacros(""".//node[%maarvg%]""")
@@ -246,7 +246,7 @@ def inaanloop(tok, tokens) -> bool:
 def inuitloop(tok, tokens) -> bool:
     if len(tokens) < 2:
         return False
-    elif tokens[-1].word in interpunction:
+    elif tokens[-1].word in sentencefinalpuncs:
         thetoken = tokens[-2]
         prectoken = tokens[-3] if len(tokens) > 2 else None
     else:
@@ -338,7 +338,27 @@ def reduce(tokens: List[Token], tree: Optional[SynTree]) -> Tuple[List[Token], L
                             intj, correctionlabels.syntax) for token in tswtokens]
     allmetadata += metadata
 
+    # remove words in the aanloop
+    aanloops, core, uitloops = getaanloop_core_uitloop(tree)
+    aanlooptokens = [tok for tok in reducedtokens if any([token2nodemap[tok.pos] in aanloop for aanloop in aanloops])]
+    allremovetokens += aanlooptokens
+    reducedtokens = [n for n in reducedtokens if n not in aanlooptokens]
+    metadata = [mkSASTAMeta(token, token, EXTRAGRAMMATICAL,
+                            correctionlabels.aanloop, correctionlabels.syntax) for token in aanlooptokens]
+    allmetadata += metadata
 
+    # remove words in the uitloop
+    rawuitlooptokens = [tok for tok in reducedtokens
+                        if any([token2nodemap[tok.pos] in uitloop for uitloop in uitloops])]
+    # keep the final punctuation symbol in because it may affect the parse
+    uitlooptokens = rawuitlooptokens[:-1] \
+                if rawuitlooptokens != [] and rawuitlooptokens[-1].word in sentencefinalpuncs \
+                else rawuitlooptokens
+    allremovetokens += uitlooptokens
+    reducedtokens = [n for n in reducedtokens if n not in uitlooptokens]
+    metadata = [mkSASTAMeta(token, token, EXTRAGRAMMATICAL,
+                            correctionlabels.uitloop, correctionlabels.syntax) for token in uitlooptokens]
+    allmetadata += metadata
 
     # find duplicatenode repetitions of ja, nee, nou
     janeenouduplicatenodes = find_janeenouduplicates(reducedtokens)
@@ -523,6 +543,16 @@ def reduce(tokens: List[Token], tree: Optional[SynTree]) -> Tuple[List[Token], L
     # reducedtokens = [tok for tok in reducedtokens if tok not in allfalsestarttokens]
     # allmetadata += metadata
 
+    # remove trailing comma's
+
+    if len(reducedtokens) > 2 and  reducedtokens[-2].word == comma and reducedtokens[-1].word in sentencefinalpuncs:
+        allremovetokens.append(reducedtokens[-2])
+        reducedtokens = reducedtokens[:-2] + [reducedtokens[-1]]
+    if reducedtokens != [] and reducedtokens[-1].word == comma:
+        allremovetokens.append(reducedtokens[-1])
+        reducedtokens = reducedtokens[:-1]
+
+
     skipmarkedtokens = skiptokens(tokens, allremovetokens)
 
     # return (reducedtokens, allremovetokens, allmetadata)
@@ -535,37 +565,6 @@ def combinesorted(toklist1: List[Token], toklist2: List[Token]) -> List[Token]:
     result = toklist1 + toklist2
     sortedresult = sorted(result, key=lambda tok: tok.pos)
     return sortedresult
-
-
-# def getcorrection(utt, tree=None, interactive=False):
-#     # NOT used anymore!!!!
-#
-#     allmetadata = []
-#     rawtokens = sasta_tokenize(utt)
-#     wordlist = tokenlist2stringlist(rawtokens)
-#
-#     tokens, metadata = cleantokens(rawtokens, repkeep=False)
-#     allmetadata += metadata
-#     tokensmd = TokenListMD(tokens, [])
-#
-#     # reducedtokens, allremovedtokens, metadata = reduce(tokens)
-#     # allremovedtokens, metadata = reduce(tokens)
-#     skipmarkedtokens, metadata = reduce(tokens, tree)
-#     # reducedtokensmd = TokenListMD(reducedtokens, [])
-#     reducedtokensmd = TokenListMD(skipmarkedtokens, [])
-#
-#     alternativemds = getalternatives(reducedtokensmd, tree, 0)
-#     # alternativemds = getalternatives(tokensmd, allremovedtokens, tree, 0)
-#     # unreducedalternativesmd = [TokenListMD(combinesorted(alternativemd.tokens, allremovedtokens), alternativemd.metadata) for alternativemd in alternativemds]
-#
-#     # correctiontokensmd = unreducedalternativesmd[-1] if unreducedalternativesmd != [] else tokensmd
-#     correctiontokensmd = alternativemds[-1] if alternativemds != [] else tokensmd
-#
-#     correction = tokenlist2stringlist(correctiontokensmd.tokens)
-#     allmetadata += correctiontokensmd.metadata
-#
-#     result = (correction, allmetadata)
-#     return result
 
 
 def getcorrections(rawtokens: List[Token], correctionparameters: CorrectionParameters,
@@ -598,8 +597,7 @@ def getcorrections(rawtokens: List[Token], correctionparameters: CorrectionParam
     reducedtokensmd = TokenListMD(reducedtokens, [])
     allmetadata += metadata
 
-    # alternativemds = getalternatives(reducedtokensmd, tree, 0)
-    alternativemds = getalternatives(reducedtokensmd, tree, '0', correctionparameters)
+    alternativemds = getalternatives(reducedtokensmd, tree, '0', correctionparameters, allmetadata)
     # unreducedalternativesmd = [TokenListMD(combinesorted(alternativemd.tokens, allremovedtokens), alternativemd.metadata) for alternativemd in alternativemds]
 
     intermediateresults = alternativemds if alternativemds != [] else [tokensmd]
@@ -615,9 +613,8 @@ def getcorrections(rawtokens: List[Token], correctionparameters: CorrectionParam
     return results
 
 
-# def getalternatives(origtokensmd, method, llremovedtokens, tree, uttid):
 def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
-                    correctionparameters: CorrectionParameters):
+                    correctionparameters: CorrectionParameters, metadata: List[Meta]):
     methodname = correctionparameters.method.name
     newtokensmd = explanationasreplacement(origtokensmd, tree)
     if newtokensmd is not None:
