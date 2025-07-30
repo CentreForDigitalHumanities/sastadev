@@ -61,6 +61,8 @@ purechatxxxcodes = {'xxx', 'yyy', 'www'}
 chatxxxcodes = purechatxxxcodes | {'xx'}
 
 
+sentencefinalpuncs = '.?!'
+
 def simple_tokenise(sent: str) -> List[str]:
     """
     simple tokenisation. Interpunction symbols are surrounded by space, then split by space

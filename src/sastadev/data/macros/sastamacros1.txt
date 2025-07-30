@@ -302,7 +302,7 @@ hwwwithsvp = """(contains(@lemma,"_kunnen") or
                  contains(@lemma,"_zijn") 
 				) """
 
-hwwwithsvpexception = """(@lemma="terug_komen" or @lemma="vast_zitten" or @lemma="weg_gaan" or @lemma="aan_hebben" or @lemma="op_hebben" or @lemma="open_doen" or @lemma="aan_staan")""" 
+hwwwithsvpexception = """(@lemma="terug_komen" or @lemma="vast_zitten" or @lemma="weg_gaan" or @lemma="aan_hebben" or @lemma="op_hebben" or @lemma="open_doen" or @lemma="aan_staan" or @lemma="weg_doen")""" 
 
 complement = """((@rel="obj1" or @rel="obj2") or 
                  (@rel="predc" and not(%predcB%)) or
@@ -358,7 +358,7 @@ conjB = """(@cat="conj" and node[@rel="cnj" and %basicBsyncat%] )"""
 coreB = """( ((%basicBsyncat% or %conjB%) and
               (@rel="mod" or @rel="predm" or @rel="dp" or @rel="--" or @rel="ld" or 
 			   @rel="tag" or @rel="nucl" or @rel="predc"  or 
-			   (@pt!="vz" and @rel="svp") or
+			   (@pt!="vz" and @rel="svp" and not(../node[@pt="ww" and @rel="hd"])) or
 			   %vzdisguisedasadj% or
 			   %svpofhww%
 			  ) or
@@ -897,9 +897,11 @@ bvb = """(not(%bvbvraagwoord%) and
                          (@pt='adj' or @pt='bw' or @pt='vz' or %Rpronounx%) and  
                          @lemma!="kijk" and   
 						 not(%bwwithkijk%) and
-                         ancestor::node[@cat="top" and count(.//node[%realwordnode%])=1]
+                         %thisistheonlyrealword%
                          )"""
-						 
+
+thisistheonlyrealword = """(count(ancestor::alpino_ds/descendant::node[@word and %realwordnode%]) = 1)"""
+
 covertnonfinsubj = """(@rel="su" and not(@pt) and not(@cat) and @index and parent::node[@cat="inf" or @cat="ppart"])"""
 
 abarboundtrace = """(not(%aboundtrace%) and not(@rel="su"  and parent::node[@cat="inf" or @cat="ppart"]) and not(@pt) and not(@cat) and @index = ancestor::node/node[@rel="rhd" or @rel="whd"]/@index)"""

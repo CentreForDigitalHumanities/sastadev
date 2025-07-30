@@ -1,4 +1,5 @@
 
+aanloop = "Word in aanloop"
 agreementerror = 'Agreement Error'
 alpinoimprovement = 'Alpino Improvement'
 apomiss = 'Omitted Apoe'
@@ -47,6 +48,7 @@ syntax = 'Syntax'
 syntaxerror = 'Syntactic Error'
 spellingcorrection = 'Spelling Correction'
 tokenisation = 'Tokenisation'
+uitloop = "Word in uitloop"
 unknownword = 'Unknown word'
 unknownwordsubstitution = 'Unknown Word Substitution'
 wordcombination = 'Word combination'
