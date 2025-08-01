@@ -16,6 +16,7 @@ from typing import Dict, List, TextIO
 from sastadev.conf import settings
 from sastadev.generatemacros import generatemacros
 from sastadev.lexicon import interjections, fillers, tswnouns
+from sastadev.queryconstants import Tarsp_kijkVU, Tarsp_kijkVU1, Tarsp_kijkVU2, Tarsp_kijkVU3
 from sastadev.sastatypes import XpathExpression
 from sastadev.stringfunctions import punctuationchars
 
@@ -101,5 +102,9 @@ macrodict['tswnoun'] = tswnounsexpansion
 macrodict['interjection'] = interjectionsexpansion
 macrodict['filler'] = fillersexpansion
 macrodict['punctuation'] = punctuationexpansion
+macrodict['Tarsp_kijkVU'] = Tarsp_kijkVU
+macrodict['Tarsp_kijkVU1'] = Tarsp_kijkVU1
+macrodict['Tarsp_kijkVU2'] = Tarsp_kijkVU2
+macrodict['Tarsp_kijkVU3'] = Tarsp_kijkVU3
 
 junk =0

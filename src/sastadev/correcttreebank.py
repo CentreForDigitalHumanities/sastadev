@@ -5,7 +5,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 from lxml import etree
 
 from sastadev.basicreplacements import basicreplacements, ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
-from sastadev.cleanCHILDEStokens import cleantext
+from sastadev.cleanCHILDEStokens import cleantext, bare_angled_brackets
 from sastadev.conf import settings
 from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
@@ -35,7 +35,7 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         getattval, getbeginend,
                                         getcompoundcount, getnodeyield, getorigutt,
                                         getptsubclass,
-                                        getsentid, getsentence, gettokposlist, getxsid,
+                                        getsentid, getsentence, gettokenpos_str, gettokposlist, getxsid,
                                         getyield, is_infl_different, mkattrib, myfind,
                                         normalisebeginend2,
                                         showflatxml,
@@ -442,7 +442,7 @@ def insertskips(newstree: SynTree, tokenlist: List[Token], stree: SynTree, metad
     :param newstree: the corrected tree, with skipped elements absent
     :param tokenposlist: list of all tokens with skips marked
     :param stree: original stree with parses of the skipped elements
-    :param metadta: metadata of the new tree
+    :param metadata: metadata of the new tree
     :return: adapted tree, with the skipped elements inserted (node from the original stree as -- under top, begin/ends updates
     '''
     debug = False
@@ -451,12 +451,16 @@ def insertskips(newstree: SynTree, tokenlist: List[Token], stree: SynTree, metad
         showtree(newstree, 'newstree:')
         showtree(stree, 'stree')
     reducedtokenlist = [t for t in tokenlist if not t.skip]
+    newstree_tokenpos_str = gettokenpos_str(newstree)
     resulttree = treewithtokenpos(newstree, reducedtokenlist)
+    resulttree_tokenpos_str = gettokenpos_str(resulttree)
 
     if debug:
         showtree(resulttree, text='resulttree:')
     streetokenlist = [t for t in tokenlist if t.subpos == 0]
+    stree_before_tokenpos_str = gettokenpos_str(stree)
     stree = treewithtokenpos(stree, streetokenlist)
+    stree_after_tokenpos_str = gettokenpos_str(stree)
     if debug:
         showtree(stree, text='stree with tokenpos:')
     debug = False
@@ -477,6 +481,8 @@ def insertskips(newstree: SynTree, tokenlist: List[Token], stree: SynTree, metad
     # etree.dump(resulttree)
 
     # insert skipped elements
+    stree_tokenpos_str = gettokenpos_str(stree)
+    resulttree_tokenpos_str = gettokenpos_str(resulttree)
     allnodestoinsert = findskippednodes(stree, tokenlist)
     uitloopnodes = getuitloopnodes(allnodestoinsert, metadata)
     uitlooprealwordnodes = [n for n in uitloopnodes if isrealwordnode(n)]
@@ -565,6 +571,22 @@ def cleantextdone(metadataelement):
     return False
 
 
+def bare_angled_brackets_replace_tree(stree: SynTree) -> SynTree:
+    """
+    reparses the cleaned utterance if the original utterance contains bare angled brackets
+    needed because of an inconsistency between the the two methods of cleaning used (in SASTA v. SASTADEV)
+    :param stree:
+    :return: possibly modified syntactic structure
+    """
+    origutt = getorigutt(stree)
+    cleanutt, chatmetadata = cleantext(origutt, False, tokenoutput=False)
+    if any([meta.name == bare_angled_brackets for meta in chatmetadata]):
+        newstree = settings.PARSE_FUNC(cleanutt)
+    else:
+        newstree = stree
+    return newstree
+
+
 def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: CorrectionParameters) \
         -> Tuple[SynTree, Optional[OrigandAlts]]:
     '''
@@ -631,6 +653,13 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
     '''
 
+    # get the original metadata; these will be added later to the tree of each correction
+    metadatalist = stree.xpath(metadataxpath)
+    lmetadatalist = len(metadatalist)
+
+    # replace the stree by a new one if the original utterance contains bare angled brackets
+    stree = bare_angled_brackets_replace_tree(stree)
+
     # debug = True
     debug = False
     if debug:
@@ -669,9 +698,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         # return stree, orandalts
     # list of token positions
 
-    # get the original metadata; these will be added later to the tree of each correction
-    metadatalist = stree.xpath(metadataxpath)
-    lmetadatalist = len(metadatalist)
+    # deal with the original metadata; these will be added later to the tree of each correction
     if lmetadatalist == 0:
         settings.LOGGER.error('Missing metadata in utterance {}'.format(uttid))
         origmetadata = None
@@ -696,14 +723,17 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
     # get corrections, given the inflated stree
     # inflate the tree
+    stree_tokenpos_str = gettokenpos_str(stree)
     fatstree = deepcopy(stree)
     treeinflate(fatstree)
+    fatstree_tokenpos_str = gettokenpos_str(fatstree)
     # adapt the begins and ends  in the tree based on the token positions
     debug = False
     if debug:
         showtree(fatstree, text='fatstree voor:')
     tokenlist = [t for t in cleanutttokens]
     fatstree = treewithtokenpos(fatstree, tokenlist)
+    fatsttree2_tokenpos_str = gettokenpos_str(fatstree)
     if debug:
         showtree(fatstree, text='fatstree na:')
     debug = False

@@ -308,15 +308,6 @@ Tarsp_Ov3 = """(%declarative% and
 
 onlywordinutt = """(ancestor::node[@cat="top" and count(.//node[@pt])=1] )"""
 
-Tarsp_kijkVU_old = """(@pt="ww" and @lemma="kijken" and @wvorm="pv" and @pvagr="ev" and @pvtijd="tgw" and count(ancestor::node[@cat="top"]/descendant::node[@pt!="let"])<=2)"""
-Tarsp_kijkVU_old2 = """(@pt="ww" and @lemma="kijken" and @wvorm="pv" and @pvagr="ev" and @pvtijd="tgw" and not(../node[%Tarsp_pporvc%]))"""
-Tarsp_kijkVU1 = """(@pt="ww" and @lemma="kijken" and (( @wvorm="pv" and @pvagr="ev" and @pvtijd="tgw") or @word = "kijke" or @word = "kij") and not(../node[@rel="vc" or @rel="su" or @cat="pp" or @lemma="maar" or @lemma="eens" or @lemma="dan" or @lemma="nou"])) """
-Tarsp_kijkVU2 = """(@lemma = "kijk" and (@pt="bw" or @pt="n")) """
-Tarsp_kijkVU3 = """(@pt="ww" and @lemma="kijken" and @wvorm="pv" and @pvagr="ev" and @pvtijd="tgw" and ../node[@rel="mod" and (@lemma="eens" or @lemma="hier")] and 
-                   (parent::node[count(node) = 2] or (parent::node[count(node) = 3] and ../node[@rel="obj1"]))  
-				   ) """
-Tarsp_kijkVU = """( %Tarsp_kijkVU1% or %Tarsp_kijkVU2% or %Tarsp_kijkVU3%)"""
-
 Tarsp_pporvc = """ (((@rel="pc" or @rel="mod" or @rel="ld") and @cat="pp")  or @rel="vc")"""
 
 Tarsp_coreW = """ ( @pt="ww" and (@wvorm="pv" or parent::node[@rel!="vc"] or %Tarsp_BarenonfinW%) and 

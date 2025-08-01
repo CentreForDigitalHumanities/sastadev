@@ -2430,6 +2430,13 @@ def getpreorigutt(tree: SynTree) -> str:
 
 
 
+def gettokenpos_str(stree: SynTree) -> str:
+    nodes = getnodeyield(stree)
+    tokenposlist = [f'{getattval(node, "begin")}:{getattval(node, "word")}' for node in nodes]
+    result = space.join(tokenposlist)
+    return result
+
+
 
 if __name__ == '__main__':
     # test()

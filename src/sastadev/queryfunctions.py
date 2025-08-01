@@ -51,6 +51,7 @@ mvznsuffixes = ['en', 'e', 's', 'n']
 verklxpath = expandmacros(""".//node[@pt="n" and @graad="dim" and not(%nodimlemma%)]""")
 verklsuffixes = ['je', 'jes', 'ie', 'ies', 'ke', 'kes']
 
+
 def notadjacent(n1, n2, t): return not adjacent(n1, n2, t)
 
 

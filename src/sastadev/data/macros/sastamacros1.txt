@@ -927,3 +927,9 @@ BezZn = """(@cat="np" and
             node[@pdtype="det" and @rel="det" and @positie="prenom"  and @vwtype="bez" and @pt="vnw" ] and
             node[((@pt="n"  or ((@pt="adj" or pt="vnw") and @positie="nom") or @cat="mwu") )and @rel="hd"])""" 
 			
+VzBepBvZn = """(@cat="pp" and node[@cat="np" and @rel="obj1" and 
+                          node[@rel="hd" and @pt="n"] and 
+                          node[@rel="det" and @pt] and
+                          node[@rel="mod" and @pt]  
+                          ] and
+                          count(.//node[@pt]) = 4) """
