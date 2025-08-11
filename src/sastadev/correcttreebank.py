@@ -43,7 +43,7 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
 from sastadev.treetransform import adaptlemmas, transformtagcomma, transformtreeld, transformtreenogeen, \
-    transformtreenogde
+    transformtreenogde, transformhwwwithsvp
 from sastadev.eenbeetje import transform_eenbeetje
 
 ampersand = '&'
@@ -677,6 +677,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         stree = transformtreenogeen(stree)
         stree = transformtreenogde(stree)
         stree = transform_eenbeetje(stree)
+        stree = transformhwwwithsvp(stree)
         # stree = nognietsplit(stree)  # put off because it should not be done
 
     # adapt lemmas for words of which we know Alpino does it wrong
@@ -1042,6 +1043,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         fulltree = transformtreenogeen(fulltree)
         fulltree = transformtreenogde(fulltree)
         fulltree = transform_eenbeetje(fulltree)
+        fulltree = transformhwwwithsvp(fulltree)
 
         # fulltree = nognietsplit(fulltree) # put off because it should not be done
 

@@ -1,9 +1,11 @@
 import copy
 from sastadev.conf import settings
-from sastadev.lexicon import lemmalexicon
+from sastadev.lexicon import compoundsep, lemmalexicon
+from sastadev.macros import expandmacros
 from sastadev.treebankfunctions import find1, getattval, getbeginend, getnodeyield, getyield, \
     immediately_precedes, iswordnode, showtree
 from sastadev.sastatypes import SynTree
+from sastadev.tblex import is_rpronoun
 from lxml import etree
 from typing import List
 
@@ -29,6 +31,11 @@ nognietxpath = """.//node[@cat="advp" and node[@rel="mod" and @lemma="nog"] and 
 zelfinnpmodxpath = """.//node[@rel="mod" and @lemma="zelf" and parent::node[@cat="np"]]"""
 
 smainwithverbxpath = """.//node[@cat="smain" and node[@rel="hd" and @pt="ww" and @wvorm="pv"]]"""
+
+
+hwwwithsvpxpath = expandmacros(""".//node[@pt="ww" and %hwwwithsvp%  and not(%hwwwithsvpexception%) and 
+                     ../node[@rel="svp" and  @pt="vz"] and 
+                     ../node[@rel="mod" and %Rpronoun%]]""")
 
 def transformtreeld(stree:SynTree) -> SynTree:
     debug = False
@@ -214,3 +221,53 @@ def getV2violations(stree: SynTree) -> List[SynTree]:
         if len(sortedchilds) > 1 and getattval(sortedchilds[1], 'pt') != "ww":
             results.append(sortedchilds[1])
     return results
+
+def transformhwwwithsvp(stree: SynTree) -> SynTree:
+    """
+    turns e.g kan(op_kunnen) mod/er ... svp/op into kan(kunnen)  ... mod/pp[obj1/er hd/op]
+    :param stree:
+    :return:
+    """
+    newstree = copy.deepcopy(stree)
+    cands = newstree.xpath(hwwwithsvpxpath)
+    if cands == []:
+        return stree
+    for cand in cands:
+        candparent = cand.getparent()
+        verb, rpronoun, vz = None, None, None
+        for child in candparent:
+            childpt = getattval(child, 'pt')
+            childrel = getattval(child, 'rel')
+            if child == cand:
+                verb = child
+            if childpt == 'vnw' and childrel == 'mod' and is_rpronoun(child):
+                rpronoun = child
+            if childrel == 'svp' and childpt == 'vz':
+                vz = child
+        if verb is not None and rpronoun is not None and vz is not None:
+            # adapt the verb
+            verblemma = getattval(cand, 'lemma')
+            lemmaparts = verblemma.split(compoundsep)
+            verb.set('lemma', lemmaparts[-1])
+
+            # detach the rpronoun
+            candparent.remove(rpronoun)
+
+            # detach the svp
+            candparent.remove(vz)
+
+            # create a mod/PP
+            rpronoun_begin = getattval(rpronoun, 'begin')
+            vz_end = getattval(vz, 'end')
+            vz_id = getattval(vz, 'id')
+            pp = etree.Element('node', attrib={'rel': 'mod', 'cat': 'pp', 'begin': rpronoun_begin, 'end': vz_end,
+                                               'id': f'{vz_id}a'})
+
+            rpronoun.set('rel', 'obj1')
+            vz.set('rel', 'hd')
+            pp.append(rpronoun)
+            pp.append(vz)
+            candparent.append(pp)
+    return newstree
+
+

@@ -51,6 +51,8 @@ possessive_determiners = ['mijn' , "m'n", "jouw", "je", "uw", "zijn", "z'n", "ha
 definite_determiners = ['de', 'het', 'deze', 'die', 'dit', 'dat']
 
 valid_ambiguous_words = ['zijn', 'wel', 'niet', 'effe', 'mij', 'drinken', 'dees', 'hun', 'vin', 'pot', 'jou', 'ken']
+
+rpronoun_lemmas = ['daar', 'er', 'ergens', 'hier', 'nergens', 'overal', 'waar']
 def initializelexicon(lexiconfilename) -> set:
     lexicon = set()
     fptuples = readcsv(lexiconfilename, header=False)

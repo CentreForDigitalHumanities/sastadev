@@ -370,3 +370,7 @@ def isrealwordnode(node: SynTree) -> bool:
              not tarsp_kijkvu(node)
     return result
 
+def is_rpronoun(node: SynTree) -> bool:
+    nodelemma = getattval(node, 'lemma')
+    result = nodelemma in lex.rpronoun_lemmas
+    return result
