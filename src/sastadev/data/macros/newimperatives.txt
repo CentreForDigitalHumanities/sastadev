@@ -134,12 +134,13 @@ nominal = """(@pt="n" or @pt="vnw" or (@cat="np" ))"""
 
 Tarsp_OndBVC = """(%Ond% and node[%Tarsp_Basic_B%]  and node[%Tarsp_Basic_VC%]  and count(node) = 3) """
 
-coreXneg = """( count(node) = 2 and node[ %realwordnode% and @lemma!="niet"] and 
+coreXneg = """( count(node[not(%bigpro%)]) = 2 and node[ %realwordnode% and @lemma!="niet"] and 
                 (node[@lemma="niet" ]  
 	            )
 			  ) """
 
-nonfinxneg = """(node[@rel="hd" and @pt="ww"] and node[@rel="vc" and %coreXneg%] )"""
+nonfinxneg = """(count(node) = 2 and node[@rel="hd" and @pt="ww"] and node[@rel="vc" and %coreXneg%] )"""
+
 
 Xneg = """(%coreXneg% or
            %nonfinxneg%
@@ -291,7 +292,7 @@ bplusxpbBBX = """(count(.//node[@pt and %Tarsp_B%]) = 2 and
                     count(.//node[@pt="ww" and (@wvorm="inf" or @wvorm="vd")]) = 1 and
 		            ancestor::node[@cat="top" and count(.//node[%realwordnode%]) = 4]
                    )
-                  )
+                  ) and not(parent::node[count(node) = 1])
                  )"""
 
 		

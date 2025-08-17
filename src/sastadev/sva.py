@@ -11,8 +11,8 @@ from sastadev.sastatoken import Token
 from sastadev.sastatypes import SynTree, UttId
 from sastadev.tokenmd import TokenListMD
 from sastadev.treebankfunctions import (copymodifynode, find1, getattval,
-                                        getdetof, getheadof, getlemma,
-                                        indextransform, inverted, lbrother,
+                                        getdetof, getheadof, getlemma, getnodeyield, gettokenpos_str, getyieldstr,
+                                        indextransform, inverted, lbrother, mktoken2nodemap,
                                         nominal, rbrother, showtree,
                                         simpleshow)
 
@@ -411,6 +411,20 @@ def ti(node: SynTree, tree: SynTree) -> bool:
 
 
 def getsvacorrectedutt(snode, thepv, tokens, metadata):
+    verbose = False
+    wholetree = find1(thepv, './ancestor::alpino_ds')
+    thepvword = getattval(thepv, 'word')
+    snodeyield = getyieldstr(snode)
+    wholetreeyieldstr = getyieldstr(wholetree)
+    if verbose:
+        print(gettokenpos_str(wholetree))
+    if wholetree is not None:
+        leaves = getnodeyield(wholetree)
+        token2nodemap = mktoken2nodemap(tokens, wholetree)
+        nodepos2tokenposmap = {int(getattval(n, 'begin')): tokpos for tokpos, n in token2nodemap.items()}
+    else:
+        nodepos2tokenposmap = {}
+        settings.LOGGER.error(f'No wholetree found for {thepvword} with subject {snodeyield} in {wholetreeyieldstr}')
     newtokens = []
     newmetadata = copy.deepcopy(metadata)
     pvbegin = getattval(thepv, 'begin')
@@ -420,7 +434,13 @@ def getsvacorrectedutt(snode, thepv, tokens, metadata):
     if newpv is None:
         results = []
     else:
-        newpos = int(pvbegin)
+        ipvbegin = int(pvbegin)
+        if ipvbegin not in nodepos2tokenposmap:
+            settings.LOGGER.error(f'{thepvword} in position {pvbegin} not in {nodepos2tokenposmap} for {wholetreeyieldstr}.\n No '
+                                  f'correction '
+                                  f'applied')
+            return []
+        newpos = nodepos2tokenposmap[ipvbegin]
         newtoken = Token(newpv, newpos)
         for token in tokens:
             if token.pos != newpos:

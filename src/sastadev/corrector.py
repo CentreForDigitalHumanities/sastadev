@@ -59,8 +59,9 @@ from sastadev.sva import getsvacorrections
 from sastadev.tblex import getaanloop_core_uitloop
 from sastadev.toe import lonelytoe
 from sastadev.tokenmd import TokenListMD, TokenMD, mdlist2listmd
-from sastadev.treebankfunctions import (fatparse, getattval, getmeta, getnodeyield, getxsid, isdefdet, keycheck,
-                                        showtree)
+from sastadev.treebankfunctions import (fatparse, getattval, getmeta, getnodeyield, gettokenpos_str, getxsid,
+                                        isdefdet, keycheck,
+                                        mktoken2nodemap, showtree)
 
 Correction = Tuple[List[Token], List[Meta]]
 MetaCondition = Callable[[Meta], bool]
@@ -206,7 +207,7 @@ def ngramreduction(reducedtokens: List[Token], token2nodemap: Dict[Token, SynTre
     # metadat function should still be added / abstracted
     (fb, fe) = ngramcor.fpositions
     (cb, ce) = ngramcor.cpositions
-    reducedleaves = [token2nodemap[tok.pos] for tok in reducedtokens]
+    reducedleaves = [token2nodemap[tok.pos] for tok in reducedtokens if keycheck(tok.pos, token2nodemap)]
 
     vnwpvvnwpvmatches = findmatches(ngramcor.ngram, reducedleaves)
     allfalsestarttokens = []
@@ -310,7 +311,7 @@ def reduce(tokens: List[Token], tree: Optional[SynTree]) -> Tuple[List[Token], L
     allmetadata += metadata
 
     # remove vuwords partially dependent on their position
-    reducednodes = [token2nodemap[token.pos] for token in reducedtokens]
+    reducednodes = [token2nodemap[token.pos] for token in reducedtokens if keycheck(token.pos, token2nodemap)]
     vutokens = [tok for tok in reducedtokens if tok.word in vuwordslexicon and
                 mustberemoved(tok, token2nodemap[tok.pos], reducedtokens, reducednodes)
                 ]
@@ -674,8 +675,9 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
     newresults = []
     for uttmd in allalternativemds:
         # utterance = space.join([token.word for token in uttmd.tokens])
-        utterance, _ = mkuttwithskips(uttmd.tokens)
-        fatntree = fatparse(utterance, uttmd.tokens)
+        utterance, _ = mkuttwithskips(uttmd.tokens) # this leaves the skip words out
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        fatntree = fatparse(utterance, noskiptokens)
         newresults += getwrongdetalternatives(uttmd, fatntree, uttid)
     allalternativemds += newresults
 
@@ -683,7 +685,8 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
     newresults = []
     for uttmd in allalternativemds:
         utterance, _ = mkuttwithskips(uttmd.tokens)
-        fatntree = fatparse(utterance, uttmd.tokens)
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        fatntree = fatparse(utterance, noskiptokens)
         newresults += lonelytoe(uttmd, fatntree)
     allalternativemds += newresults
 
@@ -691,9 +694,8 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
     for uttmd in allalternativemds:
         # utterance = space.join([token.word for token in uttmd.tokens])
         utterance, _ = mkuttwithskips(uttmd.tokens)
-        # reducedtokens = [t for t in uttmd.tokens if not t.skip]
-        # reduceduttmd = TokenListMD(reducedtokens, uttmd.metadata)
-        fatntree = fatparse(utterance, uttmd.tokens)
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        fatntree = fatparse(utterance, noskiptokens)
         debug = False
         if debug:
             showtree(fatntree)
@@ -705,14 +707,16 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
     for uttmd in allalternativemds:
         # utterance = space.join([token.word for token in uttmd.tokens])
         utterance, _ = mkuttwithskips(uttmd.tokens)
-        fatntree = fatparse(utterance, uttmd.tokens)
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        fatntree = fatparse(utterance, noskiptokens)
         newresults += correctPdit(uttmd, fatntree, uttid)
     allalternativemds += newresults
 
     newresults = []
     for uttmd in allalternativemds:
         utterance, _ = mkuttwithskips(uttmd.tokens)
-        fatntree = fatparse(utterance, uttmd.tokens)
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        fatntree = fatparse(utterance, noskiptokens)
         newresults += smallclauses(uttmd, fatntree)
         # showtree(fatntree, text='fatntree')
     allalternativemds += newresults
@@ -739,17 +743,24 @@ def oldmkuttwithskips(tokens: List[Token], toskip: List[Token]) -> str:
 
 
 def mkuttwithskips(tokens: List[Token], delete: bool = True) -> Tuple[str, List[Position]]:
-    sortedtokens = sorted(tokens, key=lambda x: x.pos)
+    """
+    makes a tuple with an utterance in which the skip words are left out (if delete==True or marked for Alpino input
+    (if delete==False), and a list of token positions of the words in the utterance
+    :param tokens:
+    :param delete:
+    :return:
+    """
+    sortedtokens = sorted(tokens, key=lambda x: (x.pos, x.subpos))
     resultlist = []
     tokenposlist = []
     for token in sortedtokens:
         if token.skip:
             if not delete:
                 resultlist.append(skiptemplate.format(token.word))
-                tokenposlist.append(token.pos)
+                tokenposlist.append(token.pos + token.subpos)
         else:
             resultlist.append(token.word)
-            tokenposlist.append(token.pos)
+            tokenposlist.append(token.pos + token.subpos)
     result = space.join(resultlist)
 
     return result, tokenposlist
@@ -2088,15 +2099,28 @@ def correctPdit(tokensmd: TokenListMD, tree: SynTree, uttid: UttId) -> List[Toke
     '''
     correctiondone = False
     tokennodes = getnodeyield(tree)
-    tokens = tokensmd.tokens
+    rawtokens = tokensmd.tokens
+    tokens = [t for t in rawtokens if not t.skip]
     metadata = tokensmd.metadata
     newtokens = []
     tokenctr = 0
     nonskiptokenctr = 0
     prevtoken = None
-    for token in tokens:
-        tokennode = next(filter(lambda x: getattval(x, 'begin') == str(
-            token.pos + token.subpos), tokennodes), None)
+    themap = mktoken2nodemap(tokens, tree)
+    for token in rawtokens:
+        if token.skip:
+            newtokens.append(token)
+            continue
+        # tokennode = next(filter(lambda x: getattval(x, 'begin') == str(
+        #            token.pos + token.subpos), tokennodes), None)
+        thekey = token.pos + token.subpos
+        if thekey in themap:
+            tokennode = themap[thekey]
+        else:
+            settings.LOGGER.error(f'No node found for token position {thekey} in {gettokenpos_str(tree)}. themap='
+                                  f'{str(themap)}.')
+            prevtoken = token
+            continue
         tokenlemma = getattval(tokennode, 'lemma')
         if not token.skip and prevtoken is not None and not prevtoken.skip and tokenlemma in {'dit', 'dat', 'deze',
                                                                                               'die'}:

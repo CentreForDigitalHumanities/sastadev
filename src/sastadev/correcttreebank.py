@@ -416,7 +416,7 @@ def findskippednodes(stree: SynTree, tokenlist: List[Token]) -> List[SynTree]:
         showtree(stree, text='findskippednodes:stree:')
     topnode = find1(stree, './/node[@cat="top"]')
     # tokenposdict =  {i+1:tokenlist[i].pos+1 for i in range(len(tokenlist))}
-    tokenposset = {t.pos + 1 for t in tokenlist if not t.skip}
+    tokenposset = {t.pos + t.subpos + 1 for t in tokenlist if not t.skip}
     resultlist = findskippednodes2(topnode, tokenposset)
     return resultlist
 
@@ -604,60 +604,82 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
     The following steps are carried out:
 
-      1. The original utterance, with all CHAT-annotations, is cleaned using the
+      1. Metadata are stored safely
+
+      2. The sentence is reparsed if it contains bare angled brackets. This is a temporary action, to be removed
+      when the SASTA cleaning is adapted
+
+      3. Certain syntactic configurations can be recognised and corrected, this happens next via a range of tree
+      transformations
+
+      4. Lemma adaptation. Alpino sometimes assigns the wrong lemma, this is corrected here, e..g the lemma "avonds"
+      is replaced by "avond". Done  by the function *adaptlemmas*
+
+      ..autofunction:: treetransform::adaptlemmas
+
+      5. The original utterance, with all CHAT-annotations, is cleaned using the
       function *cleantext* from the module *cleanCHILDEStokens*. This is necessary to
       generate the metadata for the CHAT-annotations, but it can be discarded when the
-      original parses use the same *cleantext* function. Currently that is not
+      original parses use the same *cleantext* function. Currently, that is not
       possible yet because the original parsing is done via GrETEL modules,
       which cannot handle complex metadata (xmeta). The result of this operation is a
       list of tokens of type *Token* as defined in the module *sastatoken*. @@add ref@@
 
-      2. Alpino parses are inflated to be able to deal easily with insertions and
+      6. Alpino parses are inflated to be able to deal easily with insertions and
       deletions. See below for more details.
 
-      3. The corrections are obtained by calling the function *getcorrections* from the module *corrector*. xx
+      7. The corrections are obtained by calling the function *getcorrections* from the module *corrector*. xx
 
-      4. The corrections may have tokens that are marked with skip=True, in which case
+      8. The obtained corrections are reduced by the function *reducecorrections* because there may be duplicates that
+      differ only in the penalty. The best ones (with the lowest penalty) are retained.
+
+      9. The corrections may have tokens that are marked with skip=True, in which case
       they  should not be included in the  corrected utterance, so  a corrected
       utterance with these words left out is created.
 
-      5. Each corrected utterance  is parsed, resulting in an inflated syntactic
+      10. Each corrected utterance  is parsed, resulting in an inflated syntactic
       structure.
 
-      6. Words that were left out are now introduced into the syntactic structure,
+      11. Words that were left out (skip words) are now introduced into the syntactic structure,
       in such a way that they have no grammatical relations with other words.
 
-      7. The best alternative is selected from among the original utterance and the
+      12. The best alternative is selected from among the original utterance and the
       generated corrected utterances by the function *selectcorrection* from the
       module *correcttreebank*.
 
-      8. The original words and sometimes their properties are now substituted for the
+      13. The original words and sometimes their properties are now substituted for the
       corrections. The exact nature of the replacement is determined by the value of
       the *backplacement* attribute of the metadata. Expansions are not replaced yet,
       because they must be replaced only after the queries have been executed. Nodes
       for words that have to be deleted are collected, but the actual deletion only
       takes place in the next step.
 
-      9. Words that were marked to be deleted are now all deleted, by the function
+      14. Words that were marked to be deleted are now all deleted, by the function
       tada *deletewordnodes* of the module *treebankfunction*. xx
 
-      10. The metadata are updated and added to the syntactic structure.
+      15. The metadata are updated and added to the syntactic structure.
 
-      11. During the whole process the mapping between the nodes for words in the
+      16. During the whole process the mapping between the nodes for words in the
       original syntactic structure and the nodes for words in the syntactic structure
       for the corrected utterance must be perfect. A check is performed to determine
       whether this is the case.
 
-      12. Finally, the corrected syntactic structure and the specification of the
+      17. The new parses can contain configurations that are wrong, so the tree transformations are applied to them,
+      as well as lemma adaptations
+
+      18. Finally, the corrected syntactic structure and the specification of the
       original utterance and all alternatives considered is returned.
 
     '''
 
+    # Step 1
     # get the original metadata; these will be added later to the tree of each correction
     metadatalist = stree.xpath(metadataxpath)
     lmetadatalist = len(metadatalist)
 
+    # Step 2
     # replace the stree by a new one if the original utterance contains bare angled brackets
+    # this is necessary because the input may  contain bare angled brackets
     stree = bare_angled_brackets_replace_tree(stree)
 
     # debug = True
@@ -667,6 +689,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         simpleshow(stree)
         print(showflatxml(stree))
 
+    # Step 3
     # tree transformations
     if correctionparameters.method.name in ['tarsp', ' stap']:
         stree = transformtagcomma(stree)
@@ -680,9 +703,11 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         stree = transformhwwwithsvp(stree)
         # stree = nognietsplit(stree)  # put off because it should not be done
 
+    # Step 4
     # adapt lemmas for words of which we know Alpino does it wrong
     stree = adaptlemmas(stree)
 
+    # Step 5 get the original utterance and clean it
     allmetadata = []
     # orandalts = []
 
@@ -723,6 +748,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     cleanutt = space.join(cleanuttwordlist)
 
     # get corrections, given the inflated stree
+    # Step 6
     # inflate the tree
     stree_tokenpos_str = gettokenpos_str(stree)
     fatstree = deepcopy(stree)
@@ -742,8 +768,11 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     origmetadatalist2 = deepcopy(origmetadatalist)
     fatstree = attach_metadata(fatstree, origmetadatalist2)
 
+    # Step 7: get the corrections
+    # A Correction is a Tuple[List[Token], List[Meta]]
     rawctmds: List[Correction] = getcorrections(cleanutttokens, correctionparameters, fatstree)
 
+    # Step 8: reduce the corrections
     ctmds = reducecorrections(rawctmds, correctionparameters.method.name)
     # ctmds = rawctmds
 
@@ -752,6 +781,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         showtree(fatstree, text='2:')
     debug = False
 
+    # Step 9 /10:
     fatstreewordlist = getyield(fatstree)
     ptmds = []
     for correctiontokenlist, cwmdmetadata in ctmds:
@@ -762,7 +792,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         # parse the corrections
         # if correctionwordlist != cleanuttwordlist and correctionwordlist != []:
         if correctionwordlist != fatstreewordlist and correctionwordlist != []:
-            correction, tokenposlist = mkuttwithskips(correctiontokenlist)
+            correction, tokenposlist = mkuttwithskips(correctiontokenlist)   # we must remove the skip words
             cwmdmetadata += [Meta(correctionlabels.parsedas, correction,
                                   cat='Correction', source='SASTA', penalty=0)]
             reducedcorrectiontokenlist = [
@@ -777,6 +807,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
             else:
                 # insert the leftout words and adapt the begin/ends of the nodes
                 # simpleshow(stree)
+                # Step 11: Insert the skip words
                 fatnewstree = insertskips(
                     fatnewstree, correctiontokenlist, fatstree, cwmdmetadata)
                 # newstree = insertskips(newstree, correctiontokenlist, stree)
@@ -798,6 +829,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
         ptmds.append((correctiontokenlist, fatnewstree, cwmdmetadata))
 
+    # Step 12
     # select the stree for the most promising correction
     debug = False
     if debug:
@@ -822,6 +854,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         print('4: (fatstree)')
         etree.dump(fatstree, pretty_print=True)
 
+    # Step 13 Backplacement
     # do replacements in the tree
     if debuga:
         print('4b: (thetree)')
@@ -957,6 +990,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
             nextbackplacement = None
         # etree.dump(thetree, pretty_print=True)
 
+    # Step 14
     # now do all the deletions at once, incl adaptation of begins and ends, and new sentence node
     debug = False
     if debug:
@@ -970,6 +1004,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
     debug = False
 
+    # Step 15
     # adapt the metadata
     cleantokposlist = [
         meta.annotationwordlist for meta in newcorrection2 if meta.name == 'cleanedtokenpositions']
@@ -1033,6 +1068,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     # print('dump 2:')
     # etree.dump(fulltree, pretty_print=True)
 
+    # Step 17
     # tree transformations
     if correctionparameters.method.name in ['tarsp', ' stap']:
         fulltree = transformtagcomma(fulltree)
@@ -1056,6 +1092,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     if debug:
         showtree(fulltree, 'Deflated')
 
+    # Step 18
     return fulltree, orandalts
 
 

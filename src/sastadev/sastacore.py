@@ -113,6 +113,9 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
                 # uttid = getuttid(syntree)
                 # analysedtrees consists of (uttid, syntree) pairs in order
                 uttid = getxsid(syntree)
+                verbose = False
+                if verbose:
+                    print(uttid)
                 analysedtrees.append((uttid, syntree))
 
                 doprequeries(syntree, themethod.queries,

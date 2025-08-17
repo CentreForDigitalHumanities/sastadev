@@ -44,10 +44,11 @@ def lonelytoe(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     newtokens = []
     naarfound = False
 
+    prevtoken = None
     for i, token in enumerate(tokens):
         naarfound = naarfound or token.word == 'naar'
         if not naarfound:
-            if  i + 2 < len(tokens) and tokens[i].pos in token2nodemap and \
+            if i + 2 < len(tokens) and tokens[i].pos in token2nodemap and \
                     tokens[i+1].pos in token2nodemap and \
                     tokens[i+2].word == 'toe':
                 thisnode = token2nodemap[token.pos]
@@ -63,17 +64,22 @@ def lonelytoe(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                     tokens[i+1].word == 'toe':
                 thisnode = token2nodemap[token.pos]
                 if isnominal(thisnode) :
-                    naartoken = Token('naar', token.pos, subpos=5)
+                    if prevtoken is None:
+                        prevtokenpos = 0
+                    else:
+                        prevtokenpos = prevtoken.pos
+                    naartoken = Token('naar', prevtokenpos, subpos=5)
                     naarfound = True
                     newtokens.append(naartoken)
                     inserttokens = [naartoken]
                     metadata += mkinsertmeta(inserttokens, newtokens, cat=lonelytoe)
                     insertiondone = True
         newtokens.append(token)
+        prevtoken = token
     if insertiondone:
         result = [TokenListMD(newtokens, metadata)]
     else:
-        result = [tokensmd]
+        result = []
     return result
 
 nominalpts = ['n', 'vnw']

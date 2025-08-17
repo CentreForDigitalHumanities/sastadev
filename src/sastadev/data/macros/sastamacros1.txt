@@ -479,6 +479,7 @@ Tarsp_BX = """( (%coreBX% or
 			    %clausalbx2% or
 				%ookXP%) and
                 not(%Xneg%) and 
+				not(@cat="smain" and count(node) = 1 and node[@rel="vc" and %Xneg%]) and
 				not(%wx%) and
 				not(%bbvb%)
 			)"""
@@ -913,6 +914,7 @@ ellipticgap = """(not(@pt) and not(@cat) and not(@pos) and not(%covertnonfinsubj
 hasantecedent = """(@index = ancestor::node[@cat="top"]/descendant::node[@cat or @word]/@index)"""
 
 unboundtrace = """(not(%hasantecedent%))"""
+bigpro = """(@rel="su" and not(@cat) and not(@pt) and not(@word) and not(@pos) and parent::node[@cat="inf" or @cat="ppart"])"""
 
 BvBepZn = """((@cat="np" and node[@rel="det"] and node[@rel="mod" and @pt="bw" and (not(@special) or @special!="er")] and count(node)=3))"""
 

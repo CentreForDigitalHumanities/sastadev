@@ -3,7 +3,7 @@ from lxml import etree
 from sastadev.sastatypes import SynTree
 from sastadev.treebankfunctions import getattval as gav, showtree
 
-eenbeetjequery = """///node[@cat="np"  and
+eenbeetjequery = """.//node[@cat="np"  and
     node[@lemma="een" and @pt="lid" and @rel="det"] and
     node[@lemma="beet" and @pt="n" and @rel="hd"] and
     node[@pt="n" and @rel="mod" and @graad="dim"]]"""
