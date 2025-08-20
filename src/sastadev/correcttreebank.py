@@ -672,6 +672,10 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
     '''
 
+    verbose = False
+    if verbose:
+        print(f'{getxsid(stree)}: {getsentence(stree)}')
+
     # Step 1
     # get the original metadata; these will be added later to the tree of each correction
     metadatalist = stree.xpath(metadataxpath)

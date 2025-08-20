@@ -130,8 +130,7 @@ def charrange(string: str) -> str:
 
 consonants_star = star(charrange(consonants))
 
-syllableheadspat = alt([alt(dutch_tetraphthongs), alt(
-    dutch_triphthongs), alt(dutch_diphthongs), alt(vowels)])
+syllableheadspat = alt(dutch_tetraphthongs + dutch_triphthongs + dutch_diphthongs + [v for v in vowels])
 syllableheadsre = re.compile(syllableheadspat)
 
 monosyllabicpat = r'^' + consonants_star + \
@@ -142,7 +141,7 @@ wordinitialrepeatedconsonants = fr'^({charrange(consonants)})\1+'
 wordfinalalrepeatedconsonants = fr'({charrange(consonants)})\1+$'
 wordinitialrepeatedconsonantsre = re.compile(wordinitialrepeatedconsonants)
 wordfinalalrepeatedconsonantsre = re.compile(wordfinalalrepeatedconsonants)
-intervowelrepeatedconsonants = fr'({syllableheadspat})({charrange(consonants)})\2+({syllableheadspat})'
+intervowelrepeatedconsonants = fr'{syllableheadspat}({charrange(consonants)})\2+{syllableheadspat}'
 intervowelrepeatedconsonantsre = re.compile(intervowelrepeatedconsonants)
 
 repeatedvowelsinopensyllable = rf'([{vowels}])\1+($|{charrange(consonants)}[{vowels}])'
