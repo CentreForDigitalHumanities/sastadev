@@ -4,6 +4,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple
 
 from lxml import etree
 
+from sastadev.adapt_pt import adapt_pt
 from sastadev.basicreplacements import basicreplacements, ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
 from sastadev.cleanCHILDEStokens import cleantext, bare_angled_brackets
 from sastadev.conf import settings
@@ -710,6 +711,8 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     # Step 4
     # adapt lemmas for words of which we know Alpino does it wrong
     stree = adaptlemmas(stree)
+    # adapt pts (and associated features) for words for which we know that Alpino does it wrong
+    stree = adapt_pt(stree)
 
     # Step 5 get the original utterance and clean it
     allmetadata = []
@@ -1089,6 +1092,8 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
     # adapt lemmas for words of which we know Alpino does it wrong
     fulltree = adaptlemmas(fulltree)
+    # adapt pts (and associated features) for words for which we know that Alpino does it wrong
+    fulltree = adapt_pt(fulltree)
 
 
     # fulltree = deflate(fulltree)  # put off becuase there may be expanded elements

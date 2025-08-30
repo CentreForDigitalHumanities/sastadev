@@ -265,7 +265,7 @@ old_Tarsp_BBX = """((@cat="top" and
    
    )"""
    
-Tarsp_BBX = """(%coreBBX% or %clausalBBX% or %wvcBBX% or %abcBBX% or %vabcBBX% or %nadvpbbBBX% or %bplusxpbBBX% or %smallclausebbx%)"""
+Tarsp_BBX = """(%coreBBX% or %clausalBBX% or %wvcBBX% or %abcBBX% or %vabcBBX% or %nadvpbbBBX% or %bplusxpbBBX% or %smallclausebbx% or %noudezebbx%)"""
 
 old_corebb = """ ((@special="er_loc" or @pt="bw" or @pt="vz" or (@pt="adj" and @rel="dp" )) and @rel!="hd" and @rel!="hdf")""" 
    
@@ -285,6 +285,7 @@ smallclausebbx = """(@cat="smain" and not(.//node[@pt="ww"])  and count(node[%co
 nadvpbbBBX = """(node[not(%Tarsp_B%) and (not(@pt) or (@pt!="ww" and @pt!="let")) and @cat!="advp"] and node[@cat="advp" and node[@rel="mod" ] and node[@rel="hd" ]] and count(node) = 2 and %onlythesearerealwords%) """
 oldbplusxpbBBX = """(node[%Tarsp_B% and @rel!="tag" ] and not(node[@pt="ww"]) and node[not(%Tarsp_B%) and count(.//node[%Tarsp_B%]) = 1] and %onlythesearerealwords%)"""
 
+noudezebbx = """(@cat and node[@rel="dp" and @cat="du" and node[%coreB%] and node [not(%coreB%)]] and node[%coreB%] and %onlythesearerealwords%)"""
 
 bplusxpbBBX = """(count(.//node[@pt and %Tarsp_B%]) = 2 and 
                   ((count(.//node[@pt and not(%Tarsp_B%) and  @pt!="vg"]) = 1 and ancestor::node[@cat="top" and count(.//node[%realwordnode%]) = 3]) or

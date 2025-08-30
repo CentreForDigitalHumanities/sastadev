@@ -217,7 +217,7 @@ adjadv = """
 """
 
 
-bbvb = """((node[@rel="mod" and %adjoradv%] and
+bbvb = """((@cat="ap" or @cat="advp" or @cat="np") and (node[@rel="mod" and %adjoradv%] and
        node[@rel="hd"  and %adjoradv% and not(@positie="nom")])     
    )"""
 
@@ -385,7 +385,7 @@ coreBX1 = """(@cat and
 			 node[%corebnode%]  and
 			 %nonominorsubj% and
 			 %onlythesearerealwords% and		
-             count(.//node[%corebnode%]) = 1				
+             (count(.//node[%corebnode%]) = 1 or count(.//node[%BvBepZn%]) = 1)				
  
 			)""" 
 
@@ -397,7 +397,9 @@ coreBX2 = """(@cat and
              count(.//node[%corebnode%]) = 2				
 			)""" 
 
-coreBX = """(%coreBX1% or %coreBX2%)"""
+tagnuclBX = """(@cat="du" and node[@pt="bw" and @rel="tag"] and .//node[@rel="nucl" and %realwordnode%] and %onlythesearerealwords%)"""
+
+coreBX = """(%coreBX1% or %coreBX2% or %tagnuclBX%)"""
 
 
 corebnode = """(%coreB% and 
@@ -426,7 +428,7 @@ allbxrealwordnodes = """(./ancestor::alpino_ds/descendant::node[%bxrealwordnode%
 
 bxrealwordnode = """(%realwordnode% and not(%dlinkvg%) and not(%svp_verb_part%)) """
 
-svp_verb_part = """(@rel="svp" and @pt and ../node[@rel="hd" and @pt="ww" and contains(@lemma,"_")])"""
+svp_verb_part = """(@rel="svp" and @pt and ../node[@rel="hd" and @pt="ww" and contains(@lemma,"_")] and not %svpofhww%)"""
 
 dlinkvg = """(@pt="vg" and (@rel="dlink" or @rel="--"))"""
 
