@@ -2,6 +2,7 @@
 aanloop = "Word in aanloop"
 agreementerror = 'Agreement Error'
 alpinoimprovement = 'Alpino Improvement'
+alternativept = 'Alternative part of speech'
 apomiss = 'Omitted Apoe'
 ambiguityavoidance = 'Ambiguity Avoidance'
 casevariant = 'Grammatical Case variant'

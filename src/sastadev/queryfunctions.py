@@ -204,7 +204,7 @@ vudiversxpath = """
            (@ rel="--" or @ rel="sat" or @ rel="tag")
 		  )
          ) 
-		) or %Tarsp_kijkVU% or %Tarsp_hehe%
+		) or %Tarsp_kijkVU% or %Tarsp_hehe% or %dankje_VU%
     ]
 """
 def vudivers(syntree: SynTree) -> List[SynTree]:
