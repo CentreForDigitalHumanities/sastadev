@@ -495,6 +495,15 @@ def get_predc_v_mismatch_count(tree: SynTree, mds: List[Meta] = [], method: Meth
     predc_v_mismatches = get_predc_v_mismatches(tree)
     return len(predc_v_mismatches)
 
+predmxpath = './/node[@rel="predm"]'
+
+def getpredmcount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
+    predms = getpredm(tree)
+    return len(predms)
+
+def getpredm(tree):
+    predms = tree.xpath(predmxpath)
+    return predms
 
 def compute_penalty(nt: SynTree, md: List[Meta], method: Method = defaultmethod) -> Penalty:
     totalpenalty = 0
@@ -550,6 +559,8 @@ criteria = [
     Criterion("badcatcount", getbadcatcount, negative, "Count of bad categories: du that contains a node with relation dp"),
     Criterion("basicreplaceecount", getbasicreplaceecount, negative, "Number of words from the basic replacements"),
     Criterion("hyphencount", gethyphencount, negative, "Number of words that contain hyphens"),
+    Criterion('predmcount', getpredmcount, negative,
+                            "Count of number of occurrences of nodes with relation 'predm'"),
     Criterion("subjunctivecount", getsubjunctivecount, negative, "Number of subjunctive verb forms"),
     Criterion("smainsucount", countsmainsu, positive, "Count of smain nodes that contain a subject"),
     Criterion("dimcount", getdimcount, positive, "Number of words that are diminutives"),

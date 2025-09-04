@@ -12,8 +12,7 @@ space = ' '
 def displaytree(stree: SynTree, indent=0, step=4) -> str:
     resultstrings = []
     if stree.tag in ['meta', 'xmeta']:
-        streestr = f'{stree.tag}-{stree.attrib["name"]}'
-        indentedstreestr = f'\n{(indent * space)}{streestr}'
+        streestr = f'{stree.tag}-{stree.attrib["name"]}: {stree.attrib["value"]}'
     elif stree.tag == 'node':
         poscat = gav(stree, 'pt')
         if poscat == '':
@@ -26,16 +25,24 @@ def displaytree(stree: SynTree, indent=0, step=4) -> str:
         word = gav(stree, 'word')
         lemma = gav(stree, 'lemma')
         streestr=f'{rel}/{poscat}-{word} ({lemma})' if 'word' in stree.attrib else f'{rel}/{poscat}'
-        indentedstreestr = f'\n{(indent * space)}{streestr}'
+    elif stree.tag == 'sentence':
+        streestr = f'{stree.tag}-{stree.text}'
     else:
-        indentedstreestr = f'\n{(indent * space)}{stree.tag}'
+        streestr = stree.tag
+    indentedstreestr = f'\n{(indent * space)}{streestr}'
     resultstrings.append(indentedstreestr)
     for child in stree:
         childstrings = displaytree(child, indent=indent+step, step=step)
         resultstrings += childstrings
     return resultstrings
 
-testtrees = [('auristrain', 'dld03', '1')]
+def printtree(stree: SynTree, indent=0, step=4, text='') -> None:
+    resultstrings = displaytree(stree, indent, step)
+    resultstring = ''.join(resultstrings)
+    print(text)
+    print(resultstring)
+
+testtrees = [('vkltarsp', 'tarsp_03', '35')]
 
 def main():
     for dataset, sample, uttid in testtrees:

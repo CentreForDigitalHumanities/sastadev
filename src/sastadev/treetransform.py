@@ -11,6 +11,8 @@ from typing import List
 
 space = ' '
 
+gav = getattval
+
 tagcommaclausexpath = """.//node[@cat="smain" and 
                           node[@pt="n" and @end = ancestor::alpino_ds/descendant::node[@lemma="," ]/@begin and 
                                @begin = ancestor::node[@cat="top"]/@begin]]"""
@@ -268,6 +270,50 @@ def transformhwwwithsvp(stree: SynTree) -> SynTree:
             pp.append(rpronoun)
             pp.append(vz)
             candparent.append(pp)
+    return newstree
+
+# jij zelf opspspliten
+
+def getendof(nodes: List[SynTree]) -> str:
+    sortednodes =  sorted(nodes, key=lambda n: int(gav(n, 'end')))
+    if sortednodes == []:
+        return '0'
+    else:
+        return gav(sortednodes[-1], 'end')
+
+pronzelfxpath = './/node[@cat="np"   and node[@rel="mod" and @lemma="zelf"] ]'
+
+def splitpronzelf(stree: SynTree) -> SynTree:
+    newtree = copy.deepcopy(stree)
+    zelfnps = newtree.xpath(pronzelfxpath)
+    if zelfnps == []:
+        return stree
+    for zelfnp in zelfnps:
+        zelfnpparent = zelfnp.getparent()
+        for child in zelfnp:
+            if gav(child, 'lemma') == 'zelf':
+                zelfnp.remove(child)
+                zelfnp.set('end', getendof([ch for ch in zelfnp]))
+                zelfnpparent.append(child)
+                child.set('rel', 'predm')
+    return newtree
+
+
+# move PP out of predc/ap
+
+predc_ap_with_pp_xpath = './/node[@cat="ap" and @rel="predc" and node[@cat="pp"]]'
+def transform_ppinap(stree: SynTree) -> SynTree:
+    newstree = copy.deepcopy(stree)
+    predc_ap_with_pp_nodes = newstree.xpath(predc_ap_with_pp_xpath)
+    if predc_ap_with_pp_nodes == []:
+        return stree
+    for apnode in predc_ap_with_pp_nodes:
+        apnodeparent = apnode.getparent()
+        for child in apnode:
+            if gav(child, 'cat') == 'pp':
+                apnode.remove(child)
+                apnodeparent.append(child)
+                child.set('rel', 'mod')
     return newstree
 
 
