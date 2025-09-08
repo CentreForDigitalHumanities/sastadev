@@ -44,9 +44,9 @@ from sastadev.metadata import (SASTA, Meta, bpl_delete, bpl_none,
                                defaultpenalty, insertion,
                                insertiontokenmapping)
 from sastadev.metadata import modifypenalty as mp
-from sastadev.metadata import smallclause, tokenmapping
+from sastadev.metadata import  mkinsertmeta
 from sastadev.namepartlexicon import namepart_isa_namepart
-from sastadev.sastatoken import Token
+from sastadev.sastatoken import mktokenlist, Token
 from sastadev.sastatypes import SynTree
 from sastadev.tokenmd import TokenListMD
 from sastadev.top3000 import (genlexicon, intransitive, isanimate, ishuman,
@@ -257,13 +257,6 @@ def mktoken(node, map):
     return result
 
 
-def mktokenlist(tokens, fpos, inserttokens):
-    resultlist = [token for token in tokens if token.pos <= fpos] + \
-        inserttokens + \
-                 [token for token in tokens if token.pos > fpos]
-    return resultlist
-
-
 def oldmktokenlist(leaves, themap, fpos, inserttokens):
     resultlist = [mktoken(lv, themap) for lv in leaves if bg(lv) <= fpos] + \
         inserttokens + \
@@ -300,18 +293,6 @@ def getauxform(aux: str, node:SynTree) -> str:
             result = 'heeft' if aux == 'hebben' else 'is'
     return result
 
-def mkinsertmeta(inserttokens, resultlist, penalty=defaultpenalty, cat=smallclause):
-    insertposs = [token.pos + token.subpos for token in inserttokens]
-    insertwordlist = [token.word for token in inserttokens]
-    tokenmappinglist = [token.pos if token.subpos == 0 else None for token in resultlist]
-    metadata1 = [Meta(insertion, [insertword], annotatedposlist=[insertpos],
-                 annotatedwordlist=[], annotationposlist=[insertpos],
-                 annotationwordlist=[insertword], cat=smallclause, source=SASTA, penalty=penalty,
-                 backplacement=bpl_delete) for insertword, insertpos in zip(insertwordlist, insertposs)]
-    meta2 = Meta(insertiontokenmapping, tokenmappinglist, cat=tokenmapping, source=SASTA, penalty=0,
-                 backplacement=bpl_none)
-    metadata = metadata1 + [meta2]
-    return metadata
 
 def isfirstsubject(first, second) -> bool:
     if intransitive(second):
@@ -645,6 +626,16 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                 fpos = themap[bg(first)].pos
                 insertform = 'moeten' if getal(first) == 'mv' else 'moet'
                 inserttokens = [Token(insertform, fpos, subpos=5)]
+                resultlist = mktokenlist(tokens, fpos, inserttokens)
+                metadata += mkinsertmeta(inserttokens, resultlist)
+            else:
+                settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                      f'tokens={str(reducedtokens)}; No insertion done')
+        elif (aanwvnw(first) or knownnoun(first)) and pt(second) == 'bw' and adj(third):
+            bgfirst = bg(first)
+            if bgfirst in themap:
+                fpos = themap[bg(first)].pos
+                inserttokens = [Token('is' if getal(first) != 'mv' else 'zijn', fpos, subpos=5)]
                 resultlist = mktokenlist(tokens, fpos, inserttokens)
                 metadata += mkinsertmeta(inserttokens, resultlist)
             else:

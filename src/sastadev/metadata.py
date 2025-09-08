@@ -241,3 +241,16 @@ insertiontokenmapping = 'Insertion Token Mapping'
 def modifypenalty(pct:int) -> Penalty:
     newpen = int(pct /100 * defaultpenalty)
     return newpen
+
+def mkinsertmeta(inserttokens, resultlist, penalty=defaultpenalty, cat=smallclause):
+    insertposs = [token.pos + token.subpos for token in inserttokens]
+    insertwordlist = [token.word for token in inserttokens]
+    tokenmappinglist = [token.pos if token.subpos == 0 else None for token in resultlist]
+    metadata1 = [Meta(insertion, [insertword], annotatedposlist=[insertpos],
+                 annotatedwordlist=[], annotationposlist=[insertpos],
+                 annotationwordlist=[insertword], cat=smallclause, source=SASTA, penalty=penalty,
+                 backplacement=bpl_delete) for insertword, insertpos in zip(insertwordlist, insertposs)]
+    meta2 = Meta(insertiontokenmapping, tokenmappinglist, cat=tokenmapping, source=SASTA, penalty=0,
+                 backplacement=bpl_none)
+    metadata = metadata1 + [meta2]
+    return metadata

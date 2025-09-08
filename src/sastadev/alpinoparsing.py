@@ -64,6 +64,7 @@ def parse(origsent: str, escape: bool = True):
 
     '''
     if isempty(origsent):
+        sastadev.conf.settings.LOGGER.error(f'No parse tree found for (empty) <{origsent}>')
         return None
     if escape:
         sent = escape_alpino_input(origsent)

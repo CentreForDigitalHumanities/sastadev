@@ -38,7 +38,7 @@ from sastadev.macros import expandmacros
 from sastadev.metadata import (Meta, bpl_word_delprec, bpl_indeze, bpl_node, bpl_none, bpl_word,
                                bpl_wordlemma, defaultbackplacement,
                                defaultpenalty, filled_pause, fstoken, intj,
-                               janeenou, longrep, mkSASTAMeta, modifypenalty as mp, repeated,
+                               janeenou, longrep, mkinsertmeta, mkSASTAMeta, modifypenalty as mp, repeated,
                                repeatedjaneenou, repeatedseqtoken, shortrep,
                                substringrep, unknownsymbol,
                                SASTA, ADULTSPELLINGCORRECTION, ALLSAMPLECORRECTIONS, BASICREPLACEMENTS, CONTEXT, HISTORY, THISSAMPLECORRECTIONS,
@@ -47,20 +47,20 @@ from sastadev.metadata import (Meta, bpl_word_delprec, bpl_indeze, bpl_node, bpl
                               )
 from sastadev.queryfunctions import get_aanloop_and_core, getuitloop
 from sastadev.sasta_explanation import explanationasreplacement
-from sastadev.sastatoken import Token, tokenlist2stringlist
+from sastadev.sastatoken import mktokenlist, Token, tokenlist2stringlist
 from sastadev.sastatypes import (BackPlacement, MethodName, Nort, Penalty,
                                  Position, SynTree, UttId)
 from sastadev.smallclauses import smallclauses
 from sastadev.spellingerrors import getbabylemma, isbabyword, correctbaby
 from sastadev.stringfunctions import (chatxxxcodes, consonants, dutchdeduplicate,
                                       endsinschwa, fullworddehyphenate, ispunctuation,
-                                      monosyllabic, sentencefinalpuncs, vowels)
+                                      monosyllabic, sentencefinalpuncs, schwa, vowels)
 from sastadev.sva import getsvacorrections
 from sastadev.tblex import getaanloop_core_uitloop
 from sastadev.toe import lonelytoe
 from sastadev.tokenmd import TokenListMD, TokenMD, mdlist2listmd
 from sastadev.treebankfunctions import (fatparse, getattval, getmeta, getnodeyield, gettokenpos_str, getxsid,
-                                        isdefdet, keycheck,
+                                        inflate_step, isdefdet, keycheck,
                                         mktoken2nodemap, showtree)
 
 Correction = Tuple[List[Token], List[Meta]]
@@ -577,6 +577,74 @@ def combinesorted(toklist1: List[Token], toklist2: List[Token]) -> List[Token]:
     sortedresult = sorted(result, key=lambda tok: tok.pos)
     return sortedresult
 
+def ezo2zon(tokensmd: TokenListMD, tree: SynTree, uttid: UttId) -> List[TokenListMD]:
+    rawtokens = tokensmd.tokens
+    metadata = tokensmd.metadata
+    efound = False
+    zofound = False
+    newtokens = []
+    meta = None
+    for i, token in enumerate(rawtokens):
+        prevtoken = rawtokens[i-1] if i > 0 else None
+        nexttoken = rawtokens[i+1] if i < len(rawtokens)-1 else None
+        if token.skip:
+            newtokens.append(token)
+            continue
+        elif token.word in ['e', schwa] and nexttoken is not None and nexttoken.word == 'zo':
+            newtoken = Token(token.word, token.pos, skip=True)
+            newtokens.append(newtoken)
+            efound = True
+        elif token.word == 'zo' and prevtoken is not None and prevtoken.word in ['e', schwa]:
+            newtoken = Token("zo'n", token.pos)
+            newtokens.append(newtoken)
+            zofound = True
+            meta = mkSASTAMeta(token, newtoken, name=correctionlabels.ezozonreplacement, value="zo'n",
+                               cat=correctionlabels.zoeenerror,
+                               backplacement=bpl_wordlemma, penalty=defaultpenalty)
+
+        else:
+            newtokens.append(token)
+    if efound and zofound:
+        if meta is not None:
+            metadata.append(meta)
+        results = [TokenListMD(newtokens, metadata)]
+    else:
+        results = []
+    return results
+
+subjectlessgaxpath = """.//node[@cat="sv1" and 
+       node[@rel="hd" and @pt="ww" and @wvorm="pv" and @pvagr="ev" and @pvtijd="tgw" and @lemma="gaan"] and
+       not(node[@rel="su"]) and
+       not(.//node[@lemma="maar" or @lemma="eens" or @lemma="dan" ]) and
+       not(ancestor::alpino_ds/descendant::node[@lemma="!"])
+      ]"""
+
+
+def subjectlessga(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
+    """
+    :param tokensmd: list of tokens with metadata
+    :param tree: syntax tree
+    turns "ga naar huis." into "ik ga naar huis"
+    """
+    allresults = []
+    tokens = tokensmd.tokens
+    reducedtokens = [token for token in tokens if not token.skip]
+    metadata = copy.deepcopy(tokensmd.metadata)
+
+    first = reducedtokens[0] if reducedtokens != [] else None
+    matches = tree.xpath(subjectlessgaxpath)
+    if matches == []:
+        return []
+    else:
+        if first.word.lower() == "ga":   # we only do it once per utterance, and only if ga is the first word
+            fpos = first.pos - inflate_step
+            inserttokens = [Token('ik', fpos, subpos=5)]
+            resultlist = mktokenlist(tokens, fpos, inserttokens)
+            metadata += mkinsertmeta(inserttokens, resultlist)
+            result = TokenListMD(resultlist, metadata)
+            allresults = [result]
+    return allresults
+
 
 def getcorrections(rawtokens: List[Token], correctionparameters: CorrectionParameters,
                    tree: Optional[SynTree] = None) -> List[Correction]:
@@ -687,8 +755,9 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
         # utterance = space.join([token.word for token in uttmd.tokens])
         utterance, _ = mkuttwithskips(uttmd.tokens) # this leaves the skip words out
         noskiptokens = [t for t in uttmd.tokens if not t.skip]
-        fatntree = fatparse(utterance, noskiptokens)
-        newresults += getwrongdetalternatives(uttmd, fatntree, uttid)
+        if noskiptokens != []:
+            fatntree = fatparse(utterance, noskiptokens)
+            newresults += getwrongdetalternatives(uttmd, fatntree, uttid)
     allalternativemds += newresults
 
     # lonely toe
@@ -696,9 +765,21 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
     for uttmd in allalternativemds:
         utterance, _ = mkuttwithskips(uttmd.tokens)
         noskiptokens = [t for t in uttmd.tokens if not t.skip]
-        fatntree = fatparse(utterance, noskiptokens)
-        newresults += lonelytoe(uttmd, fatntree)
+        if noskiptokens != []:
+            fatntree = fatparse(utterance, noskiptokens)
+            newresults += lonelytoe(uttmd, fatntree)
     allalternativemds += newresults
+
+    # e zo -> zo'n
+    newresults = []
+    for uttmd in allalternativemds:
+        utterance, _ = mkuttwithskips(uttmd.tokens)
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        if noskiptokens != []:
+            fatntree = fatparse(utterance, noskiptokens)
+            newresults += ezo2zon(uttmd, fatntree, uttid)
+    allalternativemds += newresults
+
 
     newresults = []
     for uttmd in allalternativemds:
@@ -718,8 +799,9 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
         # utterance = space.join([token.word for token in uttmd.tokens])
         utterance, _ = mkuttwithskips(uttmd.tokens)
         noskiptokens = [t for t in uttmd.tokens if not t.skip]
-        fatntree = fatparse(utterance, noskiptokens)
-        newresults += correctPdit(uttmd, fatntree, uttid)
+        if noskiptokens != []:
+            fatntree = fatparse(utterance, noskiptokens)
+            newresults += correctPdit(uttmd, fatntree, uttid)
     allalternativemds += newresults
 
     newresults = []
@@ -727,7 +809,20 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
         utterance, _ = mkuttwithskips(uttmd.tokens)
         noskiptokens = [t for t in uttmd.tokens if not t.skip]
         fatntree = fatparse(utterance, noskiptokens)
-        newresults += smallclauses(uttmd, fatntree)
+        if fatntree is not None:
+            newresults += subjectlessga(uttmd, fatntree)
+        else:
+            settings.LOGGER.error(f'No parse tree found for {utterance}')
+    allalternativemds += newresults
+
+
+    newresults = []
+    for uttmd in allalternativemds:
+        utterance, _ = mkuttwithskips(uttmd.tokens)
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        if noskiptokens != []:
+            fatntree = fatparse(utterance, noskiptokens)
+            newresults += smallclauses(uttmd, fatntree)
         # showtree(fatntree, text='fatntree')
     allalternativemds += newresults
 
@@ -1484,7 +1579,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     # e or schwa -> een de het dat, deletio; en rejected, dat(vg) only after a verb
     nexttoken = tokens[tokenctr+1] if tokenctr < len(tokens) - 1 else None
     prevtoken = tokens[tokenctr - 1] if tokenctr > 0 else None
-    if token.word in ['e', 'ə']:
+    if token.word in ['e', schwa]:
         if isnounsg(nexttoken) and nexttoken.word not in e2een_excluded_nouns:
             newwords = ['een']
             newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
@@ -1516,7 +1611,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
          # it is expected that replacement by dat as a determiner or pronoun is always beaten by 'het'. so this will
         # only be selected when dat has a different function, e.g. subordinate conjuntion as in TD24,9. This is
-        # false. Instead we conditioned it to apply only after verbs: still goes wromg for hebben e auto
+        # false. Instead,  we conditioned it to apply only after verbs: still goes wromg for hebben e auto
 
         # if canhavept(prevtoken,'ww'):
         #     newwords = ['dat']

@@ -2,12 +2,15 @@
 Module to develop new functions in . This modulke is NOT used by sastadev. Functions and data in this file are only temporarily here.
 """
 import copy
+from sastadev import correctionlabels
 from sastadev.conf import settings
 from sastadev.displaytree import printtree
-from sastadev.metadata import Meta
+from sastadev.metadata import Meta, bpl_wordlemma, mkSASTAMeta, mkinsertmeta
 from sastadev.parse_criteria import Criterion, negative
-from sastadev.sastatypes import SynTree
-from sastadev.treebankfunctions import getattval as gav, getyieldstr, getxsid
+from sastadev.sastatypes import SynTree, UttId
+from sastadev.sastatoken import mktokenlist, Token
+from sastadev.tokenmd import TokenListMD
+from sastadev.treebankfunctions import getattval as gav, getyieldstr, getxsid, inflate_step
 from typing import List
 
 
@@ -68,10 +71,83 @@ def splitadvadv(stree: SynTree) -> SynTree:
             adv_adv_advp_parent.extend([adv1,adv2])
     return newstree
 
-# moved to treetransform
-# def mustbesplit(adv1: SynTree, adv2: SynTree) -> bool:
-#     pass
+def mustbesplit(adv1: SynTree, adv2: SynTree) -> bool:
+    pass
+
+# moved to corrector
+# subjectlessgaxpath = """.//node[@cat="sv1" and
+#        node[@rel="hd" and @pt="ww" and @wvorm="pv" and @pvagr="ev" and @pvtijd="tgw" and @lemma="gaan"] and
+#        not(node[@rel="su"]) and
+#        not(.//node[@lemma="maar" or @lemma="eens" or @lemma="dan" ]) and
+#        not(ancestor::alpino_ds/descendant::node[@lemma="!"])
+#       ]"""
 #
+#
+# def subjectlessga(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
+#     """
+#     :param tokensmd: list of tokens with metadata
+#     :param tree: syntax tree
+#     turns "ga naar huis." into "ik ga naar huis"
+#     """
+#     allresults = []
+#     tokens = tokensmd.tokens
+#     reducedtokens = [token for token in tokens if not token.skip]
+#     metadata = copy.deepcopy(tokensmd.metadata)
+#
+#     first = reducedtokens[0] if reducedtokens != [] else None
+#     matches = tree.xpath(subjectlessgaxpath)
+#     if matches == []:
+#         return []
+#     else:
+#         if first.word.lower == "ga":   # we only do it once per utterance, and only if ga is the first word
+#             fpos = first.pos - inflate_step
+#             inserttokens = [Token('ik', fpos, subpos=5)]
+#             resultlist = mktokenlist(tokens, fpos, inserttokens)
+#             metadata += mkinsertmeta(inserttokens, resultlist)
+#             result = TokenListMD(resultlist, metadata)
+#             allresults = [result]
+#     return allresults
+
+
+# moved to corrector
+# e zo -< zo'n zoeenerror toevoegen aancorrectionlabels, schwa aan stringfunctions
+# def ezo2zon(tokensmd: TokenListMD, tree: SynTree, uttid: UttId) -> List[TokenListMD]:
+#     rawtokens = tokensmd.tokens
+#     tokens = [t for t in rawtokens if not t.skip]
+#     metadata = tokensmd.metadata
+#     efound = False
+#     zofound = False
+#     newtokens = []
+#     meta = None
+#     for i, token in enumerate(rawtokens):
+#         prevtoken = rawtokens[i-1] if i > 0 else None
+#         nexttoken = rawtokens[i+1] if i < len(rawtokens)-1 else None
+#         if token.skip:
+#             newtokens.append(token)
+#             continue
+#         elif token.word in ['e', schwa] and nexttoken is not None and nexttoken.word == 'zo':
+#             newtoken = Token(token.word, token.pos, skip=True)
+#             newtokens.append(newtoken)
+#             efound = True
+#         elif token.word == 'zo' and prevtoken is not None and prevtoken.word in ['e', schwa]:
+#             newtoken = Token("zo'n", token.pos)
+#             newtokens.append(newtoken)
+#             zofound = True
+#             meta = mkSASTAMeta(token, newtoken, name=correctionlabels.ezozonreplacement, value="zo'n",
+#                                cat=correctionlabels.zoeenerror,
+#                                backplacement=bpl_wordlemma, penalty=dp)
+#
+#         else:
+#             newtokens.append(token)
+#     if efound and zofound:
+#         if meta is not None:
+#             metadata.append(meta)
+#         results = [TokenListMD(newtokens, metadata)]
+#     else:
+#         results = []
+#     return results
+
+# moved to treetransform
 # # jij zelf opspspliten
 #
 # def getendof(nodes: List[SynTree]) -> str:

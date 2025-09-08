@@ -683,9 +683,15 @@ substantivisedadj = """
    (@pt="adj" and @rel="hd" and parent::node[@cat="np"])
 """
 
+substantivisedvnw = """ 
+   (@pt="vnw" and @vwtype="onbep" and @positie="nom" and @rel="hd" and parent::node[@cat="np"])
+"""
+
 substantivisedrangtw = """
     (%rangtw% and @positie = "nom" )
 """
+
+substantivised_nphead = """(%substantivisedadj% or %substantivisedrangtw% or %substantivisedvnw%)"""
 
 attributive_pastp = """
    (@pt="ww" and @wvorm="vd" and @rel="mod" and parent::node[@cat="np"])
@@ -952,3 +958,5 @@ dankje_VU = """
 verbal_VU = """(%dankje_VU% or %Tarsp_kijkVU%)"""
 
 zelfst_wat = """(@lemma="wat" and @vwtype= "onbep" and @rel!="det" and not(@rel="hd" and parent::node[@rel="det"]))"""
+
+

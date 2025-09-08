@@ -10,6 +10,7 @@ slash = '/'
 tab = '\t'
 comma = ','
 underscore = '_'
+schwa = 'ə'
 
 punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actually use unicode categories
 
