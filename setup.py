@@ -31,6 +31,7 @@ setup(
         'openpyxl',
         'XlsxWriter',
         'typing-extensions',
-        'pyspellchecker'
+        'pyspellchecker',
+        'more-itertools',
     ],
 )
