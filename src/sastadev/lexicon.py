@@ -53,6 +53,9 @@ definite_determiners = ['de', 'het', 'deze', 'die', 'dit', 'dat']
 valid_ambiguous_words = ['zijn', 'wel', 'niet', 'effe', 'mij', 'drinken', 'dees', 'hun', 'vin', 'pot', 'jou', 'ken']
 
 rpronoun_lemmas = ['daar', 'er', 'ergens', 'hier', 'nergens', 'overal', 'waar']
+
+alt_pt_ww_n_pairdict = {'eten': 'voedsel'}
+
 def initializelexicon(lexiconfilename) -> set:
     lexicon = set()
     fptuples = readcsv(lexiconfilename, header=False)

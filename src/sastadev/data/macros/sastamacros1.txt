@@ -217,7 +217,7 @@ adjadv = """
 """
 
 
-bbvb = """((node[@rel="mod" and %adjoradv%] and
+bbvb = """((@cat="ap" or @cat="advp" or @cat="np") and (node[@rel="mod" and %adjoradv%] and
        node[@rel="hd"  and %adjoradv% and not(@positie="nom")])     
    )"""
 
@@ -255,6 +255,7 @@ Tarsp_B_predc = """(@rel=predc and (@pt="vz" or @pt="bw" or @cat="pp" or @cat="a
 
 Tarsp_B = """( not(%adjacentnogeen%) and 
               not(%aanloopzo%) and
+			  not(%Tarsp_ofmod%)and
 			  not(%extragrammaticalvuword%) and
        (((((@rel="mod" or @rel="ld" or @rel="predm") and
           (not(@cat) or @cat!="conj") and
@@ -365,7 +366,7 @@ coreB = """( ((%basicBsyncat% or %conjB%) and
 			  (@pt="adj" and @buiging="met-s")
 			 )
 			  and
-			 not(%Tarsp_kijkVU%) and 
+			 not(%verbal_VU%) and 
 			 not((@lemma="nou" or @lemma="zo") and (@rel="tag" or @rel="--") and count(allbxrealwordnodes) > 1) and
 			 not(%ahiaspp%) and
 			 not(@frame="adv_tag") and 
@@ -385,7 +386,7 @@ coreBX1 = """(@cat and
 			 node[%corebnode%]  and
 			 %nonominorsubj% and
 			 %onlythesearerealwords% and		
-             count(.//node[%corebnode%]) = 1				
+             (count(.//node[%corebnode%]) = 1 or count(.//node[%BvBepZn%]) = 1)				
  
 			)""" 
 
@@ -397,11 +398,13 @@ coreBX2 = """(@cat and
              count(.//node[%corebnode%]) = 2				
 			)""" 
 
-coreBX = """(%coreBX1% or %coreBX2%)"""
+tagnuclBX = """(@cat="du" and node[@pt="bw" and @rel="tag"] and .//node[@rel="nucl" and %realwordnode%] and %onlythesearerealwords%)"""
+
+coreBX = """(%coreBX1% or %coreBX2% or %tagnuclBX%)"""
 
 
 corebnode = """(%coreB% and 
-			      not(%Tarsp_kijkVU%) and  
+			      not(%verbal_VU%) and  
 				  (not(@lemma) or @lemma!="niet") and 
 				  %corebnodesibling% and
 				  @id != %corebnodesibling%/@id and 
@@ -426,12 +429,12 @@ allbxrealwordnodes = """(./ancestor::alpino_ds/descendant::node[%bxrealwordnode%
 
 bxrealwordnode = """(%realwordnode% and not(%dlinkvg%) and not(%svp_verb_part%)) """
 
-svp_verb_part = """(@rel="svp" and @pt and ../node[@rel="hd" and @pt="ww" and contains(@lemma,"_")])"""
+svp_verb_part = """(@rel="svp" and @pt and ../node[@rel="hd" and @pt="ww" and contains(@lemma,"_")] and not %svpofhww%)"""
 
 dlinkvg = """(@pt="vg" and (@rel="dlink" or @rel="--"))"""
 
 clausalbx1 = """((@cat="smain" or @cat="sv1" or @cat="inf" or @cat="ppart") and 
-       node[%Tarsp_B% and @lemma!="niet" and @rel!="svp" and not(%Tarsp_kijkVU%)] and 
+       node[%Tarsp_B% and @lemma!="niet" and @rel!="svp" and not(%verbal_VU%)] and 
        count(node) = 2 and 
 	   %nonominorsubj% and
        %onlythesearerealwords% and		
@@ -935,3 +938,17 @@ VzBepBvZn = """(@cat="pp" and node[@cat="np" and @rel="obj1" and
                           node[@rel="mod" and @pt]  
                           ] and
                           count(.//node[@pt]) = 4) """
+						  
+dankje_VU = """
+(@rel="hd" and @lemma="danken" and @wvorm="pv" and @pvagr="ev" and @pvtijd="tgw" and
+     parent::node[@cat="sv1" and
+          node[(@rel="su" or @rel="obj1") and @pt="vnw" and (@lemma="u" or @lemma="je")] and
+          (count(node) = 2 or
+           (count(node) = 3 and node[@rel="mod" and @lemma="wel"])
+          )
+         ]
+      )"""
+	  
+verbal_VU = """(%dankje_VU% or %Tarsp_kijkVU%)"""
+
+zelfst_wat = """(@lemma="wat" and @vwtype= "onbep" and @rel!="det" and not(@rel="hd" and parent::node[@rel="det"]))"""

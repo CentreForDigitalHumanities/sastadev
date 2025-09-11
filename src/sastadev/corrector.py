@@ -29,7 +29,7 @@ from sastadev.history import (childescorrections, childescorrectionsexceptions, 
                               children_samplecorrections,  children_samplecorrectionsfullname,
                               adult_samplecorrections,  adult_samplecorrectionsfullname)
 from sastadev.iedims import getjeforms
-from sastadev.lexicon import (WordInfo, de, definite_determiners, dets, getwordinfo, het,
+from sastadev.lexicon import (alt_pt_ww_n_pairdict, WordInfo, de, definite_determiners, dets, getwordinfo, het,
                               informlexicon, isa_namepart, isa_inf, isa_vd, known_word, nochildword,
                               possessive_determiners,
                               tswnouns, validnotalpinocompoundword, validword, vuwordslexicon,
@@ -148,6 +148,16 @@ gaatiere = re.compile(gaatiepattern)
 gaattiepattern = r'^.*' + anychars(vowels) + 'ttie$'
 gaattiere = re.compile(gaattiepattern)
 neutersgnoun = 'boekje'  # select here an unambiguous neuter noun
+
+
+def isdet(node: SynTree) -> bool:
+    if node is None:
+        return False
+    nodept = getattval(node, 'pt')
+    node_pdtype = getattval(node, 'pdtype')
+    node_lemma = getattval(node, 'lemma')
+    result = nodept == 'lid' or (nodept == 'vnw' and (node_pdtype == 'det' or node_lemma in ['wat']))
+    return result
 
 
 def isaverb(wrd:str) -> bool:
@@ -1409,6 +1419,18 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
         newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
                                         name=correctionlabels.informalpronunciation, value='Final t-deletion', cat=correctionlabels.pronunciation,
                                         backplacement=bpl_word)
+
+    # some words can be a noun or a verb but Alpino always analyses them as a verb, we try a noun as alternative
+    if token.word in alt_pt_ww_n_pairdict:
+        prevtokennode = tokennodes[tokenctr - 1] if tokenctr > 0 else None
+        prevprevtokennode = tokennodes[tokenctr - 2] if tokenctr > 1 else None
+        prevprevtokennodept = getattval(prevprevtokennode, 'pt')
+        if isdet(prevtokennode) or (prevprevtokennodept in ['adj'] and isdet(prevprevtokennode)):
+            newwords = [alt_pt_ww_n_pairdict[token.word]]
+            newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                            name=correctionlabels.alternativept, value=newwords[0], cat=correctionlabels.lexicon,
+                                            backplacement=bpl_wordlemma)
+
 
     # 's and s could be is, but do not try it when followed by ochtends etc
     if token.word in ["'s", "s"] and nexttoken.word not in aposfollowers:

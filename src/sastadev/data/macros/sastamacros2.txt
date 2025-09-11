@@ -58,7 +58,7 @@ not(((@cat="pp"
     or @frame="er_vp_adverb"
     or @frame="er_adverb(uit)"
     or @frame="er_loc_adverb"
-    or @frame="loc_adverb"
+    or (@frame="loc_adverb" and not %excludedlocadvs%)
     or (@cat="pp"
         and node[@pt="vz"
             and (@lemma="op"
@@ -70,6 +70,7 @@ not(((@cat="pp"
             or @lemma="naast" or @lemma="achter"
             or @lemma="bij" or @lemma="naar")])
 """
+
 
 
 //node[((((@frame="tmp_adverb"
@@ -191,6 +192,8 @@ new_STAP_BB_p = """
 )
 """
 
+excludedlocadvs = """(@lemma='mee' or @lemma='met' or @lemma='samen')"""
+
 mod_Rpronoun = """
 (
  %Rpronoun% and @rel='mod'
@@ -217,7 +220,7 @@ locadvpBB = """ (@cat="advp" and node[@rel="hd" and %locadv%])
 """
 
 locadv = """ ( @frame="er_loc_adverb" or 
-               @frame="loc_adverb" or
+               (@frame="loc_adverb" and not %excludedlocadvs%)or
 			   @frame="iets_adverb" or 
 			   @frame="er_wh_loc_adverb" or
 			   @frame="er_adverb(uit)" or
