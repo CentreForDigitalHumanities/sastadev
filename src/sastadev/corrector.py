@@ -30,7 +30,7 @@ from sastadev.history import (childescorrections, childescorrectionsexceptions, 
                               adult_samplecorrections,  adult_samplecorrectionsfullname)
 from sastadev.iedims import getjeforms
 from sastadev.lexicon import (alt_pt_ww_n_pairdict, WordInfo, de, definite_determiners, dets, getwordinfo, het,
-                              informlexicon, isa_namepart, isa_inf, isa_vd, known_word, nochildword,
+                              hwwilemmas, informlexicon, isa_namepart, isa_inf, isa_vd, known_word, nochildword,
                               possessive_determiners,
                               tswnouns, validnotalpinocompoundword, validword, vuwordslexicon,
                               wordsunknowntoalpinolexicondict)
@@ -1301,6 +1301,11 @@ def canbenonnoun(token: Token) -> bool:
             return True
     return False
 
+def hwwiverbprecedes(tokennodes: dict, tokenctr: int) -> bool:
+    for i,  tokennode in enumerate(tokennodes):
+        if i < tokenctr and getattval(tokennode, 'lemma') in hwwilemmas:
+            return True
+    return False
 
 def initdevoicing(token: Token, voiceless: str, voiced: str, methodname: MethodName, newtokenmds: List[TokenMD], beginmetadata: List[Meta]) \
         -> List[TokenMD]:
@@ -1420,7 +1425,8 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     # here come the replacements
     if token.word in basicreplacements:
         for (r, c, n, v, p) in basicreplacements[token.word]:
-            newpenalty = basepenalties[BASICREPLACEMENTS] + adaptpenalty(token.word, r, p-defaultpenalty)
+            # newpenalty = basepenalties[BASICREPLACEMENTS] + adaptpenalty(token.word, r, p-defaultpenalty)
+            newpenalty = basepenalties[BASICREPLACEMENTS] + p - defaultpenalty
             newwords = [r]
             bpl = bpl_wordlemma if is_er_pronoun(r) and token.word not in ervzvariantsdict else bpl_word
             newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
@@ -1515,12 +1521,18 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                         name=correctionlabels.informalpronunciation, value='Final t-deletion', cat=correctionlabels.pronunciation,
                                         backplacement=bpl_word)
 
-    # some words can be a noun or a verb but Alpino always analyses them as a verb, we try a noun as alternative
+    # some words can be a noun or a verb but Alpino always analyses them as a verb, we try a noun as alternative e.g. eten/voedsel
+    # allow here also bare word with no hwwi verb to the left
     if token.word in alt_pt_ww_n_pairdict:
         prevtokennode = tokennodes[tokenctr - 1] if tokenctr > 0 else None
         prevprevtokennode = tokennodes[tokenctr - 2] if tokenctr > 1 else None
         prevprevtokennodept = getattval(prevprevtokennode, 'pt')
-        if isdet(prevtokennode) or (prevprevtokennodept in ['adj'] and isdet(prevprevtokennode)):
+        if ((isdet(prevtokennode) or
+            (prevprevtokennodept in ['adj'] and isdet(prevprevtokennode)) or
+            not hwwiverbprecedes(tokennodes, tokenctr)
+           ) and
+           (prevtoken is None or prevtoken.word != 'te')
+        ):
             newwords = [alt_pt_ww_n_pairdict[token.word]]
             newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
                                             name=correctionlabels.alternativept, value=newwords[0], cat=correctionlabels.lexicon,

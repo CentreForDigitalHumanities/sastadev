@@ -321,7 +321,7 @@ Tarsp_coreW = """ ( @pt="ww" and (@wvorm="pv" or parent::node[@rel!="vc"] or %Ta
 Tarsp_BarenonfinW = """parent::node[@rel="vc" and  parent::node[@cat="smain" and count(node)=1]]"""
 
 Tarsp_coreHwwi = """ ( @pt="ww" and @rel="hd" and (@wvorm="pv" or @wvorm="inf") and
-                       %Tarsp_hww% and
+                       (%Tarsp_hww% or @lemma="zijn") and
                        ((parent::node[node[@cat="inf" and @rel="vc" and node[@rel="hd" and @pt="ww"]]]) or
                         (parent::node[node[@pt="ww" and @rel="vc" and @wvorm="inf"]]) or
 						(parent::node[node[@cat="ti" and @rel="vc"]])
@@ -354,7 +354,7 @@ simplevcw = """
   node[%Tarsp_Basic_VC%] and
   not(node[@rel="vc"]) and
   count(%nosvpnode%) = 2 and
-  %onlythesearerealwords%
+  (@rel="body" or %onlythesearerealwords%)
 )
 """
 

@@ -82,6 +82,7 @@ def issmartcompound(word, corr, rawcorrlemma):
 
 def main():
     testlist = [
+        ('koekkok', 'koeksklok', 'koek_klok', True),             # as an extra test
         ('koekkok', 'koekoeksklok', 'koekoek_klok', True),
         ('zingdoppe', 'zingdoppen', 'zingen_doppen', True),
         ('chocomelluk', 'chocolademelk', 'chocolade_melk', True),

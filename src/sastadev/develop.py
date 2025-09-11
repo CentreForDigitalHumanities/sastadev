@@ -2,6 +2,7 @@
 Module to develop new functions in . This modulke is NOT used by sastadev. Functions and data in this file are only temporarily here.
 """
 import copy
+import re
 from sastadev import correctionlabels
 from sastadev.conf import settings
 from sastadev.displaytree import printtree
@@ -174,4 +175,13 @@ def mustbesplit(adv1: SynTree, adv2: SynTree) -> bool:
 #                 child.set('rel', 'predm')
 #     return newtree
 
+dup_pattern = r'(.+)\1'
+def koekoek(wrd:str) -> str:
+    newwrd = re.sub(dup_pattern, r'\1', wrd)
+    return newwrd
 
+
+if __name__ == '__main__':
+    for wrd in ['koekoeks_klok', 'boeken']:
+        newwrd = koekoek(wrd)
+        print(newwrd)

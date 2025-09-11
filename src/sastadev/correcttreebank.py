@@ -576,11 +576,13 @@ def cleantextdone(metadataelement):
 def bare_angled_brackets_replace_tree(stree: SynTree) -> SynTree:
     """
     reparses the cleaned utterance if the original utterance contains bare angled brackets
-    needed because of an inconsistency between the the two methods of cleaning used (in SASTA v. SASTADEV)
+    needed because of an inconsistency between the two methods of cleaning used (in SASTA v. SASTADEV)
     :param stree:
     :return: possibly modified syntactic structure
     """
     origutt = getorigutt(stree)
+    if origutt is None:
+        return stree
     cleanutt, chatmetadata = cleantext(origutt, False, tokenoutput=False)
     if any([meta.name == bare_angled_brackets for meta in chatmetadata]):
         newstree = settings.PARSE_FUNC(cleanutt)

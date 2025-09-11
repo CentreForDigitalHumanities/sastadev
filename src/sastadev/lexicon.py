@@ -54,7 +54,11 @@ valid_ambiguous_words = ['zijn', 'wel', 'niet', 'effe', 'mij', 'drinken', 'dees'
 
 rpronoun_lemmas = ['daar', 'er', 'ergens', 'hier', 'nergens', 'overal', 'waar']
 
-alt_pt_ww_n_pairdict = {'eten': 'voedsel'}
+alt_pt_ww_n_pairdict = {'eten': 'voedsel', 'drinken': 'voedsel'}
+
+hwwilemmas = {'behoren', 'blijven', 'doen', 'gaan', 'hoeven', 'horen', 'komen', 'kunnen',
+              'laten', 'liggen','lopen', 'mogen', 'moeten',
+              'staan', 'willen', 'zijn', 'zitten', 'zullen'}
 
 def initializelexicon(lexiconfilename) -> set:
     lexicon = set()
@@ -422,7 +426,7 @@ interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'ma
                  'ma', 'sst', 'och', 'tja', 'lieverd', 'hahaha', 'hoera', 'pap',
                  'echt', 'lalala', 'hopla', 'da', 'pff', 'hai', 'jongens', 'juffrouw', 'jeetje', 'tot', 'ziens', 'hihi',
                  'jonge', 'ohh', 'poeh', 'oef',
-                 'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx', 'dat',
+                 'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx',
                  'doei', 'tjongejonge', 'ooooh', 'hoewel', 'of',
                  'oke', 'neenee', 'pfff', 'mens', 'ps', 'oow', 'fff', 'juf', 'mevrouw', 'baby', 'dankuwel', 'waw',
                  'welterusten', 'sehhahahaha', 'hihihi', 'aaaah', 'wee', 'shit',
