@@ -563,6 +563,28 @@ def lpad(id: str, size:int = 3, sym: str= '0') -> str:
         properid = (size - lid) * sym + id
     return properid
 
+intpattern = r'[0-9]+'
+intre = re.compile(intpattern)
+def smartsortkey(wrd:str) -> tuple:
+    """
+    Turns a string into a tuple of strings and ints :
+    number parts of the string are turned into integers for sorting purposes
+'   :param wrd: input str
+    """
+    smartkeylist = []
+    intmatches = intre.finditer(wrd)
+    start = 0
+    for intmatch in intmatches:
+        intstart = intmatch.start()
+        intto = intmatch.end()
+        smartkeylist.append(wrd[start:intstart])
+        smartkeylist.append(int(wrd[intstart:intto]))
+        start = intto
+    if wrd[start:] != '':
+        smartkeylist.append(wrd[start:])
+    result = tuple(smartkeylist)
+    return result
+
 
 if __name__ == '__main__':
     test()
