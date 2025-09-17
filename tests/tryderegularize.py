@@ -1,4 +1,4 @@
-from deregularise import correctinflection
+from sastadev.deregularise import correctinflection
 
 trylist = ['ebakt', 'sebakt', 'sebakte']
 

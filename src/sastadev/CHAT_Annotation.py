@@ -717,7 +717,7 @@ annotations = [
     # CHAT_Annotation(CHAT_wordnoncompletion, '6.5:43', '8.5:48',
     #                 CHAT_NoncompletionRegex(r'(.*)\((\w*)\)(.*)', r'\1\2\3', r'\1\3'), noncompletionmetafunction),
     CHAT_Annotation(omittedword, '6.5:43', '8.5:48-49',
-                    CHAT_SimpleRegex(r'0[\w:]+', dropzero, False), simple_bpldel_metafunction(dropzero)),
+                    CHAT_SimpleRegex(r"0[\w:']+", dropzero, False), simple_bpldel_metafunction(dropzero)),
     CHAT_Annotation('Satellite at End', '7.4:58', '9.2:59-60',
                     CHAT_SimpleRegex(r'\s„\s', eps, False), simplemetafunction(identity)),
     CHAT_Annotation('Satellite in Beginning', '7.4:58', '9.2:59-60',

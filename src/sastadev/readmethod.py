@@ -8,7 +8,7 @@ from typing import List
 
 from sastadev import xlsx
 from sastadev.conf import settings
-from sastadev.methods import Method, defaultfilters
+from sastadev.methods import Method, defaultfilters, tarsp, asta
 from sastadev.query import Query, form_process, post_process
 from sastadev.sastatypes import (AltCodeDict, FileName, Item_Level2QIdDict,
                                  QId, QueryDict)
@@ -168,6 +168,8 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
             unused2: str = row[unused2col]
             comments: str = row[commentscol]
 
+            if variant is None and methodname == tarsp:
+                variant = 'tarsp2017'
             if variant is None or variants == [] or variant in variants:
 
                 queries[id] = Query(id, cat, subcat, level, item, altitems, implies, original, pages, fase, query,

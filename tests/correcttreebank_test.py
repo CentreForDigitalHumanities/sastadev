@@ -1,7 +1,7 @@
 import pytest
 from lxml import etree
 
-from sastadev.correcttreebank import getdeplusneutcount
+from sastadev.parse_criteria import getdeplusneutcount
 
 streestrings = {}
 streestrings[0] = """

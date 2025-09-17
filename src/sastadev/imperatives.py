@@ -5,7 +5,7 @@ from sastadev.Sziplus import getnodecount
 from sastadev.treebankfunctions import getattval
 from sastadev.expandquery import expandmacros
 
-noimplemmas = {'hoeven', 'moeten', 'mogen', 'kunnen', 'hebben', 'willen', 'hebben', 'zitten'}
+noimplemmas = {'hoeven', 'moeten', 'mogen', 'kunnen', 'hebben', 'willen', 'hebben', 'zitten', 'vast_zitten'}
 noimpwords = {'ben', 'bent', 'is', 'zijn'}
 impmodlemmas = {'eens', 'maar'}
 
@@ -167,4 +167,12 @@ def wxyz(syntree):
 
 def wxyz5(syntree):
     results = impwi(syntree, {5})
+    return results
+
+bbx_xpath = expandmacros(""".//node[%Tarsp_BBX%]""")
+def bbx(syntree: SynTree) -> List[SynTree]:
+    if wx(syntree) == []:
+        results = syntree.xpath(bbx_xpath)
+    else:
+        results = []
     return results

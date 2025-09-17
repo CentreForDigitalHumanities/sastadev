@@ -29,6 +29,8 @@ bstate, mstate, estate = 0, 1, 2
 
 bstate, ostate, oostate, costate, ccstate = 0, 1, 2, 3, 4
 
+bare_angled_brackets = 'Bare Angled Brackets'
+
 #this should be identical to the checkpattern of cleanCHILDESMD
 # #checkpattern = re.compile(r'[][\(\)&%@/=><_0^~↓↑↑↓⇗↗→↘⇘∞≈≋≡∙⌈⌉⌊⌋∆∇⁎⁇°◉▁▔☺∬Ϋ123456789·\u22A5\u00B7\u0001\u2260\u21AB]')
 # checkpattern = re.compile(r'[][\(\)&%@/=><_0^~↓↑↑↓⇗↗→↘⇘∞≈≋≡∙⌈⌉⌊⌋∆∇⁎⁇°◉▁▔☺∬Ϋ·\u22A5\u00B7\u0001\u2260\u21AB]')
@@ -110,6 +112,11 @@ def purifytokens(tokens: List[Token]) -> List[Token]:
 
 
 def removebareangledbrackets(tokens:List[Token]) -> Tuple[List[Token], Metadata]:
+    """
+    removes tokens between bare angled brackets as well as the angled brackets
+    :param tokens:
+    :return:
+    """
     newtokens = []
     removetokens = []
     openbfound = False
@@ -122,7 +129,8 @@ def removebareangledbrackets(tokens:List[Token]) -> Tuple[List[Token], Metadata]
                 removetokens.append(token)
                 removewords = [token.word for token in removetokens[1:-1]]
                 removepositions = [token.pos for token in removetokens[1:-1]]
-                newmeta = Meta('Bare Angled Brackets',  [], annotatedwordlist = removewords, annotatedposlist= removepositions,
+                newmeta = Meta(bare_angled_brackets,  [], annotatedwordlist = removewords, annotatedposlist=
+                removepositions,
                                atype='list', cat='Tokenisation', subcat='Robustness',  source='Tokenisation',
                                backplacement=bpl_none, penalty=0)
                 metadata.append(newmeta)

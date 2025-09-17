@@ -2,9 +2,9 @@ from lxml import etree
 import re
 from sastadev.conf import settings
 from sastadev.metadata import Meta
-from sastadev.methods import MethodName
+from sastadev.methods import MethodName, Method
 from sastadev.NLtypes import Animate, AnyType, Event, Human, Object, SemType, UnKnown, Alt, And
-from sastadev.sastatypes import List, SynTree
+from sastadev.sastatypes import ExactResultsDict, List, SynTree
 from sastadev.semtypelexicon import sh, vnwsemdict, wwsemdict, wwreqsemdict, defaultreqsemdict
 from sastadev.treebankfunctions import getattval, getheadof, getsentence
 
@@ -171,33 +171,44 @@ def barebarecompatible(sem1: SemType, sem2: SemType) -> bool:
     else:
         return False
 
+def _semantically_incompatible_node_count(stree: SynTree, exact_results: ExactResultsDict, method: Method) -> int:
+    word_node_count = 0
+    reqs_list = semreqlookup(stree)
+    if not reqs_list:
+        return 0
+    reqs_list_counts = []
+    for reqs in reqs_list:
+        reqs_count = 0
+        parent = stree.getparent()
+        for sibling in parent:
+            sibling_rel = getattval(sibling, 'rel')
+            if sibling_rel in reqs:
+                sibling_semtype = getsemtype(sibling)
+                if not compatible(sibling_semtype, reqs[sibling_rel]):
+                    reqs_count += 1
+        reqs_list_counts.append(reqs_count)
+    return min(reqs_list_counts) if len(reqs_list_counts) > 0 else 0
 
-wordnodexpath = './/node[@word]'
-def semincompatiblecount(stree: SynTree, md:List[Meta], mn:MethodName) -> int:
+
+word_node_xpath = './/node[@word]'
+def semincompatiblecount(stree: SynTree, exact_results: ExactResultsDict, method: Method) -> int:
     sentence = getsentence(stree)        # mainly for debugging ease
     result = 0
     # gather the words
-    wordnodes = stree.xpath(wordnodexpath)
-    for wordnode in wordnodes:
-        wordnodecount = 0
-        reqslist = semreqlookup(wordnode)
-        if reqslist != []:
-            reqslistcounts = []
-            for reqs in reqslist:
-                reqscount = 0
-                parent = wordnode.getparent()
-                for sibling in parent:
-                    siblingrel = getattval(sibling, 'rel')
-                    if siblingrel in reqs:
-                        siblingsemtype = getsemtype(sibling)
-                        if not compatible(siblingsemtype, reqs[siblingrel]):
-                            reqscount += 1
-                reqslistcounts.append(reqscount)
-            wordnodecount += min(reqslistcounts)
-        else:
-            pass
-        result += wordnodecount
+    word_nodes = stree.xpath(word_node_xpath)
+    for node in word_nodes:
+        node_count = _semantically_incompatible_node_count(node, exact_results, method)
+        result += node_count
     return result
+
+def get_semantically_incompatible_nodes(stree: SynTree, exact_results: ExactResultsDict, method: Method) -> List:
+    incompatible_nodes = []
+    word_nodes = stree.xpath(word_node_xpath)
+    for node in word_nodes:
+        node_count = _semantically_incompatible_node_count(node, exact_results, method)
+        if node_count > 0:
+            incompatible_nodes.append(node)
+    return incompatible_nodes
 
 def mytry():
     pairs = [(Alt([And([Human])]), Alt([And([Object])])),

@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import List
+from dataclasses import dataclass, field
+from typing import List, Optional
 
 @dataclass
 class SemType:
@@ -26,14 +26,14 @@ class Time(Temporal):
 @dataclass
 class Period(Temporal):
     name: str = "Period"
-    source: Time = None
-    dest: Time = None
+    source: Optional[Time] = None
+    dest: Optional[Time] = None
 
 
 @dataclass
 class Event(Top):
     name: str = "Event"
-    period: Period = Period()
+    period: Period = field(default_factory=Period)
 
 
 @dataclass
@@ -47,8 +47,8 @@ class Location(Locational):
 @dataclass
 class Path(Locational):
     name: str = "Path"
-    source : Location = None
-    dest : Location = None
+    source : Optional[Location] = None
+    dest : Optional[Location] = None
 
 @dataclass
 class Animate(Object):
@@ -70,7 +70,7 @@ class NonHuman(Animate):
 @dataclass
 class Role(Top):
     name: str = "Role"
-    period: Period = Period()
+    period: Period = field(default_factory=Period)
 
 @dataclass
 class Activity(Event):

@@ -2,6 +2,7 @@ import re
 from typing import List
 
 from lxml import etree
+from sastadev.correctionlabels import repeatedword
 from sastadev.sastatypes import Penalty
 
 bpl_none, bpl_word, bpl_node, bpl_delete, bpl_indeze, bpl_extra_grammatical, bpl_wordlemma, \
@@ -220,7 +221,7 @@ Metadata = List[Meta]
 # errormessages
 filled_pause = "Filled Pause"
 repeated = "Repeated word token"
-repeatedseqtoken = "Word token of a repeated word token sequence"
+repeatedseqtoken = repeatedword
 repeatedjaneenou = "Repeated ja, nee, nou"
 janeenou = "ja, nee or nou filled pause"
 shortrep = 'Short Repetition'

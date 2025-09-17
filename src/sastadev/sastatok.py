@@ -92,8 +92,8 @@ def gettokensplusxmeta(tree: SynTree) -> Tuple[List[Token], List[Meta]]:
     if origutt is None:
         settings.LOGGER.error(f'Corrupt tree:\n{etree.dump(tree)} ')
     robustutt = sastadev.cleanCHILDEStokens.robustness(origutt, verbose=True)
-    tokens1 = sasta_tokenize(robustutt)
-    tokens2, metadata = sastadev.cleanCHILDEStokens.cleantokens(
-        tokens1, repkeep=False)
+    # tokens1 = sasta_tokenize(robustutt)
+    tokens2, metadata = sastadev.cleanCHILDEStokens.cleantext(
+        robustutt, tokenoutput=True, repkeep=False)
     tokens3 = sastadev.cleanCHILDEStokens.removesuspecttokens(tokens2)
     return tokens3, metadata

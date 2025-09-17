@@ -1,9 +1,12 @@
 from dataclasses import dataclass
-from sastadev.sastatypes import MethodName, TreeBank
+
+from sastadev.methods import Method
+from sastadev.sastatypes import TreeBank
+
 
 @dataclass
 class CorrectionParameters:
-    method: MethodName
+    method: Method
     options: dict
     allsamplecorrections : dict
     thissamplecorrections: dict

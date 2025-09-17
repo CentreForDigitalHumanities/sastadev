@@ -8,7 +8,7 @@ from chamd.cleanCHILDESMD import (atsignletters, barezero, bch, blocking,
                                   exclam2, gtreplre1, gtreplre2, inlinecom,
                                   internalpause, interpunction, ltreplre1,
                                   ltreplre2, pauses1, pauses2, pauses3,
-                                  phonfrag1, plus2, plus3, plusdotdotdot,
+                                  phonfrag1, plus2, plus3, plusdot3,
                                   postcodes, precodes, qre1, qre2,
                                   scopedinlinecom, scopedreformul, scopedtimes,
                                   segmentrep, slash1, slash2,
@@ -123,7 +123,7 @@ def chatundo(instr):
     result = trn.sub(eps, result)
 
     # remove +...  p. 63
-    result = plusdotdotdot.sub(eps, result)
+    result = plusdot3.sub(eps, result)
 
     # remove [<] and preceding > on purpose before [//]
     result = ltreplre1.sub(r'\1 ', result)

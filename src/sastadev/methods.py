@@ -34,6 +34,12 @@ methodseparators[tarsp] = basicpattern
 methodseparators[stap] = extendedpattern
 methodseparators[asta] = extendedpattern
 
+tarsp2005 = 'tarsp2005'
+tarsp2017 = 'tarsp2017'
+tarspauris = 'tarspauris'
+astae = 'astae'
+astafuture = 'astafuture'
+
 
 class SampleSize:
     def __init__(self, maxuttcount=None, maxwordcount=None):
@@ -79,6 +85,7 @@ class Method:
         self.simpleitem2idmap = {item: id for (
             (item, level), id) in item2idmap.items()}
         self.altcodes: AltCodeDict = altcodes
+        self.simplealtcodedict = {alt[0]: code[0] for (alt, code) in self.altcodes.items()}
         self.postquerylist: List[QId] = postquerylist
         self.methodfilename: FileName = methodfilename
         self.separators: Pattern = methodseparators[name]
@@ -191,4 +198,7 @@ lastuttqidcondition: Dict[MethodName, Callable] = {}
 lastuttqidcondition[asta] = lambda q: q in astalexicalmeasures
 lastuttqidcondition[tarsp] = lambda q: True
 lastuttqidcondition[stap] = lambda q: True
+
+
+
 
