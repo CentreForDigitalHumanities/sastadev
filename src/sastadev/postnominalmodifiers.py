@@ -1,9 +1,8 @@
 import copy
 from lxml import etree
-from sastadev.metadata import Meta, defaultpenalty, insertion, bpl_delete, SASTA
 from sastadev.sastatypes import SynTree, XpathExpression
 from sastadev.treebankfunctions import getattval, hasnominativehead
-from typing import List, Tuple
+from typing import Tuple
 
 postnominalmodifier = "Postnominal Modifier Adaptation"
 
@@ -41,7 +40,8 @@ def transformmodinnp(instree: SynTree, modxpath: XpathExpression) -> SynTree:
             # create a new clause node under
             clausebegin = getattval(theparent, 'begin')
             clauseend = getattval(theparent, 'end')
-            clausenode = etree.Element('node', {'cat': 'smain', 'begin': clausebegin, 'end': clauseend, 'id': "1000"})
+            clausenode = etree.Element('node', {'cat': 'smain', 'rel': '--', 'begin': clausebegin, 'end': clauseend,
+                                                'id': "1000"})
             grandparent.append(clausenode)
             # put the np under this clausenode
             clausenode.append(theparent)

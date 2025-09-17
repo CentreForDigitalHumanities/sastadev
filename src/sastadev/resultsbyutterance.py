@@ -8,9 +8,9 @@ from typing import Dict, List, Tuple
 from sastadev.allresults import AllResults
 from sastadev.conf import settings
 from sastadev.methods import Method
-from sastadev.query import Query, query_inform, query_exists
+from sastadev.query import query_inform, query_exists
 from sastadev.rpf1 import getscores
-from sastadev.sastatypes import GoldResults, QId, ResultsDict, Table, UttId
+from sastadev.sastatypes import ExactResultsDict, GoldResults, QId, ResultsDict, Table, UttId
 
 silverf1col = 21
 
@@ -26,6 +26,8 @@ byuttheader = ['uttid', 'results', 'bronzeref', 'silverref'] + \
               ['sinter', 'sresmini', 'srefmini'] + \
               ['cs_inter', 'cs_resmini', 'csrefmini'] + \
               ['sr', 'sp', 'sf1'] + ['utterance']
+
+exactresultsbyuttheader = ['uttid', 'resultlist']
 
 ResultsByUttDict = Dict[UttId, List[QId]]
 ScoresByUttDict = Dict[UttId, List[Tuple[float, float, float]]]
@@ -166,3 +168,28 @@ def counter2str(scores: Counter, method: Method) -> str:
     resultlist = counter2itemlist(scores, method)
     result = comma.join(resultlist)
     return result
+
+def getexactbyutt(exactresults: ExactResultsDict):
+    resultdict = defaultdict(list)
+    for qid in exactresults:
+        for (uttid, position) in exactresults[qid]:
+            resultdict[uttid].append((qid, position))
+    return resultdict
+
+def exactbyuttdict2table(exactbyuttdict) -> Table:
+    table = []
+    for uttid in exactbyuttdict:
+        newrow = [uttid, str(exactbyuttdict[uttid])]
+        table.append(newrow)
+    sortedtable = sorted(table, key=lambda row: int(row[0]))
+    return sortedtable
+
+def table2exactbyuttdict(table: Table) -> dict:
+    resultdict = {}
+    for row in table:
+        if len(row) == 2:
+            resultdict[str(row[0])] = eval(row[1])
+        else:
+            # report an error
+            pass
+    return resultdict

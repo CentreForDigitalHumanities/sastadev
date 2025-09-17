@@ -374,3 +374,11 @@ def removehoofdzin(stree, clausenodes):
         if not done:
             done, resultingnodes = removehoofdzin(child, clausenodes)
     return done, resultingnodes
+
+def asta_xxx(stree: SynTree) -> List[SynTree]:
+    results = []
+    nodeyield = getnodeyield(stree)
+    for node in nodeyield:
+        if getattval(node, 'word').lower() in ['xxx', 'yyy', 'www']:
+            results.append(node)
+    return results

@@ -1,3 +1,5 @@
+from sastadev.metadata import remove_md_duplicates
+
 class TokenListMD():
     def __init__(self, tokens, metadata):
         self.tokens = tokens
@@ -28,5 +30,6 @@ def mdlist2listmd(mdlist):
     for tokenmd in mdlist:
         newtokens.append(tokenmd.token)
         mergedmetadata += tokenmd.metadata
-    result = TokenListMD(newtokens, mergedmetadata)
+    reduced_mergedmetadata = remove_md_duplicates(mergedmetadata)
+    result = TokenListMD(newtokens, reduced_mergedmetadata)
     return result

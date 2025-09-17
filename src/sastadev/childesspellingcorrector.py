@@ -74,6 +74,9 @@ def children_correctspelling(word: str, correctionsdict, max = None, threshold=o
         return correctionsdict[word]
     else:
         corrections = spell.candidates(word)
+    if corrections == {word}:
+        corrections = None
+        settings.LOGGER.info(f'Word {word} must be added to the additionalwordslexicon')
     if corrections is not None:
         pairs = [(corr, spell.word_usage_frequency(corr)) for corr in corrections]
     else:

@@ -1,12 +1,12 @@
-from sastadev.treebankfunctions import getattval, getnodeyield, mktoken2nodemap
-from sastadev.conf import settings
-from sastadev.alpino import getdehetwordinfo
-from sastadev.lexicon import isalpinonouncompound
-from sastadev.sastatypes import SynTree
-from sastadev.sastatoken import Token
 from typing import List
-from sastadev.smallclauses import bg, mkinsertmeta, realword, word
+
+from sastadev.conf import settings
+from sastadev.lexicon import isalpinonouncompound
+from sastadev.sastatoken import Token
+from sastadev.sastatypes import SynTree
+from sastadev.smallclauses import mkinsertmeta, realword, word
 from sastadev.tokenmd import TokenListMD
+from sastadev.treebankfunctions import getattval, getnodeyield, mktoken2nodemap
 
 lonelytoe = 'Lonely toe'
 
@@ -34,7 +34,8 @@ def lonelytoe(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     treewords = [word(tokennode) for tokennode in leaves]
     tokenwords = [token.word for token in tokens if not token.skip]
     if treewords != tokenwords:
-        settings.LOGGER.error('Token mismatch: {} v. {}'.format(treewords, tokenwords))
+        settings.LOGGER.warning(
+            'Token mismatch: {} v. {}'.format(treewords, tokenwords))
         return []
     token2nodemap = mktoken2nodemap(tokens, tree)
     metadata = tokensmd.metadata
@@ -42,10 +43,11 @@ def lonelytoe(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     newtokens = []
     naarfound = False
 
+    prevtoken = None
     for i, token in enumerate(tokens):
         naarfound = naarfound or token.word == 'naar'
         if not naarfound:
-            if  i + 2 < len(tokens) and tokens[i].pos in token2nodemap and \
+            if i + 2 < len(tokens) and tokens[i].pos in token2nodemap and \
                     tokens[i+1].pos in token2nodemap and \
                     tokens[i+2].word == 'toe':
                 thisnode = token2nodemap[token.pos]
@@ -61,17 +63,22 @@ def lonelytoe(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                     tokens[i+1].word == 'toe':
                 thisnode = token2nodemap[token.pos]
                 if isnominal(thisnode) :
-                    naartoken = Token('naar', token.pos, subpos=5)
+                    if prevtoken is None:
+                        prevtokenpos = 0
+                    else:
+                        prevtokenpos = prevtoken.pos
+                    naartoken = Token('naar', prevtokenpos, subpos=5)
                     naarfound = True
                     newtokens.append(naartoken)
                     inserttokens = [naartoken]
                     metadata += mkinsertmeta(inserttokens, newtokens, cat=lonelytoe)
                     insertiondone = True
         newtokens.append(token)
+        prevtoken = token
     if insertiondone:
         result = [TokenListMD(newtokens, metadata)]
     else:
-        result = [tokensmd]
+        result = []
     return result
 
 nominalpts = ['n', 'vnw']

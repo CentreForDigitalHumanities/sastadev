@@ -9,12 +9,36 @@ import editdistance
 
 from sastadev.normalise_lemma import normaliselemma
 
+vowels = 'AEIOUYaeiou '
 
 def reldistance(word, corr):
     thedistance = editdistance.distance(word, corr)
     result = thedistance / max(len(word), len(corr))
     return result
 
+
+def getcommonsuffix(wrd, corr) -> str:
+    thesuffix = ''
+    lwrd = len(wrd)
+    lcorr = len(corr)
+    minl = min(lwrd, lcorr)
+    vowelfound = False
+    for i in range(minl):
+        if wrd[-i-1] == corr[-i-1]:
+            vowelfound = wrd[-i-1] in vowels
+            thesuffix =  wrd[-i-1] + thesuffix
+        elif vowelfound:
+            return thesuffix
+        else:
+            return ''
+    return ''
+
+
+def containsvowel(wrd: str):
+    for ch in wrd:
+        if ch in vowels:
+            return True
+    return False
 
 def issmartcompound(word, corr, rawcorrlemma):
     debug = False
@@ -25,6 +49,13 @@ def issmartcompound(word, corr, rawcorrlemma):
     corrlemmaprefixlist = corrlemmaparts[:-1]
     corrlemmaprefix = ''.join(corrlemmaprefixlist)
     lcorrlemmaprefix = len(corrlemmaprefix)
+    lastpart = corrlemmaparts[-1]
+    if word[-len(lastpart):] == lastpart and containsvowel(word[:len(lastpart)]):
+        return True
+    commonsuffix = getcommonsuffix(word, corr)
+    # the next gives errors, eg. for pusses/puzzelstukjes (es is an existing word)
+    # if commonsuffix != '' and informlexicon(commonsuffix) and containsvowel(word[:-len(commonsuffix)]):
+    #    return True
     corrdistance = editdistance.distance(word, corr)
     relcorrdistance = reldistance(word, corr)
     if corr[:lcorrlemmaprefix] == corrlemmaprefix:
@@ -86,7 +117,8 @@ def main():
         ('koekklok', 'koekoeksklok', 'koekoek_klok', True),
         ('pusses', 'puzzelstukjes', 'puzzel_stuk', False),
         ('pantoet', 'pannekoeken', 'pan_koek', False),
-        ('puzzelstukjes', 'puzzelstukjes', 'puzzel_stuk', True)
+        ('puzzelstukjes', 'puzzelstukjes', 'puzzel_stuk', True),
+        ("jantauto's", "brandweerauto's", "brandweer_auto", True)
 
     ]
     # testlist = [('risstengeltjes', 'rietstengeltjes', 'riet_stengel', True)]

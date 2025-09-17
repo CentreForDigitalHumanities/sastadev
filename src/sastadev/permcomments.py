@@ -49,7 +49,7 @@ permmoreorlesscol = 7
 
 
 
-uttidscol = 5  # in paltinum-edited tsv files
+uttidscol = 5  # in platinum-edited tsv files
 
 nots = ['not']
 oks = ['ok', 'oke']

@@ -1,11 +1,13 @@
-from lxml import etree
-from optparse import OptionParser
 import os
+from optparse import OptionParser
 from typing import List
+
+from lxml import etree
+
 from sastadev.__main__ import mkerrorreport
-from sastadev.correcttreebank import correcttreebank, corrn, errorwbheader
-from sastadev.correctionparameters import CorrectionParameters
 from sastadev.alpinoparsing import parse
+from sastadev.correctionparameters import CorrectionParameters
+from sastadev.correcttreebank import correcttreebank, corrn, errorwbheader
 from sastadev.targets import target_all
 from sastadev.xlsx import mkworkbook
 
@@ -75,7 +77,7 @@ targets = target_all  # all utterances will be analysed
 corr = corrn   # multiple corrections are considered and the 'best' one is selected
 
 corrected_treebank, errordict, allorandalts = correcttreebank(treebank, targets, correctionparameters, corr=corr)
-junk = 0
+
 
 # write the errorlogging to an excel file
 write2excel(allorandalts, base)

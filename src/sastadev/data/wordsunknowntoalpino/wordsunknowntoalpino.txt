@@ -12,3 +12,12 @@ smarties	toffees
 Smarties	toffees
 smartie	toffee
 Smartie	toffee
+freerunnen	zwemmen
+freerunnend	zwemmend
+freerunnende	zwemmende
+freerunnenden	zwemmenden
+freerun	zwem
+freerunt	zwemt
+freerunde	zwom
+freerunden	zwommen
+gefreerund	gezwommen

@@ -17,7 +17,7 @@ from typing import Callable, Dict
 
 from sastadev.allresults import QueryFunction
 from sastadev.asta_queries import (asta_bijzin, asta_delpv, asta_lemma,
-                                   asta_lex, asta_noun, astalemmafunction)
+                                   asta_lex, asta_noun, astalemmafunction, asta_xxx)
 from sastadev.astaforms import astaform
 from sastadev.ASTApostfunctions import (KMcount, countwordsandcutoff,
                                         finietheidsindex, getalllemmas,
@@ -26,7 +26,7 @@ from sastadev.ASTApostfunctions import (KMcount, countwordsandcutoff,
                                         wordcountperutt)
 from sastadev.compounds import getcompounds
 from sastadev.dedup import correct, mlux, onvolledig, samplesize
-from sastadev.imperatives import wond4, wond5plus, wondx, wx, wxy, wxyz, wxyz5
+from sastadev.imperatives import bbx, wond4, wond5plus, wondx, wx, wxy, wxyz, wxyz5
 from sastadev.methods import allok, astalemmafilter
 from sastadev.queryfunctions import (VzN, hequery, tarsp_mvzn, tarsp_verkl,
                                      vobij, voslashbij, vudivers, xneg_neg,
@@ -68,7 +68,7 @@ def oldgetfname(f: Callable) -> str:
 
 
 # Initialisation
-thetarspfunctions = [getcompounds, hequery, sziplus6, xenx, vr5plus, wx, wxy, wxyz, wxyz5, wondx, wond4, wond5plus,
+thetarspfunctions = [bbx, getcompounds, hequery, sziplus6, xenx, vr5plus, wx, wxy, wxyz, wxyz5, wondx, wond4, wond5plus,
                      tarsp_screening, vutotaal, gofase, gtotaal, pf2, pf3, pf4, pf5, pf6, pf7, pf, xneg_x, xneg_neg,
                      mktarspform, tarsp_mvzn, tarsp_verkl, VzN, vobij, voslashbij, vudivers]
 
@@ -76,7 +76,8 @@ thestapfunctions = [BB_totaal, GLVU, GL5LVU, makestapform]
 
 theastafunctions = [samplesize, mlux, neologisme, onvolledig, correct, wordcountperutt, countwordsandcutoff,
                     astaform, KMcount, finietheidsindex, getnounlemmas, getlexlemmas, getalllemmas, asta_noun,
-                    asta_bijzin, asta_lex, asta_delpv, allok, sempar, phonpar, astalemmafilter, asta_lemma,
+                    asta_bijzin, asta_lex, asta_delpv, asta_xxx, allok, sempar, phonpar,
+                    astalemmafilter, asta_lemma,
                     astalemmafunction]
 
 thefunctions = thetarspfunctions + thestapfunctions + theastafunctions

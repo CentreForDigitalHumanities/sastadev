@@ -3,15 +3,11 @@ from copy import copy
 from typing import Tuple
 
 from lxml import etree
-import os
 from sastadev.conf import settings
-from sastadev.constants import checksuffix
-from sastadev.sastatoken import deflate
-from sastadev.allresults import mkresultskey, ResultsKey, showreskey
-from typing import Tuple
+from sastadev.allresults import ResultsKey, showreskey
 from sastadev.sastatypes import Position, UttId
 from sastadev.treebankfunctions import (find1, getattval, getmarkedyield,
-                                        getyield)
+                                        getyield, getparsedas)
 
 tab = '\t'
 space = ' '
@@ -24,6 +20,12 @@ usercommentdefaultvalue = eps
 
 more = 'More examples'
 less = 'Missed examples'
+
+samplecol = 0
+informcol = 6
+uttidcol = 10
+markingcol = 15
+
 
 def getmarkedutt(m, syntree):
     thewordlist = getyield(syntree)
@@ -54,7 +56,7 @@ def getwordpositionsold(matchtree, syntree):
     thequery2 = ".//node[@index and not(@pt) and not(@cat)]"
     try:
         matches2 = matchtree.xpath(thequery2)
-    except etree.XPathEvalError as e:
+    except etree.XPathEvalError:
         matches2 = []
     positions2 = []
     for m in matches2:
@@ -111,18 +113,18 @@ def mismatches(reskey, queries, theresultsminusgold, goldminustheresults, allmat
 
 def getmarkposition(position, nodeendmap, uttid):
     if position == 0:
-        result = 1
+        result = 0
     elif uttid in nodeendmap:
         if str(position) in nodeendmap[uttid]:
             result = nodeendmap[uttid][str(position)]
         else:
             settings.LOGGER.error(
                 'getmarkposition: No mapping found for position {} in utterance {}'.format(position, uttid))
-            result = 1
+            result = 0
     else:
         settings.LOGGER.error(
             'getmarkposition: No mappings found for uttid {}'.format(uttid))
-        result = 1
+        result = 0
     return result
 
 
@@ -151,9 +153,7 @@ def literalmissedmatches(queries, exactresults, exactgoldscores, allmatches, all
                     # tree = allmatches[(reskey, uttid)][0][1] if (reskey, uttid) in allmatches else None
                     tree = analysedtreesdict[uttid] if uttid in analysedtreesdict else None
                     origutt = find1(tree, './/meta[@name="origutt"]/@value') if tree is not None else '**'
-                    parsedas = find1(tree,
-                                     './/xmeta[@name="parsedas"]/@value') if tree is not None else '**'
-                    parsedas = uttstr if parsedas is None else parsedas
+                    parsedas = getparsedas(tree, uttstr)
 
                 else:
                     settings.LOGGER.warning(
@@ -162,8 +162,8 @@ def literalmissedmatches(queries, exactresults, exactgoldscores, allmatches, all
                     markposition = 0
                     tree = allmatches[(reskey, uttid)][0][1] if (reskey, uttid) in allmatches else None
                     origutt = find1(tree, './/meta[@name="origutt"]/@value') if tree is not None else '**'
-                    parsedas = find1(tree, './/xmeta[@name="parsedas"]/@value') if tree is not None else '**'
-                    parsedas = uttstr if parsedas is None else parsedas
+                    parsedas = getparsedas(tree, uttstr)
+
                 platinumcheckrow2 = [reskeystr, inform, queries[queryid].cat, queries[queryid].subcat, queries[queryid].item,
                                      str(uttid),
                                      str(markposition),
@@ -198,8 +198,7 @@ def exactmismatches(reskey, queries, exactresults, exactgoldscores, allmatches, 
                 markedwordlist = getmarkedyield(allutts[uttid], [markposition])
                 uttstr = space.join(markedwordlist)
                 queryitem = reskey[1] if isliteralreskey(reskey) else queries[queryid].item
-                parsedas = find1(tree, './/xmeta[@name="parsed_as"]/@value') if tree is not None else '**'
-                parsedas = uttstr if parsedas is None else parsedas
+                parsedas = getparsedas(tree, uttstr)
                 platinumcheckrow1 = [reskeystr, inform, queries[queryid].cat, queries[queryid].subcat, queryitem,
                                      str(uttid), str(markposition), uttstr, origutt, parsedas]
                 moreorless = more
@@ -222,16 +221,14 @@ def exactmismatches(reskey, queries, exactresults, exactgoldscores, allmatches, 
             tree = allmatches[(reskey, uttid)][0][1] if (reskey, uttid) in allmatches else None
             tree = analysedtreesdict[uttid] if uttid in analysedtreesdict else None
             origutt = find1(tree, './/meta[@name="origutt"]/@value') if tree is not None else '**'
-            parsedas = find1(tree, './/xmeta[@name="parsed_as"]/@value') if tree is not None else '**'
-            parsedas = uttstr if parsedas is None else parsedas
+            parsedas = getparsedas(tree, uttstr)
         else:
             settings.LOGGER.warning('uttid {} not in allutts'.format(uttid))
             uttstr = ""
             markposition = 0
             tree = allmatches[(reskey, uttid)][0][1] if (queryid, uttid) in allmatches else None
             origutt = find1(tree, './/meta[@name="origutt"]/@value') if tree is not None else '**'
-            parsedas = find1(tree, './/xmeta[@name="parsed_as"]/@value') if tree is not None else '**'
-            parsedas = uttstr if parsedas is None else parsedas
+            parsedas = getparsedas(tree, uttstr)
         moreorless = less
         platinumcheckrow2 = [reskeystr, inform, queries[queryid].cat, queries[queryid].subcat, queries[queryid].item,
                              str(uttid),

@@ -30,7 +30,7 @@ urllibrequestversion = urllib.request.__version__
 alpino_special_symbols_pattern = r'[\[\]]'
 alpino_special_symbols_re = re.compile(alpino_special_symbols_pattern)
 
-gretelurl = 'https://gretel.hum.uu.nl/api/src/router.php/parse_sentence/'
+gretelurl = 'https://gretel.hum.uu.nl/api/src/router.php/parse_sentence/{}?format=xml'
 #gretelurl = 'http://gretel.hum.uu.nl/api/src/router.php/parse_sentence/'
 previewurltemplate = 'https://gretel.hum.uu.nl/ng/tree?sent={sent}&xml={xml}'
 #previewurltemplate = 'http://gretel.hum.uu.nl/ng/tree?sent={sent}&xml={xml}'
@@ -70,7 +70,7 @@ def parse(origsent: str, escape: bool = True):
     else:
         sent = origsent
     encodedsent = urllib.parse.quote(sent)
-    fullurl = gretelurl + encodedsent
+    fullurl = gretelurl.format(encodedsent)
     try:
         r1 = urllib.request.urlopen(fullurl)
     except urllib.request.HTTPError as e:

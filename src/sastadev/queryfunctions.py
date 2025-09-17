@@ -1,9 +1,13 @@
-from typing import Callable, List
-
+from typing import Callable, List, Tuple
+from sastadev.lexicon import vuwordslexicon
 from sastadev.macros import expandmacros
 from sastadev.sastatypes import SynTree
+from sastadev.stringfunctions import punctuationchars
+from sastadev.tblex import get_aanloop_and_core
 from sastadev.treebankfunctions import (adjacent, find1, get_left_siblings,
                                         getattval, getnodeyield, parent)
+
+comma = ','
 
 nietxpath = './/node[@lemma="niet"]'
 wordxpath = './/node[@pt]'
@@ -45,6 +49,7 @@ mvznsuffixes = ['en', 'e', 's', 'n']
 
 verklxpath = expandmacros(""".//node[@pt="n" and @graad="dim" and not(%nodimlemma%)]""")
 verklsuffixes = ['je', 'jes', 'ie', 'ies', 'ke', 'kes']
+
 
 def notadjacent(n1, n2, t): return not adjacent(n1, n2, t)
 
@@ -198,16 +203,16 @@ vudiversxpath = """
            (@ rel="--" or @ rel="sat" or @ rel="tag")
 		  )
          ) 
-		) or %Tarsp_kijkVU% or %Tarsp_hehe% or %aanloopzo%
+		) or %Tarsp_kijkVU% or %Tarsp_hehe% or %dankje_VU%
     ]
 """
 def vudivers(syntree: SynTree) -> List[SynTree]:
-
-    expandedvudiversxpath = expandmacros(vudiversxpath)
     expandedvudiversxpath = expandmacros(vudiversxpath)
     rawresults = syntree.xpath(expandedvudiversxpath)
+    vuresults = aanloopuitloopvu(syntree)
+    allrawresults = rawresults + [node for node in vuresults if node not in rawresults]
     heresults = hequery(syntree)
-    results = [result for result in rawresults if result not in heresults]
+    results = [result for result in allrawresults if result not in heresults]
     return results
 
 def tarsp_mvzn(stree: SynTree) -> List[SynTree]:
@@ -219,3 +224,59 @@ def tarsp_verkl(stree: SynTree) -> List[SynTree]:
     verkls = stree.xpath(verklxpath)
     realverkls = [verkl for verkl in verkls if any([verkl.attrib['word'].endswith(suf) for suf in verklsuffixes])]
     return realverkls
+
+
+
+def getuitloop(nodeyield: List[SynTree]) -> Tuple[List[SynTree], List[SynTree]]:
+    lastlemma = getattval(nodeyield[-1], 'lemma')
+    if lastlemma in punctuationchars:
+        if lastlemma == comma:
+            return nodeyield, []
+        elif len(nodeyield) >= 3:
+            potential_uitloop = [-3, -2]
+        else:
+            return nodeyield, []
+    elif len(nodeyield) >= 2:
+        potential_uitloop = [-2, -1]
+    else:
+        return nodeyield, []
+    lemma1 = getattval(nodeyield[potential_uitloop[0]], 'lemma')
+    lemma2 = getattval(nodeyield[potential_uitloop[1]], 'lemma')
+    if lemma2 in vuwordslexicon and \
+        lemma1 == comma and \
+        '3' in vuwordslexicon[lemma2] and \
+        comma in vuwordslexicon[lemma2]:
+        return nodeyield[:potential_uitloop[0]], nodeyield[potential_uitloop[0]:]
+    else:
+        return nodeyield, []
+
+
+def aanloopuitloopvu(stree: SynTree) -> List[SynTree]:
+    results = []
+    nodeyield = getnodeyield(stree)
+    aanloop, remainder = get_aanloop_and_core(nodeyield)
+    core, uitloop = getuitloop(remainder)
+    topnode = find1(stree, './/node[@cat="top"]')
+    if topnode is not None and len(aanloop) >= 2:
+        topnodebegin = getattval(topnode, 'begin')
+        vunode = aanloop[0]
+        vunodebegin = getattval(vunode, 'begin')
+        vunodelemma = getattval(vunode, 'lemma')
+        if vunodebegin == topnodebegin and vunodelemma in vuwordslexicon:
+            results.append(vunode)
+    if len(uitloop) >= 2:
+        vunode = uitloop[1]
+        results.append(vunode)
+    for node in core:
+        nodelemma = getattval(node, 'lemma')
+        if nodelemma in vuwordslexicon and '2' in vuwordslexicon[nodelemma]:
+            results.append(node)
+    return results
+
+
+def only_puncs(nodelist: List[SynTree]) -> bool:
+    for node in nodelist:
+        nodelemma = getattval(node, 'lemma')
+        if nodelemma not in punctuationchars:
+            return False
+    return True

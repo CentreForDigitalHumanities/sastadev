@@ -1,8 +1,23 @@
-from sastadev.lexicon import informlexicon
+from sastadev.lexicon import informlexicon, nochildword, validword
 
 
 def test_lexicon():
-    testwords = ['stukkies', 'jochie', 'gevalt', 'stukjes',
-                 'gevallen', 'mouwe', 'mouwen', 'gaatie', 'gaat', 'ie']
-    for w in testwords:
-        print(w, informlexicon(w))
+    # word: expected result
+    test_cases = [
+        ('stukkies', False),
+        ('jochie', True),
+        ('gevalt', True),
+        ('stukjes', True),
+        ('gevallen', True),
+        ('mouwe', False),
+        ('mouwen', True),
+        ('gaatie', False),
+        ('gaat', True),
+        ('ie', True),
+    ]
+    for word, expected in test_cases:
+        assert informlexicon(
+            word) == expected, f"informlexicon({word!r}) != {expected}"
+
+    assert not validword('pele', 'tarsp')
+    assert nochildword('pele')

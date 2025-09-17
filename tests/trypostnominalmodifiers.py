@@ -1,6 +1,6 @@
 from sastadev.postnominalmodifiers import transformppinnp
 from lxml import etree
-from sastadev.treebankfunctions import showtree, treeinflate
+from sastadev.treebankfunctions import showtree
 
 examples = [(1, """<alpino_ds version="1.3">
   <node begin="0" cat="top" end="4" id="0" rel="top">

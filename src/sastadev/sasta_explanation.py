@@ -1,5 +1,6 @@
 import copy
-from typing import List, Optional
+import re
+from typing import List, Optional, Tuple
 
 from auchann.align_words import AlignmentSettings, align_words
 from lxml import etree
@@ -8,9 +9,10 @@ from lxml import etree
 import sastadev.stringfunctions as strf
 import sastadev.treebankfunctions as tbf
 from sastadev.auchannsettings import settings as auchannsettings
+from sastadev.chatundo import chatundo
 from sastadev.cleanCHILDEStokens import cleantext
 from sastadev.conf import settings as sdsettings
-from sastadev.lexicon import known_word
+from sastadev.lexicon import alldutchwords, known_word, allfillers
 from sastadev.metadata import (MetaValue, bpl_replacement, fromElement,
                                mkSASTAMeta)
 from sastadev.sastatok import gettokensplusxmeta
@@ -18,41 +20,18 @@ from sastadev.sastatok import gettokensplusxmeta
 # import find1, iswordnode, getattval
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import SynTree
+from sastadev.stringfunctions import simple_tokenise
 from sastadev.tokenmd import TokenListMD
 from sastadev import correctionlabels
 
 # import CHAT_Annotation as schat  # put off because it causes an error: AttributeError: module 'CHAT_Annotation' has no attribute 'wordpat'
 
+comma = ','
+
 defaultsettings = AlignmentSettings()
 
 
 sentenceinitialconjunctions = {'en', 'maar'}
-# interjections = ['hee', 'hè', 'ja', 'nee', 'kijk']
-# interjections used for sentence initial words that can be absent in te beginning of a correction
-interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'mama', 'okee', 'hé', 'ah', 'oeh', 'au',
-                 'oja', 'joh', 'jee', 'mam', 'bah', 'jawel', 'mamma', 'ho', 'boem', 'ha', 'sorry',
-                 'ooh', 'daag', 'haha', 'nou', 'papa', 'pappa', 'toe', 'maar', 'oei', 'aah', 'hallo', 'dankjewel',
-                 'oeps', 'oo', 'toch', 'wauw', 'goh', 'aha', 'vooruit', 'dan', 'tjonge',
-                 'hèhè', 'jaja', 'hoi', 'waar', 'bb', 'help', 'meneer', 'hi', 'ach', 'ee', 'hup', 'oooh', 'heh', 'm',
-                 'ma', 'sst', 'och', 'tja', 'lieverd', 'hahaha', 'hoera', 'pap',
-                 'echt', 'lalala', 'hopla', 'da', 'pff', 'hai', 'jongens', 'juffrouw', 'jeetje', 'tot', 'ziens', 'hihi',
-                 'jonge', 'ohh', 'poeh', 'oef',
-                 'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx', 'dat',
-                 'doei', 'tjongejonge', 'ooooh', 'hoewel',
-                 'oke', 'neenee', 'pfff', 'mens', 'ps', 'oow', 'fff', 'juf', 'mevrouw', 'baby', 'dankuwel', 'waw',
-                 'welterusten', 'sehhahahaha', 'hihihi', 'aaaah', 'wee', 'shit',
-                 'pa', 'grr', 'weltrusten', 'pats', 'weh', 'stouterd', 'dag', 'joepie', 'neej', 'hoho', 'rara',
-                 'joehoe', 'schatje', 'hierzo', 'pffff', 'ahh', 'ahah', 'tjee',
-                 'liefje', 'pf', 'ahaha', 'hoppa', 'ahahaha', 'verdorie', 'ssst', 'foei', 'gossie', 'ok', 'joe', 'tsja',
-                 'gatverdamme', 'grrr', 'welnee', 'god', 'tjeetje', 'doeg',
-                 'wah', 'getver', 'ohja', 'hej', 'zak', 'alhoewel', 'neen', 'goedzo', 'ahahah', 'allee', 'jo', 'jongen',
-                 'pardon', 'hihihihi', 'floep', 'lieve', 'gatver', 'kut', 'bro',
-                 'mja', 'tsjonge', 'hohoho', 'klopt', 'man', 'jezus', 'truste', 'ppf', 'goedemorgen', 'domoor',
-                 'aaaaah', 'okeee', 'yes', 'ahahahaha']
-fillers = ['eh', 'ehm', 'ah', 'boe', 'hm', 'hmm',
-           'uh', 'uhm', 'ggg', 'mmm', 'ja', 'nee']
-allfillers = fillers + ['&-' + filler for filler in fillers] + \
-    interjections + ['&-' + intj for intj in interjections]
 fragments = ['o.', 't', 's', 'n', 'k', 'a.', 'a', 'i', 's.', 'd', 'n.', 'e.', 'w', 'h', 'b', 'v.', 'p', 'z', 'r',
              'l', 'f', 'm.', 'g.', '@', 'w.', 'y', 'g', 'j', 'j.', 'b.', 'k.', 'v', 'h.', 'z.', 'c.', 'f.', 'i.', 'e'] \
     + defaultsettings.fragments
@@ -61,6 +40,7 @@ space = ' '
 CHAT_explanation = 'Explanation'
 explannwordlistxpath = f'.//xmeta[@name="{CHAT_explanation}"]/@annotationwordlist'
 explannposlistxpath = f'.//xmeta[@name="{CHAT_explanation}"]/@annotationposlist'
+explanationtierxpath = './/meta[@name="explanation"]'
 
 interpunction = '.,;?!'
 
@@ -82,7 +62,7 @@ def explanationasreplacement(tokensmd: TokenListMD, tree: SynTree) -> Optional[T
     xtokens, xmetalist = gettokensplusxmeta(tree)
     explanations = [xm for xm in xmetalist if xm.name == 'Explanation']
     newtokens = copy.deepcopy(xtokens)
-    newmetadata = origmetadata + xmetalist
+    newmetadata = origmetadata # + xmetalist  # leaving xmetalist out alone does not avoid unnecessary duplications
     for explanation in explanations:
         newwordlist = explanation.annotationwordlist
         oldwordlist = explanation.annotatedwordlist
@@ -114,6 +94,45 @@ def islet(token, tree):
 # def finaltokenmultiwordexplanation(tokensmd: TokenListMD, tree: SynTree) -> Optional[str]:
 
 
+def get_prefix_and_core(tokens: List[Token], explanation: List[str]) -> Tuple[List[Token], List[Token]]:
+    """
+    split the tokens into a tokenlist prefixtokens and a tokenlist todoxtokens where the prefixtokens contains
+    an initial interjection, interjection + comma, en/maar if these do not occur in the explanation
+
+    :param tokens:
+    :param explanation:
+    :return:
+    """
+    # remove initial interjection, interjection + comma, en/maar if these do not occur in the explanation
+    # done: add kijk (eens/maar/ hier/daar...)
+
+    if tokens == [] or explanation == []:
+        return [], tokens
+    if tokens[0].word.lower() == explanation[0].lower():
+        return [], tokens
+    if len(tokens) > 3 and \
+        tokens[0].word.lower() == 'kijk' and \
+        tokens[1].word.lower() in ['eens', 'maar', 'nou', 'hier', 'daar'] and \
+        tokens[2].word.lower() == comma:
+        prefixtokens = tokens[0:3]
+        todoxtokens = tokens[3:]
+    elif len(tokens) >= 2 and tokens[0].word.lower() in allfillers and \
+            tokens[1].word.lower() in interpunction and len(explanation) >= 1 and \
+            tokens[0].word.lower() != explanation[0].lower():
+        prefixtokens = tokens[0:2]
+        todoxtokens = tokens[2:]
+    elif len(tokens) >= 1 and \
+            (tokens[0].word.lower() in allfillers or tokens[
+                0].word.lower() in sentenceinitialconjunctions) and \
+            len(explanation) >= 1 and tokens[0].word.lower() != explanation[0].lower():
+        prefixtokens = tokens[0:1]
+        todoxtokens = tokens[1:]
+    else:
+        prefixtokens = []
+        todoxtokens = tokens
+
+    return prefixtokens, todoxtokens
+
 def finaltokenmultiwordexplanation(tree: SynTree) -> Optional[str]:
     # get the multiword explanation and the last tokenposition it occupies
 
@@ -135,20 +154,7 @@ def finaltokenmultiwordexplanation(tree: SynTree) -> Optional[str]:
 
         # remove initial interjection, interjection + comma, en/maar if these do not occur in the explanation
 
-        if len(resttokens) >= 2 and resttokens[0].word.lower() in allfillers and \
-                resttokens[1].word.lower() in interpunction and len(xm.annotationwordlist) >= 1 and \
-                resttokens[0].word.lower() != xm.annotationwordlist[0].lower():
-            prefixtokens = resttokens[0:2]
-            todoxtokens = resttokens[2:]
-        elif len(resttokens) >= 1 and \
-                (resttokens[0].word.lower() in allfillers or resttokens[
-                    0].word.lower() in sentenceinitialconjunctions) and \
-                len(xm.annotationwordlist) >= 1 and resttokens[0].word.lower() != xm.annotationwordlist[0].lower():
-            prefixtokens = resttokens[0:1]
-            todoxtokens = resttokens[1:]
-        else:
-            prefixtokens = []
-            todoxtokens = resttokens
+        prefixtokens, todoxtokens = get_prefix_and_core(resttokens, xm.annotationwordlist)
 
         cond1 = lxm > 1
         cond2 = all(
@@ -247,11 +253,44 @@ def getalignment(tree: SynTree) -> Optional[str]:
     explanationstr = space.join(
         explanationlist + postexplanationlist) if explanationlist is not None else None
     # print(f'explanationstr={explanationstr}')
+
     if explanationstr is not None:
         alignment = align_words(cleanutt, explanationstr, auchannsettings)
     else:
         alignment = None
     return alignment
+
+
+def getexplanationfromexplanationtier(stree: SynTree) -> Optional[str]:
+    dutchexplanations = []
+    expltiers = stree.xpath(explanationtierxpath)
+    for expltier in expltiers:
+        expltiervalue = tbf.getattval(expltier, 'value')
+        dutchexplanation = get_dutch_explanation(expltiervalue)
+        if dutchexplanation is not None:
+            dutchexplanations.append(dutchexplanation)
+    if dutchexplanations == []:
+        return None
+    else:
+        if len(dutchexplanations) > 1:
+            # issue a warning
+            pass
+        return dutchexplanations[0]
+
+explanation_variants = ['probable meaning: ', 'probable meaning ', 'meaning: ', 'meaning ']
+sorted_explanation_variants = sorted(explanation_variants, key= lambda x: len(x), reverse=True)
+def get_dutch_explanation(explanation: str) -> Optional[str]:
+    remainder = ''
+    for variant in sorted_explanation_variants:
+        if explanation.startswith(variant):
+            remainder = explanation[len(variant):]
+            remainder = re.sub(r'([\.\?!,;])', r' \1 ', remainder)
+    if remainder == '':
+        return None
+    elif alldutchwords(remainder):
+        return remainder
+    else:
+        return None
 
 
 def finalexplanation_adapttreebank(treebank):
@@ -266,10 +305,67 @@ def finalexplanation_adapttreebank(treebank):
     return newtreebank
 
 
+def is_proper_alignment(utterance: str, raw_explanation: str, alignment: str) -> bool:
+    undone_alignment = chatundo(alignment)
+    raw_applied_alignment, _ = cleantext(alignment, repkeep=False)
+    applied_alignment = space.join(simple_tokenise(raw_applied_alignment))
+    explanation = space.join(simple_tokenise(raw_explanation))
+
+    result1 = True
+    result2 = True
+    if undone_alignment != utterance:
+        # issue a warning or message
+        sdsettings.LOGGER.info(f'Improper alignment (undo): <{undone_alignment}> != <{utterance}>')
+        result1 = False
+    if applied_alignment != explanation:
+        # issue a warning
+        sdsettings.LOGGER.info(f'Improper alignment (aply): <{applied_alignment}> != <{explanation}>')
+        result2 = False
+
+    result = result1 and result2
+    return result
+
+
+
+
+
+
+
+
+
+def get_tier_alignment(tokens: List[Token], explanation: str) -> Optional[str]:
+    explanationlist = simple_tokenise(explanation)
+    prefixtokens, coretokens = get_prefix_and_core(tokens, explanationlist)
+    prefixwords = [token.word for token in prefixtokens]
+    prefixstr = space.join(prefixwords)
+    if len(coretokens) <= len(explanationlist):
+        corewords = [token.word for token in coretokens]
+        coresentence = space.join(corewords)
+        core_alignment = str(align_words(coresentence, explanation))
+        full_alignment = f'{prefixstr} {core_alignment}'
+
+        # check for proper alignment  (no words split up into multiple words)
+        alignment_ok = is_proper_alignment(coresentence, explanation, core_alignment)
+        if not alignment_ok:
+            full_alignment = None
+
+    else:
+        full_alignment = None
+
+    return full_alignment
+
 def finalexplanation_adapttree(tree: SynTree) -> SynTree:
     # @@TODO: Unfinished@@
     #    alignment = finaltokenmultiwordexplanation(tokensmd,tree)
     alignment = finaltokenmultiwordexplanation(tree)
+    if alignment is None:
+        explanationstr = getexplanationfromexplanationtier(tree)
+        if explanationstr is not None:
+            nodeyield = tbf.getnodeyield(tree)
+            tokenlist = [Token(tbf.getattval(node, 'word'), i+1) for i, node in enumerate(nodeyield)]
+            alignment = get_tier_alignment(tokenlist, explanationstr)
+
+
     if alignment is not None:
         # make the realoriguttmetadata @@todo@@
 

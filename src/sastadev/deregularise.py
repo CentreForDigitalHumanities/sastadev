@@ -144,6 +144,28 @@ def detect_error(original: str, correction: str) -> Tuple[int, Optional[str]]:
         return 0, None
 
 
+def detailed_detect_error(original: str, correction: str) -> Tuple[bool, Optional[str]]:
+    """Detects an error comparing a text with a correction and returns
+    a boolean with possibly an error message
+
+    Args:
+        original (str): transcribed text
+        correction (str): correction
+
+    Returns:
+        Tuple[bool, Optional[str]]: error detected and error code
+    """
+    error = None
+    for candidate, candidate_error in correctinflection(original):
+        if candidate == correction:
+            error = candidate_error
+    if error is not None:
+        return True, cast(str, error)
+    else:
+        return False, None
+
+
+
 def alt(thestr):
     result = '[' + thestr + ']'
     return result

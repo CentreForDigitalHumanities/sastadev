@@ -1,10 +1,11 @@
-from collections import defaultdict
 import os
+from collections import defaultdict
+from typing import Any, Dict, List, Tuple
+
 from sastadev.conf import settings
 from sastadev.sastatypes import SynTree
 from sastadev.treebankfunctions import getattval
 from sastadev.xlsx import getxlsxdata
-from typing import Any, Dict, List, Tuple
 
 OTH = 'OTH'
 TRG = 'TRG'
@@ -103,5 +104,3 @@ del all_tempsubcatlexicon
 del oth_temp2subcatlexicon
 del trg_temp2subcatlexicon
 del all_temp2subcatlexicon
-
-junk = 0

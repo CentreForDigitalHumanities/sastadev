@@ -58,7 +58,7 @@ not(((@cat="pp"
     or @frame="er_vp_adverb"
     or @frame="er_adverb(uit)"
     or @frame="er_loc_adverb"
-    or @frame="loc_adverb"
+    or (@frame="loc_adverb" and not %excludedlocadvs%)
     or (@cat="pp"
         and node[@pt="vz"
             and (@lemma="op"
@@ -70,6 +70,7 @@ not(((@cat="pp"
             or @lemma="naast" or @lemma="achter"
             or @lemma="bij" or @lemma="naar")])
 """
+
 
 
 //node[((((@frame="tmp_adverb"
@@ -126,16 +127,17 @@ BB = """ ((@rel="mod" or @rel="dp" or @rel="--" or @rel="nucl" or @rel="whd") an
 tempadv = """ (@frame="tmp_adverb" or  @frame="wh_tmp_adverb" or @frame="adjective(both(tmpadv))" or @special="tmp"  )
 """
 
-templemma = """ (@lemma="soms"  or @lemma="altijd" or @lemma="eerst" or @lemma="steeds" or @lemma="eerder" or @lemma="nou" or %Rna%)
+templemma = """ (@lemma="soms"  or @lemma="altijd" or @lemma="eerst" or @lemma="steeds" or @lemma="eerder" or @lemma="nou" or @lemma="vaak" or %Rna%)
 """
 
 advpBBt = """ (@cat="advp" and %BB% and node[@rel="hd" and %temp% ])
 """
 
+
 npBBt = """ (@cat="np" and %BB% and node[@rel="hd" and %tempnoun%])
 """
 
-tempnoun = """ (@special="tmp" or starts-with(@frame, "tmp_noun") or starts-with(@frame, "tmp_np") or %tempnounlemma%)
+tempnoun = """ (@special="tmp" or starts-with(@frame, "tmp_noun") or starts-with(@frame, "tmp_np") or %tempnounlemma% or %monthname% or %dayname%)
 """
 
 tempnounlemma = """ @lemma="ontbijt" or @lemma="kerst_diner" or @lemma="lunch" 
@@ -147,7 +149,7 @@ apBBt = """ (@cat="ap" and @rel="mod" and node[@rel="hd" and %tempadj%] )
 adjBBt = """ (@pt="adj" and @rel="mod" and %notinNP% and %tempadj%)
 """
 
-tempadj = """ (@special="tmp" or @frame="adjective(er(tmpadv))" or @frame="adjective(tmpadv)" or @frame="adjective(no_e(tmpadv))" or @lemma="gauw")
+tempadj = """ (@special="tmp" or @frame="adjective(er(tmpadv))" or @frame="adjective(tmpadv)" or @frame="adjective(no_e(tmpadv))" or @lemma="gauw" or @lemma="vaak")
 """
 
 notinNP = """ ( parent::node[@cat!="np"] )
@@ -190,6 +192,8 @@ new_STAP_BB_p = """
 )
 """
 
+excludedlocadvs = """(@lemma='mee' or @lemma='met' or @lemma='samen')"""
+
 mod_Rpronoun = """
 (
  %Rpronoun% and @rel='mod'
@@ -197,7 +201,7 @@ mod_Rpronoun = """
 """
 
 temporal_mwu = """
-(@cat="mwu" and node[@rel="mwp" and %tempnoun%])
+(@cat="mwu" and node[@rel="mwp" and %tempnoun%] and not(../node[@rel="hd" and @pt="vz"]))
 """
 
 ld_pp = """  (@cat="pp" and @rel="ld")
@@ -216,7 +220,8 @@ locadvpBB = """ (@cat="advp" and node[@rel="hd" and %locadv%])
 """
 
 locadv = """ ( @frame="er_loc_adverb" or 
-               @frame="loc_adverb" or
+               (@frame="loc_adverb" and not %excludedlocadvs%)or
+			   @frame="iets_adverb" or 
 			   @frame="er_wh_loc_adverb" or
 			   @frame="er_adverb(uit)" or
 			   @frame="er_adverb(boven)" or
@@ -226,9 +231,12 @@ locadv = """ ( @frame="er_loc_adverb" or
 			   @frame="er_adverb(achter)" or
 			   @frame="er_adverb(naar)" or
 			   @frame="er_adverb(bij)" or
-			   @frame="er_vp_adverb" 
+			   @frame="er_vp_adverb"  or
+			   %locadvlemma%
 )
 """
+
+locadvlemma = """(@lemma="ergens" or @lemma="nergens" or @lemma="overal" or @lemma="waar" or @lemma="hier" or @lemma="daar" or @lemma="er") """
 
 svp_bw = """ (@pt="bw" and @rel="svp")
 """
@@ -282,7 +290,7 @@ new_STAP_BB_o = """ ((  %bbo_pt% or %bbo_cat% or %bbo_mwu%) and
 
 pred = """
 (
-  (@rel="predc" and not(../node[%STAP_copula% and @rel='hd']))
+  (@rel="predc" and (not(../node[%STAP_copula% and @rel='hd']) or (@pt="bw" or @cat="pp" or @cat="advp")))
   or @rel="predm"
 )
 """
@@ -345,7 +353,7 @@ test_STAP_BB_o = """ (  %bbo_pt% or %bbo_cat% or %bbo_mwu%) and
 """ 
 
 
-bijvbep = """( (%corebijvbep% or %onbepvnwmod% or %twdet% or %apdet% or %app% or %detn% or %detnp% or %possdetp%) and not(%adjmodwwBB%))
+bijvbep = """( (%corebijvbep% or %onbepvnwmod% or %twdet% or %apdet% or %app% or %detn% or %detnp% or %possdetp% or %mwpbijvbep%) and not(%adjmodwwBB%))
 """
 
 corebijvbep = """ (@rel="mod" and not(@pt="bw" or @cat="advp" or @cat="rel") and parent::node[@cat="np" and not(node[@rel="hd" and @lcat="ap"])])
@@ -370,3 +378,5 @@ detnp = """ (@rel="det" and @cat="np")
 """
 
 possdetp = """(@rel="det" and @cat="detp" and node[@pt="n" and @rel="mod"] and node[@rel="hd"and @pt="vnw" and @vwtype="bez"]) """
+
+mwpbijvbep = """(@rel="mwp" and @pt="tw" and not(%monthname%) and ../node[%monthname%])""" 

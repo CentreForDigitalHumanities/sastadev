@@ -11,7 +11,7 @@ tab = '\t'
 comma = ','
 underscore = '_'
 
-punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actally use unicod categories
+punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actually use unicode categories
 
 # for selecting nonempty tokens from a csvstring ; comma between single quotes is allowed
 csvre = "'[^']+'|[^,' ]+"
@@ -28,6 +28,8 @@ gravevowels = 'àèìòù\u00FD'
 tremavowels = 'äëïöüÿ'
 circumflexvowels = 'âêîôû\u0177'
 
+
+digits = '0123456789'
 consonants = 'bcdfghjklmnpqrstvwxz\u00E7'  # \u00E7 is c cedilla
 dutch_base_vowels = barevowels + aiguvowels + \
                     gravevowels + tremavowels + circumflexvowels
@@ -58,6 +60,24 @@ dupre = re.compile(duppattern)
 purechatxxxcodes = {'xxx', 'yyy', 'www'}
 chatxxxcodes = purechatxxxcodes | {'xx'}
 
+
+sentencefinalpuncs = '.?!'
+
+def simple_tokenise(sent: str) -> List[str]:
+    """
+    simple tokenisation. Interpunction symbols are surrounded by space, then split by space
+    :param sent: input string
+    :return: list of strings that make up the tokens of the input sentence
+    """
+
+    cleansent = ''
+    for c in sent:
+        if c in punctuationchars:
+            cleansent += f' {c} '
+        else:
+            cleansent += c
+    tokens = cleansent.split()
+    return tokens
 
 def str2list(instr: str, sep=comma) -> List[str]:
     if instr == '':
@@ -110,8 +130,7 @@ def charrange(string: str) -> str:
 
 consonants_star = star(charrange(consonants))
 
-syllableheadspat = alt([alt(dutch_tetraphthongs), alt(
-    dutch_triphthongs), alt(dutch_diphthongs), alt(vowels)])
+syllableheadspat = alt(dutch_tetraphthongs + dutch_triphthongs + dutch_diphthongs + [v for v in vowels])
 syllableheadsre = re.compile(syllableheadspat)
 
 monosyllabicpat = r'^' + consonants_star + \
@@ -122,7 +141,7 @@ wordinitialrepeatedconsonants = fr'^({charrange(consonants)})\1+'
 wordfinalalrepeatedconsonants = fr'({charrange(consonants)})\1+$'
 wordinitialrepeatedconsonantsre = re.compile(wordinitialrepeatedconsonants)
 wordfinalalrepeatedconsonantsre = re.compile(wordfinalalrepeatedconsonants)
-intervowelrepeatedconsonants = fr'({syllableheadspat})({charrange(consonants)})\2+({syllableheadspat})'
+intervowelrepeatedconsonants = fr'{syllableheadspat}({charrange(consonants)})\2+{syllableheadspat}'
 intervowelrepeatedconsonantsre = re.compile(intervowelrepeatedconsonants)
 
 repeatedvowelsinopensyllable = rf'([{vowels}])\1+($|{charrange(consonants)}[{vowels}])'
@@ -528,6 +547,21 @@ def remove_underscore(lemma: str) -> str:
     lemmaparts = lemma.split(underscore)
     newlemma = ''.join(lemmaparts)
     return newlemma
+
+def normalise_word(wrd: str) -> str:
+    cleanwrd = wrd.lower()
+    cleanwrd = strip_accents(cleanwrd)
+    return cleanwrd
+
+def lpad(id: str, size:int = 3, sym: str= '0') -> str:
+    lid = len(id)
+    if lid > size:
+        properid = id
+        # issue a warning
+    else:
+        properid = (size - lid) * sym + id
+    return properid
+
 
 if __name__ == '__main__':
     test()

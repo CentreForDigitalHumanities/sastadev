@@ -3,7 +3,7 @@ import os
 from sastadev.conf import settings
 from sastadev.sastatypes import MethodName
 from sastadev.xlsx import getxlsxdata
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 comma = ','
 space = ' '
@@ -72,8 +72,8 @@ def row2dataset(row: List[str]) -> DataSet:
 
 
 
-def getalldatasets():
-    datasets = []
+def getalldatasets() -> List[DataSet]:
+    datasets: List[DataSet] = []
     header, data = getxlsxdata(datasetfullname)
     for row in data:
         newdataset = row2dataset(row)
@@ -83,7 +83,7 @@ def getalldatasets():
 alldatasets = getalldatasets()
 infiguresdatasets = [d for d in alldatasets if d.infigures]
 dsname2method = {d.name: d.method for d in alldatasets}
-dsname2ds = {d.name: d for d in alldatasets}
+dsname2ds: Dict[str, DataSet] = {d.name: d for d in alldatasets}
 
 
 

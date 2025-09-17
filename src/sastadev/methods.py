@@ -6,9 +6,8 @@ from sastadev.conf import settings
 from sastadev.query import pre_process
 from sastadev.sastatypes import (AltCodeDict, ExactResult, ExactResultsDict,
                                  ExactResultsFilter, FileName,
-                                 Item_Level2QIdDict, Level, MethodName, Pattern, QId,
-                                 Query, QueryDict)
-from sastadev.stringfunctions import str2list
+                                 Item_Level2QIdDict, MethodName,
+                                 Pattern, QId, Query, QueryDict)
 
 lemmaqid = 'A051'
 lexreskey = mkresultskey('A018')
@@ -34,6 +33,12 @@ methodseparators[tarsp] = basicpattern
 methodseparators[stap] = extendedpattern
 methodseparators[asta] = extendedpattern
 
+tarsp2005 = 'tarsp2005'
+tarsp2017 = 'tarsp2017'
+tarspauris = 'tarspauris'
+astae = 'astae'
+astafuture = 'astafuture'
+
 
 class SampleSize:
     def __init__(self, maxuttcount=None, maxwordcount=None):
@@ -49,6 +54,8 @@ def validmethod(rawmethod: str) -> bool:
 
 def allok(query: Query, xs: ExactResultsDict, x: ExactResult) -> bool:
     return True
+
+
 
 
 class Method:
@@ -77,6 +84,7 @@ class Method:
         self.simpleitem2idmap = {item: id for (
             (item, level), id) in item2idmap.items()}
         self.altcodes: AltCodeDict = altcodes
+        self.simplealtcodedict = {alt[0]: code[0] for (alt, code) in self.altcodes.items()}
         self.postquerylist: List[QId] = postquerylist
         self.methodfilename: FileName = methodfilename
         self.separators: Pattern = methodseparators[name]
@@ -95,6 +103,7 @@ def astalemmafilter(query: Query, xrs: ExactResultsDict, xr: ExactResult) -> boo
                 return result
 
     return True
+
 
 
 # filter specifies what passes the filter
@@ -121,14 +130,14 @@ def getmethodfromfile(filename: str) -> str:
         return result
 
 
-def treatmethod(methodname: MethodName, methodfilename: FileName) -> Tuple[MethodName, FileName]:
+def treatmethod(methodname: Optional[MethodName], methodfilename: Optional[FileName]) -> Tuple[MethodName, FileName]:
     if methodname is None and methodfilename is None:
         settings.LOGGER.error('Specify a method using -m ')
         exit(-1)
     elif methodname is None and methodfilename is not None:
         resultmethodfilename = methodfilename
         resultmethodname = getmethodfromfile(methodfilename)
-        settings.LOGGER.warning(
+        settings.LOGGER.info(
             'Method derived from the method file name: {}'.format(resultmethodname))
     elif methodname is not None and methodfilename is None:
         if methodname.lower() in supported_methods:
@@ -137,7 +146,7 @@ def treatmethod(methodname: MethodName, methodfilename: FileName) -> Tuple[Metho
         else:
             resultmethodfilename = methodname
             resultmethodname = getmethodfromfile(methodname)
-            settings.LOGGER.warning(
+            settings.LOGGER.info(
                 'Method derived from the method file name: {}'.format(resultmethodname))
     elif methodname is not None and methodfilename is not None:
         if methodname.lower() in supported_methods:
@@ -188,4 +197,7 @@ lastuttqidcondition: Dict[MethodName, Callable] = {}
 lastuttqidcondition[asta] = lambda q: q in astalexicalmeasures
 lastuttqidcondition[tarsp] = lambda q: True
 lastuttqidcondition[stap] = lambda q: True
+
+
+
 

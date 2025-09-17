@@ -1,6 +1,6 @@
 import xlsxwriter
 from openpyxl import load_workbook
-
+from typing import Callable
 from sastadev.conf import settings
 
 eps = ''
@@ -40,7 +40,8 @@ def writetable(tabel, ws, startrow=0, startcol=0, rhformat=None, chformat=None, 
         curcol = startcol
 
 
-def mkworkbook(outfullname, headers, allrows, sheetname='Sheet1', freeze_panes=None, formats=[], column_widths={}, condrowbg_colors=[]):
+def mkworkbook(outfullname, headers, allrows, sheetname='Sheet1', freeze_panes=None, filters=[], formats=[],
+               column_widths={}, condrowbg_colors=[]):
     workbook = xlsxwriter.Workbook(outfullname, {"strings_to_numbers": True})
     bold = workbook.add_format({'bold': True})
 
@@ -85,7 +86,57 @@ def mkworkbook(outfullname, headers, allrows, sheetname='Sheet1', freeze_panes=N
         rowctr += 1
 
     worksheet1.autofilter(0, 0, rowctr, colctr)
+
+    # filter for any values
+    for col, cond in filters:
+        worksheet1.filter_column(col, cond)
+        # hide the non-matching rows
+        pythoncond = cond_translate(col, cond)
+        for rowctr, row in enumerate(allrows):
+            if not pythoncond(row):
+                worksheet1.set_row(rowctr + 1, options={"hidden": True})
+
+    # put the cursor on top again
+    worksheet1.set_row(1, options={"hidden": False})
+
     return workbook
+
+
+operators = ['==',  '>=', '<=', '!=', '>', '<']   # order is crucial!
+def cond_translate(col: int, cond: str) -> Callable:
+    # cond is a string of the form att operator value
+    for operator in operators:
+        op_start = cond.find(operator)
+        if op_start != -1:
+            att = cond[:op_start].strip()
+            operator = cond[op_start:op_start+len(operator)]
+            val =  cond[op_start+len(operator):].strip()
+            break
+    if val == 'NonBlanks':             # we allow any operator here
+        return lambda x: x[col] is not None and x[col].strip() != ''
+    elif val == 'Blanks':
+        return lambda x: x[col] is None or x[col].strip() != ''
+    else:
+        goodval = eval(val) if val.isnumeric() else f"{val}"
+        if operator == '==':
+            return lambda x: x[col].strip() == goodval
+        elif operator == '>=':
+            return lambda x: x[col].strip() >= goodval
+        elif operator == '<=':
+            return lambda x: x[col].strip() <= goodval
+        elif operator == '!=':
+            return lambda x: x[col].strip() != goodval
+        elif operator == '>':
+            return lambda x: x[col].strip() > goodval
+        elif operator == '<':
+            return lambda x: x[col].strip() < goodval
+        else:
+            ## issue an error
+            return lambda x: False
+
+
+
+
 
 
 def getrow_bg_colors(wb, row, condrowbg_colors):
@@ -114,7 +165,7 @@ def adaptformats(formats, workbook):
     return realformats
 
 
-def add_worksheet(workbook, headers, allrows, sheetname='Sheet2', freeze_panes=None, formats=[]):
+def add_worksheet(workbook, headers, allrows, sheetname='Sheet2', freeze_panes=None, formats=[], filters=[]):
     bold = workbook.add_format({'bold': True})
 
     realformats = adaptformats(formats, workbook)
@@ -147,6 +198,19 @@ def add_worksheet(workbook, headers, allrows, sheetname='Sheet2', freeze_panes=N
         rowctr += 1
 
     worksheet1.autofilter(0, 0, rowctr, colctr)
+
+    # filter for any values
+    for col, cond in filters:
+        worksheet1.filter_column(col, cond)
+        # hide the non-matching rows
+        pythoncond = cond_translate(col, cond)
+        for rowctr, row in enumerate(allrows):
+            if not pythoncond(row):
+                worksheet1.set_row(rowctr + 1, options={"hidden": True})
+
+    # put the cursor on top again
+    worksheet1.set_row(1, options={"hidden": False})
+
     return worksheet1
 
 

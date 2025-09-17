@@ -8,13 +8,13 @@ for this purpose.
 
 
 '''
-from collections import defaultdict
 import os
+from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 from sastadev import celexlexicon, treebankfunctions
 from sastadev.conf import settings
-from sastadev.methods import asta, stap, tarsp, MethodName
+from sastadev.methods import MethodName, stap, tarsp
 from sastadev.namepartlexicon import (namepart_isa_namepart,
                                       namepart_isa_namepart_uc)
 from sastadev.readcsv import readcsv
@@ -45,6 +45,16 @@ het = '2'
 dets = {}
 dets[de] = ['de', 'die', 'deze', 'onze', 'welke', 'iedere', 'elke', 'zulke']
 dets[het] = ['het', 'dat', 'dit', 'ons', 'welk', 'ieder', 'elk', 'zulk']
+
+possessive_determiners = ['mijn' , "m'n", "jouw", "je", "uw", "zijn", "z'n", "haar", "d'r",
+                          "ons", "onze", "jullie", "hun"]
+definite_determiners = ['de', 'het', 'deze', 'die', 'dit', 'dat']
+
+valid_ambiguous_words = ['zijn', 'wel', 'niet', 'effe', 'mij', 'drinken', 'dees', 'hun', 'vin', 'pot', 'jou', 'ken']
+
+rpronoun_lemmas = ['daar', 'er', 'ergens', 'hier', 'nergens', 'overal', 'waar']
+
+alt_pt_ww_n_pairdict = {'eten': 'voedsel'}
 
 def initializelexicon(lexiconfilename) -> set:
     lexicon = set()
@@ -261,7 +271,7 @@ comma = ','
 compoundsep = '_'
 
 def validword(wrd: str, methodname: MethodName, includealpinonouncompound=True) -> bool:
-    result = known_word(wrd, includealpinonouncompound=includealpinonouncompound)
+    result = wrd == '' or known_word(wrd, includealpinonouncompound=includealpinonouncompound)
     if methodname in {tarsp, stap}:
         result = result and not nochildword(wrd)
     return result
@@ -330,6 +340,26 @@ def getinflforms(thesubj: SynTree, thepv: SynTree, inversion: bool) -> List[str]
         results = []
     return results
 
+
+def alldutchwords(correct: str) -> bool:
+    newcorrect = correct
+    words = newcorrect.split()
+    result = all([isvalidtoken(word) for word in words])
+    return result
+
+# def allenglishwords(correct:str) -> bool:
+#     newcorrect = correct
+#     words = newcorrect.split()
+#     result = all([word in englishlexicon for word in words])
+#     result = result and len(words) > 1
+#     return result
+
+
+def isvalidtoken(wrd:str) -> bool:
+    result = known_word(wrd) or ispunctuation(wrd)
+    return result
+
+
 nochildwordsfilename = 'nochildwords.txt'
 nochildwordsfolder = 'data/nochildwords'
 nochildwordsfullname = os.path.join(settings.SD_DIR, nochildwordsfolder, nochildwordsfilename)
@@ -383,4 +413,43 @@ cardinallexiconfilename = 'cardinalnumerals.tsv'
 cardinallexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, cardinallexiconfilename)
 cardinallexicon = geninitializelexicondict(cardinallexiconfullname, 0)
 
-junk = 0  # to have a breapoint after the last lexicon read
+
+interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'mama', 'okee', 'hé', 'ah', 'oeh', 'au',
+                 'oja', 'joh', 'jee', 'mam', 'bah', 'jawel', 'mamma', 'ho', 'boem', 'ha', 'sorry',
+                 'ooh', 'daag', 'haha', 'nou', 'papa', 'pappa', 'toe', 'maar', 'oei', 'aah', 'hallo', 'dankjewel',
+                 'oeps', 'oo', 'toch', 'wauw', 'goh', 'aha', 'vooruit', 'dan', 'tjonge',
+                 'hèhè', 'jaja', 'hoi', 'waar', 'bb', 'help', 'meneer', 'hi', 'ach', 'ee', 'hup', 'oooh', 'heh', 'm',
+                 'ma', 'sst', 'och', 'tja', 'lieverd', 'hahaha', 'hoera', 'pap',
+                 'echt', 'lalala', 'hopla', 'da', 'pff', 'hai', 'jongens', 'juffrouw', 'jeetje', 'tot', 'ziens', 'hihi',
+                 'jonge', 'ohh', 'poeh', 'oef',
+                 'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx', 'dat',
+                 'doei', 'tjongejonge', 'ooooh', 'hoewel', 'of',
+                 'oke', 'neenee', 'pfff', 'mens', 'ps', 'oow', 'fff', 'juf', 'mevrouw', 'baby', 'dankuwel', 'waw',
+                 'welterusten', 'sehhahahaha', 'hihihi', 'aaaah', 'wee', 'shit',
+                 'pa', 'grr', 'weltrusten', 'pats', 'weh', 'stouterd', 'dag', 'joepie', 'neej', 'hoho', 'rara',
+                 'joehoe', 'schatje', 'hierzo', 'pffff', 'ahh', 'ahah', 'tjee',
+                 'liefje', 'pf', 'ahaha', 'hoppa', 'ahahaha', 'verdorie', 'ssst', 'foei', 'gossie', 'ok', 'joe', 'tsja',
+                 'gatverdamme', 'grrr', 'welnee', 'god', 'tjeetje', 'doeg',
+                 'wah', 'getver', 'ohja', 'hej', 'zak', 'alhoewel', 'neen', 'goedzo', 'ahahah', 'allee', 'jo', 'jongen',
+                 'pardon', 'hihihihi', 'floep', 'lieve', 'gatver', 'kut', 'bro',
+                 'mja', 'tsjonge', 'hohoho', 'klopt', 'man', 'jezus', 'truste', 'ppf', 'goedemorgen', 'domoor',
+                 'aaaaah', 'okeee', 'yes', 'ahahahaha', 'zo', 'huh']
+fillers = ['eh', 'ehm', 'ah', 'boe', 'hm', 'hmm',
+           'uh', 'uhm', 'ggg', 'mmm', 'ja', 'nee', 'veh']
+allfillers = fillers + ['&-' + filler for filler in fillers] + \
+    interjections + ['&-' + intj for intj in interjections]
+
+tsw_non_words = ['ee']
+
+modalverbs = ['hoeven', 'moeten', 'mogen', 'kunnen', 'willen', 'zullen']
+
+preferably_intransitive_verbs = ['gaan', 'slapen', 'rekenen'] + modalverbs
+
+kijkvuadverbs = ['eens', 'dan', 'hier', 'zo']
+
+chatcodes = ["xxx", "xx", "yyy", "yy"]
+
+
+junk = 0
+
+# to have a breakpoint after the last lexicon read

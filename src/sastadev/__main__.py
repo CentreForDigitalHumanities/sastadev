@@ -150,12 +150,12 @@ import xlsxwriter
 from lxml import etree
 
 from sastadev import compounds
-from sastadev.allresults import (AllResults, ExactResultsDict, MatchesDict,
-                                 ResultsKey, mkresultskey, scores2counts,
+from sastadev.allresults import (AllResults, mkresultskey, scores2counts,
                                  showreskey)
 from sastadev.conf import settings
 from sastadev.constants import (analysissuffix, bronzefolder, bronzesuffix,
-                                byuttscoressuffix, checksuffix, formsfolder,
+                                byuttscoressuffix, checksuffix,
+                                correctedsuffix, formsfolder,
                                 intreebanksfolder, loggingfolder,
                                 outtreebanksfolder, resultsfolder,
                                 silverfolder, silverpermfolder, silversuffix)
@@ -166,6 +166,7 @@ from sastadev.correcttreebank import (corr0, correcttreebank, corrn,
 from sastadev.counterfunctions import counter2liststr
 from sastadev.datasets import dsname2ds
 from sastadev.external_functions import str2functionmap
+from sastadev.filefunctions import get_dataset_samplename, make_filelist
 from sastadev.goldcountreader import get_goldcounts
 from sastadev.history import (adult_samplecorrections,
                               adult_samplecorrectionsfullname,
@@ -176,7 +177,7 @@ from sastadev.history import (adult_samplecorrections,
                               putdonefilenames)
 from sastadev.macros import expandmacros
 from sastadev.methods import Method, supported_methods, treatmethod
-from sastadev.mismatches import exactmismatches, literalmissedmatches
+from sastadev.mismatches import exactmismatches, informcol, literalmissedmatches, samplecol, uttidcol
 from sastadev.permcomments import (getallcomments, pcheaders,
                                    platinumcheck_column_widths)
 from sastadev.query import (Query, is_preorcore, post_process, query_exists,
@@ -184,20 +185,25 @@ from sastadev.query import (Query, is_preorcore, post_process, query_exists,
 from sastadev.readcsv import writecsv
 from sastadev.readmethod import itemseppattern, read_method
 from sastadev.reduceresults import exact2results, reduceexactgoldscores
-from sastadev.resultsbyutterance import (byuttheader, mkscoresbyuttrows,
+from sastadev.resultsbyutterance import (byuttheader, exactbyuttdict2table,
+                                         exactresultsbyuttheader,
+                                         getexactbyutt, mkscoresbyuttrows,
                                          silverf1col)
 from sastadev.rpf1 import getevalscores, getscores, sumfreq
 from sastadev.SAFreader import (get_golddata, richexact2global,
                                 richscores2scores)
+from sastadev.sample_uttid_tuples import get_samplename_uttids_tuples
 from sastadev.sas_impact import mksas_impactrows, sas_impact
 from sastadev.sastacore import (SastaCoreParameters, doauchann, dopostqueries,
                                 isxpathquery, sastacore)
 from sastadev.sastatypes import (AltCodeDict, DataSetName, ExactResultsDict,
                                  FileName, GoldTuple, MatchesDict,
                                  MethodVariant, QId, QIdCount, QueryDict,
-                                 ResultsCounter, SynTree, TreeBank, UttId)
+                                 ResultsCounter, ResultsKey, SynTree, TreeBank,
+                                 UttId)
 from sastadev.SRFreader import read_referencefile
 from sastadev.targets import get_mustbedone, get_targets, target_all
+from sastadev.treebank2trees import treebank2trees
 from sastadev.treebankfunctions import (find1, getattval,
                                         getxmetatreepositions, getxsid,
                                         getyield, showtree)
@@ -279,7 +285,6 @@ altcodes: AltCodeDict = {}
 
 emptycounter: Counter = Counter()
 invalidqueries: Dict[QId, Exception] = {}
-
 
 
 def checkplatinum(goldscores: Dict[ResultsKey, Counter], platinumscores: Dict[ResultsKey, Counter],
@@ -372,7 +377,7 @@ def getwordpositionsold(matchtree: SynTree, syntree: SynTree) -> List[int]:
     thequery2 = ".//node[@index and not(@pt) and not(@cat)]"
     try:
         matches2 = matchtree.xpath(thequery2)
-    except etree.XPathEvalError as e:
+    except etree.XPathEvalError:
         matches2 = []
     positions2 = []
     for m in matches2:
@@ -808,6 +813,7 @@ def passfilter(rawexactresults: ExactResultsDict, method: Method) -> ExactResult
 # defaulttarsp = r"TARSP Index Current.xlsx"
 defaulttarsp = supported_methods[tarsp]
 
+
 def addxsid(xsid, stree: SynTree) -> SynTree:
     outstree = copy.deepcopy(stree)
     xsidmeta = etree.Element('meta', {'name': 'xsid', 'type': 'text', 'value': xsid})
@@ -1236,13 +1242,17 @@ def main():
 
         contextdict = getcontextdict(treebank2, lambda x: True)
 
-        correctionparameters = CorrectionParameters(methodname, options, mergedsamplecorrections,
+        correctionparameters = CorrectionParameters(themethod, options, mergedsamplecorrections,
                                                     thissamplecorrections, treebank2, contextdict)
 
         treebank, errordict, allorandalts = correcttreebank(treebank2, targets,  correctionparameters, corr=corr)
 
     allresults, samplesizetuple = sastacore(
         origtreebank, treebank, annotatedfileresults, scp)
+
+    treebank = etree.Element('treebank')
+    for _, tree in allresults.analysedtrees:
+        treebank.append(tree)
 
     exactresults = allresults.exactresults
     exactresultsoutput = False
@@ -1256,12 +1266,16 @@ def main():
     allmatches = allresults.allmatches
 
     # create the new treebank
+    correctedfilename = f'{corefilename}{correctedsuffix}.xml'
     if treebank is not None:
         fulltreebank = etree.ElementTree(treebank)
         newtreebankfullname = os.path.join(
-            outtreebankspath, corefilename + '_corrected' + '.xml')
+            outtreebankspath, correctedfilename)
         fulltreebank.write(newtreebankfullname, encoding="UTF8", xml_declaration=False,
                            pretty_print=True)
+
+    # create the individual trees and filelists for inspection via Tred
+    treebank2trees(treebank, dataset, newtreebankfullname)
 
     # create error file
     errorreportfilename = os.path.join(
@@ -1314,9 +1328,18 @@ def main():
     not100count = len([row for row in byuttrows if row[silverf1col] != 100])
     scoresbyuttoutfullname = os.path.join(resultspath, corefilename + byuttscoressuffix + '.xlsx')
     wb = mkworkbook(scoresbyuttoutfullname, [byuttheader], byuttrows, freeze_panes=(1,0) )
+
+    exactresultsbyutt = getexactbyutt(allresults.exactresults)
+    exactresultsbyutttable = exactbyuttdict2table(exactresultsbyutt)
+    add_worksheet(wb, [exactresultsbyuttheader], exactresultsbyutttable, sheetname='ExactResults', freeze_panes=(1,0))
+
     allbyuttscores = sas_impact(allresults.coreresults, silverscores, themethod)
     sasheader, sasimpactrows = mksas_impactrows(allbyuttscores, not100count)
     add_worksheet(wb,[sasheader], sasimpactrows, sheetname='SAS_impact', freeze_panes=(1,0))
+
+    samplesizetupledata = [[comma.join(samplesizetuple[0]), samplesizetuple[1], samplesizetuple[2]]]
+    samplesizetupleheader = ['utt ids', '# words', 'cutoff']
+    add_worksheet(wb, [samplesizetupleheader], samplesizetupledata, sheetname='SampleSizeTuple', freeze_panes=(1,0))
     wb.close()
 
 
@@ -1415,11 +1438,22 @@ def main():
 
     # breakpoint()
 
+# filters=[(informcol, "inform == yes")] added again
     wb = mkworkbook(platinumcheckxlfullname, pcheaders, allrows, freeze_panes=(1, 9),
-                    column_widths=platinumcheck_column_widths)
+                    column_widths=platinumcheck_column_widths, filters=[(informcol, "inform == yes")])
     wb.close()
 
     writecsv(allrows, platinumcheckfilename, header=pcheaders[0])
+
+    # add filelist
+    # first remove not in form messages
+    # first create tuples
+    filteredrows = [row for row in allrows if row[informcol] == 'yes']
+    datasetname, samplename = get_dataset_samplename(options.infilename)
+    sample_uttids_tuples = get_samplename_uttids_tuples(filteredrows, samplecol, uttidcol)
+    make_filelist(f'{samplename}_platinum_check', datasetname, sample_uttids_tuples, resultspath)
+
+
 
     # compute the gold postresults
     goldpostresults: Dict[UttId, int] = {}

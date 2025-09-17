@@ -150,7 +150,8 @@ def dcoiphi2celexpv(thesubj: SynTree, thepv: SynTree, inversion: bool) -> str:
 
 
 celex2dcoimap: Dict[str, Dict[str, str]] =\
-    {'te1': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
+    {'a': {'pvtijd': 'conj', 'pvagr': 'ev', 'wvorm': 'pv'},
+     'te1': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
      'te2': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
      'te2t': {'pvtijd': 'tgw', 'pvagr': 'met-t', 'wvorm': 'pv'},
      'te3': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
@@ -161,9 +162,36 @@ celex2dcoimap: Dict[str, Dict[str, str]] =\
      'vm': {'pvtijd': 'verl', 'pvagr': 'mv', 'wvorm': 'pv'},
      'i': {'wvorm': 'inf', 'positie': 'vrij', 'buiging': 'zonder'},
      'pv': {'wvorm': 'vd', 'positie': 'vrij', 'buiging': 'zonder'},
+     'pvC': {'graad': 'comp', 'buiging': 'zonder', 'naamval': 'stan'},  # gecoordineerder. probably an error
      'pt': {'wvorm': 'td', 'positie': 'vrij', 'buiging': 'zonder'},
      'pvE': {'wvorm': 'vd', 'buiging': 'met-e', 'positie': 'prenom'},
-     'ptE': {'wvorm': 'td', 'buiging': 'met-e', 'positie': 'prenom'}
+     'ptE': {'wvorm': 'td', 'buiging': 'met-e', 'positie': 'prenom'},
+     'pvEe': {'wvorm': 'vd', 'buiging': 'met-e', 'positie': 'nom'},  # de afgescheidene
+     'ptEm': {'wvorm': 'td', 'buiging': 'met-e', 'positie': 'prenom', 'getal': 'mv-n'},
+     'g': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},          # wees
+     'e': {'getal': 'ev', 'naamval': 'stan', 'graad': 'basis'},
+     'm': {'getal': 'mv', 'naamval': 'stan', 'graad': 'basis'},
+     'De': {'getal': 'ev', 'naamval': 'dat', 'graad': 'basis'},  # nouns maybe adapt for pronouns (aller)
+     'Dm': {'getal': 'mv', 'naamval': 'stan', 'getalN': 'mv-n', 'buiging': 'met-e', 'positie': 'nom'},  # in CELEX only
+     # for possesive  pronouns  mijnen hunnen  etc
+     'Ge': {'getal': 'ev', 'naamval': 'gen', 'graad': 'basis'},  # aanschijns
+     'Gm': {'getal': 'mv', 'naamval': 'gen', 'graad': 'basis'},  # aller
+     'GP': {'buiging': 'met-s', 'positie': 'postnom', 'graad': 'basis'},  # iets moois
+     'de': {'getal': 'ev', 'naamval': 'stan', 'graad': 'dim'},
+     'dm': {'getal': 'mv', 'naamval': 'stan', 'graad': 'dim'},
+     'P': {'graad': 'basis', 'buiging': 'zonder', 'naamval': 'stan'},
+     'C': {'graad': 'comp', 'buiging': 'zonder', 'naamval': 'stan'},
+     'S': {'graad': 'sup', 'buiging': 'zonder', 'naamval': 'stan'},
+     'CE': {'graad': 'comp', 'buiging': 'met-e', 'naamval': 'stan'},
+     'SE': {'graad': 'sup', 'buiging': 'met-e', 'naamval': 'stan'},
+     'PE': {'graad': 'basis', 'buiging': 'met-e', 'naamval': 'stan'},   # but
+     'PEe': {'graad': 'basis', 'buiging': 'met-e', 'naamval': 'stan'},
+     'CEm': {'graad': 'comp', 'buiging': 'met-e', 'naamval': 'stan', 'getal': 'mv-n'},
+     'CE': {'graad': 'comp', 'buiging': 'met-e', 'naamval': 'stan'},
+     'PEm': {'graad': 'basis', 'buiging': 'met-e', 'naamval': 'stan', 'getal': 'mv-n'},
+     'DPE': {'graad': 'basis', 'buiging': 'met-e', 'naamval': 'dat'},  # arren
+     'X': {}
+
      }
 
 
@@ -182,6 +210,12 @@ def celexpv2dcoi(word: str, infl: str, lemma: str) -> Dict[str, str]:
         results = celex2dcoimap[infl]
     return results
 
+
+def celex2dcoi(word: str, infl: str, lemma: str) -> Dict[str, str]:
+    if infl.endswith('s'):
+        return celex2dcoi(word, infl[:-1], lemma)
+    pvresults = celexpv2dcoi(word, infl, lemma)
+    return pvresults
 
 def isa_vd(word: str) -> bool:
     if word in dmwdict:
@@ -256,7 +290,7 @@ def getdehet(lemmakey: str) -> Optional[str]:
     '''
     yields the dehet property of the lemma identifier lemmakey
     :param lemmakey:
-    :return: retrunnvalues are lexicon.de, lexicon.het, 'n/a' or None
+    :return: return values are lexicon.de, lexicon.het, 'n/a' or None
     '''
     if lemmakey in dsldict:
         dehet = dsldict[lemmakey][dslDeHetNum]
@@ -312,7 +346,7 @@ def getposlist(word: str) -> List[str]:
 
 def getinfls(word: str) -> List[CELEX_INFL]:
     '''
-    returns a list of CELEX inflection codes for the input strin gword
+    returns a list of CELEX inflection codes for the input string word
     :param word:
     :return:
     '''

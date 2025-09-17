@@ -27,27 +27,32 @@ def clean(valstr):
 class Query:
     def __init__(self, id, cat, subcat, level, item, altitems, implies, original, pages, fase, query, inform,
                  screening, process, literal, stars, filter, variants, unused1, unused2, comments):
-        self.id = id
-        self.cat = cat
-        self.subcat = subcat
-        self.level = level
-        self.item = item
-        self.altitems = altitems
-        self.implies = implies
-        self.original = original
-        self.pages = pages
-        self.fase = fase
-        self.query = query
-        self.inform = inform
-        self.screening = screening
-        self.process = getprocess(process)
-        self.literal = literal
-        self.stars = clean(stars)
-        self.filter = filter
-        self.variants = variants
-        self.unused1 = unused1
-        self.unused2 = unused2
-        self.comments = comments
+        self.id = id             # identifier of the query. so far of the form[TSA][0-9]{3,3}
+        self.cat = cat           # a category for grouping  queries
+        self.subcat = subcat     # a subcategory for grouping  queries
+        self.level = level       # a different category for grouping queries
+        self.item = item         # code to annotate a result of this query
+        self.altitems = altitems # alternative codes that can be used to annotate a result of this query
+        self.implies = implies   # obsolete, not needed anymore
+        self.original = original # whether it is a query that occurs originally in the method definition or has been
+                                 # added
+        self.pages = pages      # page numbers where the query is described in the defining books/ documents
+        self.fase = fase        # stage that this query belongs to (relevant for Tarsp only
+        self.query = query      # the actual query, a Xpath expression, possibly with macros, or the name of a python
+                                # function
+        self.inform = inform    # does the query apear in the form ('profielkaart', profile chart) associated with the
+        # method
+        self.screening = screening # is the query part of the Tarsp screening procedure
+        self.process = getprocess(process)  # pre, core or post. pre queries are applied before core queries,
+                                            # and these before post queries
+        self.literal = literal   # function to obtain the value part of the resultskey (QId, str). e..g to obtain the
+                                 # lemma of  word
+        self.stars = clean(stars) # whther the Tarsp code contains stars (asterisks)
+        self.filter = filter    # boolean function used to filter results depending on results of other queies
+        self.variants = variants  # to specify the variant(s) of the method that the query belongs to
+        self.unused1 = unused1   # for future extensions
+        self.unused2 = unused2  # for future extensions
+        self.comments = comments  # free text comments
 
 
 def query_inform(query):

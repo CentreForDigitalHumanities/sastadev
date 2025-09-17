@@ -2,6 +2,7 @@ import re
 from typing import List
 
 from lxml import etree
+from sastadev.correctionlabels import repeatedword
 from sastadev.sastatypes import Penalty
 
 bpl_none, bpl_word, bpl_node, bpl_delete, bpl_indeze, bpl_extra_grammatical, bpl_wordlemma, \
@@ -73,6 +74,36 @@ def despace(str):
 
 
 class Meta:
+    """
+    The class *Meta* defines a class for storing metadata. It has more attributes than the Alpino metadata,
+    for which a class named MetaValue gas been created. The class *Meta* can accommodate all objects of class
+    "MetaValue", though this is currently not exploited.
+
+    The attributes of this class are:
+
+    * atype: this is present for compatibility with the Alpino metadata, which have a type attribute
+    * name: a name of the metadata element, usually a name for the phenomenon it describes
+    * annotationwordlist: the list of words that form the annotation
+    * annotationposlist: the list of positions of the words that form the annotation
+    * annotatedwordlist: the list of words that are annotated
+    * annotatedposlist: the list of positions of the words that are annotated
+    * annotationcharlist: the list of characters that form the annotation (for annotations within  a word)
+    * annotationcharposlist: the list of positions of the characters that form the annotation (for annotations within  a word)
+    * annotatedcharlist =  the list of characters that are annotated (for annotations within  a word)
+    * annotatedcharposlist: the list of positions of the characters that are annotated (for annotations within  a word)
+    * value: present for compatibility with the Alpino metadata. It usually gets the same value as the
+    annotationwordlist
+    * cat: a label to specify a category that the metadata belongs to
+    * subcat: a label to specify a subcategory that the metadata belongs to
+    * source: a label to specify the source of the metadata, e.g. CHAT, SASTA/BasicReplacements, etc.
+    * penalty: an integer value to specify the costs of the change that created the metadata
+    * backplacement: integer value. if the metadata describes a replacement, this is used to specify if and how the
+    original item should be put back
+    * fmstr: string to format a representation of the metadata, unclear if it is still used
+    * xmlformat: formatstring to format the metadata as XML; probably not in use anymore, replace by the toElement
+    method
+
+    """
     def __init__(self, name, value, annotationwordlist=[], annotationposlist=[], annotatedposlist=[],
                  annotatedwordlist=[], annotationcharlist=[
     ], annotationcharposlist=[], annotatedcharlist=[],
@@ -132,6 +163,42 @@ class Meta:
                                penalty=str(self.penalty))
         return result
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        result = (self.atype == other.atype and
+                  self.name == other.name and
+                  self.annotationwordlist == other.annotationwordlist  and
+                  self.annotationposlist == other.annotationposlist and
+                  self.annotatedwordlist == other.annotatedwordlist and
+                  self.annotatedposlist == other.annotatedposlist and
+                  self.annotationcharlist == other.annotationcharlist and
+                  self.annotationcharposlist == other.annotationcharposlist and
+                  self.annotatedcharlist == other.annotatedcharlist and
+                  self.annotatedcharposlist == other.annotatedcharposlist and
+                  self.value == other.value and
+                  self.cat == other.cat and
+                  self.subcat == other.subcat and
+                  self.source == other.source and
+                  self.penalty == other.penalty and
+                  self.backplacement == other.backplacement and
+                  self.fmstr == other.fmstr and
+                  self.xmlformat == other.xmlformat)
+        return result
+
+
+def remove_md_duplicates(metadata: List[Meta]) -> List[Meta]:
+    newlist = []
+    for meta in metadata:
+        if not foundin(meta, newlist):
+            newlist.append(meta)
+    return newlist
+
+def foundin(meta: Meta, metadata:List[Meta]) -> bool:
+    for el in metadata:
+        if el == meta:
+            return True
+    return False
 
 def selectmeta(name, metadatalist):
     for meta in metadatalist:
@@ -154,7 +221,7 @@ Metadata = List[Meta]
 # errormessages
 filled_pause = "Filled Pause"
 repeated = "Repeated word token"
-repeatedseqtoken = "Word token of a repeated word token sequence"
+repeatedseqtoken = repeatedword
 repeatedjaneenou = "Repeated ja, nee, nou"
 janeenou = "ja, nee or nou filled pause"
 shortrep = 'Short Repetition'

@@ -1,5 +1,4 @@
 # to do
-import os
 from copy import deepcopy
 from typing import Callable, List, Tuple
 
@@ -7,8 +6,7 @@ from lxml import etree
 
 from sastadev import compounds
 from sastadev.conf import settings
-from sastadev.lexicon import (filledpauseslexicon, informlexicon, nomlulexicon,
-                              vuwordslexicon)
+from sastadev.lexicon import (filledpauseslexicon, informlexicon)
 from sastadev.metadata import (filled_pause, fstoken, intj, janeenou, longrep,
                                repeated, repeatedjaneenou, repeatedseqtoken,
                                shortrep, substringrep, unknownsymbol,
@@ -19,7 +17,7 @@ from sastadev.sastatypes import Nort, SynTree
 from sastadev.stringfunctions import deduplicate, string2list
 from sastadev.tblex import asta_recognised_wordnode
 from sastadev.treebankfunctions import (all_lower_consonantsnode, find1,
-                                        getattval, getnodeyield,
+                                        getattval, getnodeyield, getsentence, getxsid,
                                         lastmainclauseof, openclasspts)
 
 nodetype = etree._Element
@@ -28,11 +26,14 @@ positionatt = 'end'
 
 xmetaxpath = './/xmeta'
 
-samplesizemdvalues = {repeatedjaneenou,
-                      shortrep, intj, unknownsymbol, filled_pause}
+samplesizemdvalues = {repeatedjaneenou, intj,
+                      shortrep,  unknownsymbol, filled_pause}   # intj really belong to samplesize:
+# Voor de tussenwerpsels: in de appendix 2022 beschrijven we dat interjecties als au, goh, tjongejonge, jeetje,
+# en ook geluidsnabootsingen, dat we deze niet meetellen voor samplesize.
 mlumdvalues = {repeated, repeatedseqtoken, longrep, unknownword, substringrep, janeenou,
                fstoken}
 
+filled_pause_exceptions = ['e', 'ə', 'ee', 'n', 't']
 
 class DupInfo:
     '''
@@ -238,9 +239,13 @@ def getfilledpauses(nortlist: List[Nort]) -> List[Nort]:
       * .. autofunction:: sastadev.dedup::isfilledpausenort
 
     '''
-    resultlist = [tok for tok in nortlist if isfilledpausenort(tok)]
+    resultlist = [tok for tok in nortlist if isfilledpausenort(tok) and not isfilledpauseexceptionnort(tok)]
     return resultlist
 
+def isfilledpauseexceptionnort(nort: Nort) -> bool:
+    word = getword(nort)
+    result = word in filled_pause_exceptions
+    return result
 
 def infilledpauses(word: str) -> bool:
     return (word in filledpauseslexicon)
@@ -949,9 +954,11 @@ def samplesize2(stree: SynTree) -> Tuple[List[SynTree], DupInfo]:
                 if newnode is not None:
                     mdnodes.append(newnode)
                 else:
+                    xsid = getxsid(stree)
+                    sentence = getsentence(stree)
                     settings.LOGGER.error(
-                        'Metadata node not found in tree: md.begin={}'.format(tokenbegin))
-                    etree.dump(stree)
+                        f'Metadata node not found in tree: md.begin={tokenbegin}\n{xsid}: {sentence}')
+                    # etree.dump(stree)
     excludednodes += mdnodes
     tokennodelist = [n for n in tokennodelist if n not in excludednodes]
     resultlist += mdnodes

@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any, Callable, Counter, Dict, List, Tuple, Union
 
 from sastadev.sastatypes import (ExactResult, ExactResults, FileName, Matches,
-                                 QId, Query, ResultsCounter, SynTree, UttId,
+                                 QId, Query, ResultsCounter, ResultsKey, SynTree, UttId,
                                  UttWordDict)
 from sastadev.treebankfunctions import getattval as gav
 
@@ -10,7 +10,6 @@ slash = '/'
 reskeysep = slash
 
 
-ResultsKey = Tuple[QId, str]
 
 # class ResultsKey:  # we do not use it anymore because two instantiations with the same value are dfferent objects
 #     def __init__(self, qid: QId, value: str = None):
@@ -55,7 +54,7 @@ class AllResults:
         self.postresults: Dict[ResultsKey, Any] = postresults
         self.allmatches: MatchesDict = allmatches
         self.filename: FileName = filename
-        self.analysedtrees: List[SynTree] = analysedtrees
+        self.analysedtrees: List[Tuple[UttId, SynTree]] = analysedtrees
         self.allutts: UttWordDict = allutts
         self.annotationinput: bool = annotationinput
 

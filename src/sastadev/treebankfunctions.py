@@ -2,19 +2,21 @@
 various treebank functions
 
 """
-
+import functools
 import re
 # import logging
 from copy import copy, deepcopy
 # import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from more_itertools import unique_everseen
 from lxml import etree
 
 from sastadev.anonymization import pseudonymre
 # from sastadev.lexicon import informlexiconpos, isa_namepart_uc, informlexicon, isa_namepart
 # import lexicon as lex
 from sastadev.conf import settings
+from sastadev import correctionlabels
 from sastadev.metadata import Meta
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import (FileName, OptPhiTriple, PhiTriple, Position,
@@ -61,6 +63,8 @@ compoundsep = '_'
 
 numberpattern = r'^[\d\.,]+$'
 numberre = re.compile(numberpattern)
+
+topcat = 'top'
 
 # next 3 derived from the alpino dtd
 allrels = ['hdf', 'hd', 'cmp', 'sup', 'su', 'obj1', 'pobj1', 'obj2', 'se', 'pc', 'vc', 'svp', 'predc', 'ld', 'me',
@@ -131,6 +135,25 @@ monthnames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'a
 origuttxpath = './/meta[@name="origutt"]/@value'
 
 
+inflectional_attributes = {'ww': {'buiging', 'getalN',  'pvagr', 'pvtijd', 'wvorm'},
+                           'n': {'getal', 'graad'},
+                           'adj': {'buiging', 'graad', 'naamval'},
+                           'bw': {},
+                           'vz': {},
+                           'tsw': {},
+                           'lid': {'naamval', 'npagr'},
+                           'vnw': {'buiging', 'getal', 'naamval', 'npagr', 'persoon', 'status' }
+                           }
+
+all_inflectional_attributes = functools.reduce(lambda x, y: x.union(y), [inflectional_attributes[pt] for pt in inflectional_attributes])
+
+#: the constant *inflate_start* contains the value for the *begin* attribute of the first word node in an inflated tree
+inflate_start = 10
+
+#: the constant *inflate_step* contains the value of the increase to be made to get the value of the *begin* attribute
+#: of the next word node in an inflated tree
+inflate_step = 10
+
 def adjacent(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     """
     :param node1:
@@ -181,6 +204,24 @@ def immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     and it works correctly in inflated syntactic structures. The two nodes must be nodes for words.
     """
     return immediately_precedes(node2, node1, stree)
+
+def is_neut_sg(node: SynTree) -> bool:
+    result = getattval(node, 'pt') == 'n' and getattval(node, 'getal') == 'ev' and \
+             (getattval(node, 'genus') == 'onz' or getattval(node, 'graad') == 'dim')
+    return result
+
+def isdefdet(node: SynTree) -> bool:
+    nodelemma = getattval(node, 'lemma')
+    nodept = getattval(node, 'pt')
+    nodevwtype = getattval(node, 'vwtype')
+    nodecase = getattval(node, 'naamval')
+    if nodelemma in ['de', 'het', 'deze', 'die', 'dit', 'dat']:
+        return True
+    if nodept == 'vnw' and nodevwtype in ['bez']:
+        return True
+    if nodept == 'n' and nodecase == 'gen':
+        return True
+    return False
 
 
 def countav(stree: SynTree, att: str, val: str) -> int:
@@ -605,12 +646,38 @@ def keycheck(key: Any, dict: Dict[Any, Any]) -> bool:
             settings.LOGGER.error('{}={}'.format(akey, valstr))
     return key in dict
 
+def getuniqueleaves(stree: SynTree) -> List[SynTree]:
+    """
+    to obtain a list of unique leaves, i.e.,  for nodes created by indextransform only one result is included
+    :param stree:
+    :return: list of unique leaves (contains no duplicates)
+    """
+    rawleaves = getnodeyield(stree)
+    rawpositions = [getattval(leave, 'begin') for leave in rawleaves]
+    positions = unique_everseen(rawpositions)
+    leaves = []
+    for position in positions:
+        candleaves = [leave for leave in rawleaves if getattval(leave, 'begin') == position ]
+        if candleaves != []:
+            leaves.append(candleaves[0])
+        else:
+            uttid = getxsid(stree)
+            sentence = getsentence(stree)
+            settings.LOGGER.error(f'No leave found for {position} in {uttid}: {sentences}')
+    return leaves
+
 
 def mktoken2nodemap(tokens: List[Token], tree: SynTree) -> Dict[int, SynTree]:
-    tokennodes = tree.xpath('.//node[@pt or @pos or @word]')
-    tokennodesdict = {int(getattval(n, 'begin')): n for n in tokennodes}
-    token2nodemap = {token.pos: tokennodesdict[token.pos]
-                     for token in tokens if not token.skip and keycheck(token.pos, tokennodesdict)}
+    leaves = getuniqueleaves(tree)  # remove duplicate nodes due to indextransform
+    # tokennodes = tree.xpath('.//node[@pt or @pos or @word]')
+    # tokennodesdict = {int(getattval(n, 'begin')): n for n in tokennodes}
+    noskiptokens = [token for token in tokens if not token.skip]
+    if len(noskiptokens) == len(leaves):
+        token_node_tuples = zip(noskiptokens, leaves)
+        token2nodemap = {token.pos: node for token, node in token_node_tuples}
+    else:
+        settings.LOGGER.error(f'Token - Node mismatch in {str(noskiptokens)} v. {gettokenpos_str(tree)}')
+        token2nodemap = {}
     return token2nodemap
 
 
@@ -763,28 +830,29 @@ def getmarkedyield(wordlist: List[str], positions: List[Position]) -> List[str]:
     return resultlist
 
 
-def addmetadata(stree: SynTree, meta: Metadata) -> SynTree:
-    """
-    adds  meta of class Metadata to stree
-    :param stree:
-    :param meta: type Metadata
-    :return: stree
-    """
-    if stree is None:
-        result = stree
-    elif meta is None:
-        result = stree
-    else:
-        metadatanodes = stree.xpath('//metadata')
-        if metadatanodes == []:
-            metadatanode = etree.Element('metadata')
-            stree.append(metadatanode)
-        else:
-            metadatanode = metadatanodes[
-                0]  # we append to the first metadata node if there would be multiple (which should not be the case)
-        metadatanode.append(meta)
-        result = stree
-    return result
+# addmetadata was wrong and not used and has been commented out. use add_metadata instead
+# def addmetadata(stree: SynTree, meta: Metadata) -> SynTree:
+#     """
+#     adds  meta of class Metadata to stree
+#     :param stree:
+#     :param meta: type Metadata
+#     :return: stree
+#     """
+#     if stree is None:
+#         result = stree
+#     elif meta is None:
+#         result = stree
+#     else:
+#         metadatanodes = stree.xpath('//metadata')
+#         if metadatanodes == []:
+#             metadatanode = etree.Element('metadata')
+#             stree.append(metadatanode)
+#         else:
+#             metadatanode = metadatanodes[
+#                 0]  # we append to the first metadata node if there would be multiple (which should not be the case)
+#         metadatanode.append(meta)
+#         result = stree
+#     return result
 
 
 def iswordnode(thenode: SynTree) -> bool:
@@ -2003,11 +2071,13 @@ def getorigutt(stree: SynTree) -> Optional[str]:
     return origutt
 
 
-def treeinflate(stree: SynTree, start: int = 10, inc: int = 10) -> None:
+def treeinflate(stree: SynTree, start: int = inflate_start, inc: int = inflate_step) -> None:
     """
     The function *treeinflate* adapts the input tree *stree* in such a way that:
 
-    * for word nodes: the int value of the *begin* attribute  (ib) is changed to str(newib =(ib + 1) * 10), and the value of the *end* attribute to str(newib + 1)
+    * for word nodes: the int value of the *begin* attribute  (ib) is changed to str(newib = start + ib  *
+    inc), **code stil has to be adapted to this**
+    and the value of the *end* attribute to str(newib + 1)
     * for phrasal nodes: new values for *begin* and *end* are computed by the function *getbeginend*
     * for other nodes: the same as  for word nodes
 
@@ -2114,15 +2184,20 @@ def updatetokenpos2(node: SynTree, tokenposdict: PositionMap):
 
 
 def updateindexnodes(stree: SynTree) -> SynTree:
-    # presupposes that the non bareindex nodes have been adapted already
+    # presupposes that the non bareindex nodes have been adapted
+    sentence = getsentence(stree)
     indexednodesmap = getbasicindexednodesmap(stree)
     newstree = deepcopy(stree)
     for node in newstree.iter():
         if node.tag == 'node':
             if bareindexnode(node):
                 idx = getattval(node, 'index')
-                newbegin = getattval(indexednodesmap[idx], 'begin')
-                newend = getattval(indexednodesmap[idx], 'end')
+                if idx not in indexednodesmap:
+                    settings.LOGGER.warning(f'No antecedent for index {idx} in {sentence}')
+                nodebegin = getattval(node, 'begin')
+                nodeend = getattval(node, 'end')
+                newbegin = getattval(indexednodesmap[idx], 'begin') if idx in indexednodesmap else nodebegin
+                newend = getattval(indexednodesmap[idx], 'end') if idx in indexednodesmap else nodeend
                 node.attrib['begin'] = newbegin
                 node.attrib['end'] = newend
     return newstree
@@ -2134,11 +2209,15 @@ def treewithtokenpos(thetree: SynTree, tokenlist: List[Token]) -> SynTree:
     intbegins = [int(getattval(n, 'begin')) for n in thetreeleaves]
     tokenlistbegins = [t.pos + t.subpos for t in tokenlist]
     if len(intbegins) != len(tokenlistbegins):
-        settings.LOGGER.error('treewithtokenpos: token mismatch')
-        settings.LOGGER.error('treewithtokenpos: tree yield={}'.format(getyield(thetree)))
-        settings.LOGGER.error('treewithtokenpos: tokenlist={}'.format(tokenlist))
-        settings.LOGGER.error('treewithtokenpos: intbegins={}'.format(intbegins))
-        settings.LOGGER.error('treewithtokenpos: tokenlistbegins ={}'.format(tokenlistbegins))
+        settings.LOGGER.warning('treewithtokenpos: token mismatch')
+        settings.LOGGER.warning(
+            'treewithtokenpos: tree yield={}'.format(getyield(thetree)))
+        settings.LOGGER.warning(
+            'treewithtokenpos: tokenlist={}'.format(tokenlist))
+        settings.LOGGER.warning(
+            'treewithtokenpos: intbegins={}'.format(intbegins))
+        settings.LOGGER.warning(
+            'treewithtokenpos: tokenlistbegins ={}'.format(tokenlistbegins))
     pospairs = zip(intbegins, tokenlistbegins)
     thetreetokenposdict = {treepos + 1: tokenpos + 1 for treepos, tokenpos in pospairs}
     resulttree = updatetokenpos(resulttree, thetreetokenposdict)
@@ -2156,20 +2235,28 @@ def subclasscompatible(sc1, sc2):
     result = (sc1 == sc2) or \
              (sc1 in ['pr', 'refl'] and sc2 in ['pr', 'refl']) or \
              (sc1 in ['pr', 'pers'] and sc2 in ['pr', 'pers']) or \
-             (sc1 in ['init', 'versm'] and sc2 in ['init', 'versm']) or \
-             (sc1 in ['pv', 'inf']) and sc2 in ['pv', 'inf']
+             (sc1 in ['init', 'versm'] and sc2 in ['init', 'versm'])
+            #  (sc1 in ['pv', 'inf']) and sc2 in ['pv', 'inf']    # put off for dldl07,23 hij kan loop
     return result
 
 
 def fatparse(utterance: str, tokenlist: List[Token]) -> SynTree:
+    """
+    parses an utterance and inflates the tree but removes nodes corresponding to tokens marked with skip=True
+    :param utterance:
+    :param tokenlist:
+    :return:
+    """
     stree = settings.PARSE_FUNC(utterance)
     fatstree = deepcopy(stree)
     treeinflate(fatstree, start=10, inc=10)
     debug = False
     if debug:
         showtree(fatstree, text='fatparse: fatstree')
-    reducedtokenlist = [token for token in tokenlist if not token.skip]
-    fatstree = treewithtokenpos(fatstree, reducedtokenlist)
+    # reducedtokenlist = [token for token in tokenlist if not token.skip]  # this should be removed, must be controlled
+    # from outside
+    # purefatstree = removeskips(fatstree, tokenlist)
+    fatstree = treewithtokenpos(fatstree, tokenlist)
     if debug:
         showtree(fatstree, text='fatparse: fatstree')
     return fatstree
@@ -2266,6 +2353,30 @@ def normalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
             stree.attrib['begin'] = minbegin
             stree.attrib['end'] = maxend
 
+def denormalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
+    """
+    adapts the begins and ends of a tree to the sortedbegins: first word will get the first sortedegin, etc
+    :param stree: syntactic structure
+    :param sortedbegins: sorted list of begin values of @pt or @pos nodes
+    :return: None
+    """
+    children = list(stree) if stree is not None else [] # adapt this to seelct only children with tag node (because of
+    # the  ud extensions)
+    for child in children:
+        denormalisebeginend2(child, sortedbegins)
+    if stree.tag == "node":
+        if children == []:
+            nodebegin = getattval(stree, 'begin')
+            intnodebegin = int(nodebegin)
+            newbegin = sortedbegins[intnodebegin]
+            newend = str(int(newbegin) + 1)
+            stree.attrib['begin'] = newbegin
+            stree.attrib['end'] = newend
+        else:
+            (minbegin, maxend) = getbeginend(children)
+            stree.attrib['begin'] = minbegin
+            stree.attrib['end'] = maxend
+
 
 def updatebeginend(stree: SynTree, begin: PositionStr) -> None:  # do not use this anymore
     """
@@ -2305,6 +2416,20 @@ def add_metadata(intree: SynTree, metalist: List[Meta]) -> SynTree:
         metadata.append(meta.toElement())
     return tree
 
+
+def attach_metadata(intree: SynTree, metalist: List[SynTree]) -> SynTree:
+    tree = deepcopy(intree)
+    metadata = tree.find('.//metadata')
+    if metadata is None:
+        metadata = etree.Element('metadata')
+        tree.insert(0, metadata)
+
+    for meta in metalist:
+        metadata.append(meta)
+
+    return tree
+
+
 def getneighbourwordnode(node: SynTree, step: int) -> SynTree:
     syntree = find1(node, './ancestor::node[@cat="top"]')
     theyield = getnodeyield(syntree)
@@ -2317,6 +2442,59 @@ def getneighbourwordnode(node: SynTree, step: int) -> SynTree:
     return result
 
 
+def is_infl_different(props1: dict, props2: dict) -> bool:
+    for att in all_inflectional_attributes:
+        if att in props1:
+            if att in props2:
+                if props1[att] != props2[att]:
+                    return True
+            else:
+                return True
+        elif att in props2:
+            return True
+    return False
+
+def mkattrib(word, lemma, pt, dcoi_infl) -> dict:
+    resultdict = dcoi_infl
+    resultdict['lemma'] = lemma
+    resultdict['pt'] = pt
+    resultdict['word'] = word
+    return resultdict
+
+def getparsedas(tree: SynTree, uttstr:str) -> str:
+    cleanedtokenisationliststr = str(find1(tree, f'.//xmeta[@name="{correctionlabels.cleanedtokenisation}"]/@value')) \
+                                     if tree is not None else '["**"]'
+    cleanedtokenisationlist = eval(cleanedtokenisationliststr)
+    cleanedtokenisation = space.join(cleanedtokenisationlist) if cleanedtokenisationlist is not None else uttstr
+    parsedas_str = find1(tree,
+                 f'.//xmeta[@name="{correctionlabels.parsedas}"]/@value') if tree is not None else '**'
+    parsedas_str = cleanedtokenisation if parsedas_str is None else parsedas_str
+    return parsedas_str
+
+def getpreorigutt(tree: SynTree) -> str:
+    preorigutt_meta = find1(tree, './/xmeta[@name="preorigutt"]/@value') if tree is not None else None
+    preorigutt = str(preorigutt_meta) if preorigutt_meta is not None else ''
+    return preorigutt
+
+
+
+def gettokenpos_str(stree: SynTree) -> str:
+    nodes = getnodeyield(stree)
+    tokenposlist = [f'{getattval(node, "begin")}:{getattval(node, "word")}' for node in nodes]
+    result = space.join(tokenposlist)
+    return result
+
+def removeskips(fatstree: SynTree, tokenlist: List[Token]) -> SynTree:
+    newfatstree = deepcopy(fatstree)
+    for token in tokenlist:
+        if token.skip:
+            begin = str(token.pos + token.subpos)
+            wordnode = find1(newfatstree, f'.//node[@word and @begin="{begin}"]')
+            if wordnode is None:
+                settings.LOGGER.error(f'No node found for {begin}: {token.word} ')
+            else:
+                wordnode.getparent().remove(wordnode)
+    return newfatstree
 
 if __name__ == '__main__':
     # test()
