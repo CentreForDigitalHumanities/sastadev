@@ -1,44 +1,38 @@
 from collections import defaultdict
 from copy import copy, deepcopy
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from lxml import etree
 
 from sastadev.adapt_pt import adapt_pt
-from sastadev.basicreplacements import basicreplacements, ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
+from sastadev.basicreplacements import ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
 from sastadev.cleanCHILDEStokens import cleantext, bare_angled_brackets
 from sastadev.conf import settings
 from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
-from sastadev.corrector import (Correction, disambiguationdict, getcorrections,
-                                mkuttwithskips, initialmaarvgxpath)
+from sastadev.corrector import (Correction, getcorrections,
+                                mkuttwithskips)
 from sastadev.celexlexicon import celex2dcoi
-from sastadev.lexicon import de, dets, getwordposinfo,nochildword, nochildwords, validnouns, validword, \
-    wordsunknowntoalpinolexicondict, wrongposwordslexicon
-from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, defaultpenalty,
-                               bpl_none, bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, insertion,
-                               ADULTSPELLINGCORRECTION, ALLSAMPLECORRECTIONS, BASICREPLACEMENTS, CONTEXT,
-                               EXTRAGRAMMATICAL, HISTORY, CHILDRENSPELLINGCORRECTION, THISSAMPLECORRECTIONS,
-                               replacementsubsources
+from sastadev.lexicon import getwordposinfo,nochildwords
+from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, bpl_none, bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, insertion,
+                               EXTRAGRAMMATICAL
                                )
 from sastadev.methods import Method
 from sastadev.parse_criteria import compute_penalty, criteria, isvalidword
 from sastadev.postnominalmodifiers import transformbwinnp, transformppinnp, transformmodRinnp
 from sastadev.sastatoken import Token, insertinflate, tokenlist2stringlist, tokenlist2string
 from sastadev.sastatypes import (AltId, CorrectionMode, ErrorDict, MetaElement,
-                                 MethodName, Penalty, Position, PositionStr,
-                                 SynTree, Targets, Treebank, UttId, ExactResults, ExactResultsDict)
+                                 MethodName, Position, PositionStr,
+                                 SynTree, Targets, Treebank, UttId)
 from sastadev.syllablecount import countsyllables
 from sastadev.targets import get_mustbedone
 from sastadev.tblex import isrealwordnode
-from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_metadata, clausecats, countav, deflate,
-                                        denormalisebeginend2, deletewordnodes, fatparse, find1,
+from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_metadata, denormalisebeginend2, deletewordnodes, fatparse, find1,
                                         getattval, getbeginend,
-                                        getcompoundcount, getnodeyield, getorigutt,
+                                        getnodeyield, getorigutt,
                                         getptsubclass,
                                         getsentid, getsentence, gettokenpos_str, gettokposlist, getxsid,
                                         getyield, is_infl_different, mkattrib, myfind,
-                                        normalisebeginend2,
                                         showflatxml,
                                         showtree, simpleshow, subclasscompatible, transplant_node,
                                         treeinflate, treewithtokenpos,

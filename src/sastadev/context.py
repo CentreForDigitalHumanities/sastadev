@@ -3,7 +3,7 @@ from editdistance import distance
 from lxml import etree
 import os
 from sastadev.conf import settings
-from sastadev.constants import intreebanksfolder, outtreebanksfolder
+from sastadev.constants import outtreebanksfolder
 from sastadev.datasets import infiguresdatasets
 from sastadev.filefunctions import getbasename
 from sastadev.lexicon import known_word

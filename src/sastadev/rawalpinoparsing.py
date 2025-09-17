@@ -2,7 +2,6 @@ import logging
 import re
 import urllib.parse
 import urllib.request
-from typing import Optional
 
 from lxml import etree  # type: ignore
 

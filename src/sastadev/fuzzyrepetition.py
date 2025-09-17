@@ -1,6 +1,4 @@
 from editdistance import distance
-from sastadev.sastatypes import SynTree
-from sastadev.treebankfunctions import getattval
 
 topcat = 'top'
 

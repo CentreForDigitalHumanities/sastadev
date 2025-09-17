@@ -3,9 +3,9 @@ from sastadev import correctionlabels
 from sastadev.allresults import AllResults
 from sastadev.CHAT_Annotation import CHAT_errormarking, CHAT_wordnoncompletion, CHAT_replacement
 from sastadev.deregularise import detailed_detect_error
-from sastadev.metadata import bpl_none, Meta, mkSASTAMeta
+from sastadev.metadata import bpl_none, Meta
 from sastadev.predcvagreement import get_predc_v_mismatches
-from sastadev.sastatypes import SynTree, TreeBank
+from sastadev.sastatypes import SynTree
 from sastadev.treebankfunctions import add_metadata, find1, getattval as gav, getnodeyield
 from typing import List, Optional
 

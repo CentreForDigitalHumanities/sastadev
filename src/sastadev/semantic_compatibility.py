@@ -1,12 +1,10 @@
 from lxml import etree
-import re
 from sastadev.conf import settings
-from sastadev.metadata import Meta
-from sastadev.methods import MethodName, Method
+from sastadev.methods import Method
 from sastadev.NLtypes import Animate, AnyType, Event, Human, Object, SemType, UnKnown, Alt, And
 from sastadev.sastatypes import ExactResultsDict, List, SynTree
 from sastadev.semtypelexicon import sh, vnwsemdict, wwsemdict, wwreqsemdict, defaultreqsemdict
-from sastadev.treebankfunctions import getattval, getheadof, getsentence
+from sastadev.treebankfunctions import getattval, getsentence
 
 comma = ','
 

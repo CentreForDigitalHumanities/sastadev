@@ -8,7 +8,7 @@ from typing import Dict, List, Tuple
 from sastadev.allresults import AllResults
 from sastadev.conf import settings
 from sastadev.methods import Method
-from sastadev.query import Query, query_inform, query_exists
+from sastadev.query import query_inform, query_exists
 from sastadev.rpf1 import getscores
 from sastadev.sastatypes import ExactResultsDict, GoldResults, QId, ResultsDict, Table, UttId
 

@@ -1,8 +1,6 @@
 import re
 
-from sastadev.stringfunctions import (intervowelrepeatedconsonants,
-                                      intervowelrepeatedconsonantsre,
-                                      wordinitialrepeatedconsonants)
+from sastadev.stringfunctions import (intervowelrepeatedconsonantsre)
 
 pattern = r'([aeiou])([mnfghkl])\2+([aeiou])'
 

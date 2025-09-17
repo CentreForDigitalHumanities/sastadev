@@ -1,4 +1,4 @@
-from sastadev.NLtypes import Activity, alt, sand, Alt, And, Animate, Event, Human, Location, NonAnimate, NonHuman, Object, Property, Quantity, SemType, State, UnKnown
+from sastadev.NLtypes import Activity, alt, Alt, And, Animate, Event, Human, Location, NonAnimate, NonHuman, Object, Property, Quantity, SemType, State, UnKnown
 from typing import List
 
 su = 'su'

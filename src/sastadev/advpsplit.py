@@ -66,11 +66,11 @@ def tryme():
     for fullname in fullnames:
         fulltree = etree.parse(fullname)
         tree = fulltree.getroot()
-        print(f'\n\n*****tree*****')
+        print('\n\n*****tree*****')
         etree.dump(tree)
         newtree = transformadvps(tree)
 
-        print(f'*****newtree*****')
+        print('*****newtree*****')
         etree.dump(newtree)
 
 
