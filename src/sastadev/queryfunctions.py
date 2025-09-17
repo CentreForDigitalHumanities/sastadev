@@ -1,5 +1,4 @@
 from typing import Callable, List, Tuple
-from sastadev.sasta_explanation import get_prefix_and_core
 from sastadev.lexicon import vuwordslexicon
 from sastadev.macros import expandmacros
 from sastadev.sastatypes import SynTree

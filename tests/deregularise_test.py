@@ -1,10 +1,6 @@
-import os
 
-import pytest
 
-from sastadev.conf import settings
-from sastadev.deregularise import (correctionfilename, correctinflection,
-                                   makeparadigm, tab)
+from sastadev.deregularise import (correctinflection)
 
 thelist = [('daan', 'gedaan'), ('vervald', 'vervallen'), ('opgevald', 'opgevallen'),
                         ('overvald', 'overvallen'), ('oververvald', 'oververvallen'), ('gevalt', 'gevallen'),

@@ -1,5 +1,4 @@
 # to do
-import os
 from copy import deepcopy
 from typing import Callable, List, Tuple
 
@@ -7,8 +6,7 @@ from lxml import etree
 
 from sastadev import compounds
 from sastadev.conf import settings
-from sastadev.lexicon import (filledpauseslexicon, informlexicon, nomlulexicon,
-                              vuwordslexicon)
+from sastadev.lexicon import (filledpauseslexicon, informlexicon)
 from sastadev.metadata import (filled_pause, fstoken, intj, janeenou, longrep,
                                repeated, repeatedjaneenou, repeatedseqtoken,
                                shortrep, substringrep, unknownsymbol,

@@ -8,7 +8,6 @@ It works for nouns only!
 import editdistance
 
 from sastadev.normalise_lemma import normaliselemma
-from sastadev.lexicon import informlexicon
 
 vowels = 'AEIOUYaeiou '
 

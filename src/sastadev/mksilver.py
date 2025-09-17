@@ -1,10 +1,9 @@
 from collections import Counter, defaultdict
-from math import isnan
 
 from sastadev import readcsv
 from sastadev.conf import settings
 from sastadev.counterfunctions import counter2liststr
-from sastadev.xlsx import getxlsxdata, mkworkbook
+from sastadev.xlsx import getxlsxdata
 
 
 def getsilverannotations(perm_silverfullname, platinumcheckeditedfullname,

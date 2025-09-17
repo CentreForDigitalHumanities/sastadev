@@ -1,11 +1,10 @@
 from typing import List
 
-from sastadev.alpino import getdehetwordinfo
 from sastadev.conf import settings
 from sastadev.lexicon import isalpinonouncompound
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import SynTree
-from sastadev.smallclauses import bg, mkinsertmeta, realword, word
+from sastadev.smallclauses import mkinsertmeta, realword, word
 from sastadev.tokenmd import TokenListMD
 from sastadev.treebankfunctions import getattval, getnodeyield, mktoken2nodemap
 

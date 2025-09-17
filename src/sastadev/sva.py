@@ -6,7 +6,7 @@ from sastadev import correctionlabels
 from sastadev.conf import settings
 from sastadev.lexicon import (getinflforms, getwordposinfo, informlexiconpos,
                               pvinfl2dcoi)
-from sastadev.metadata import bpl_node_nolemma, bpl_word, mkSASTAMeta
+from sastadev.metadata import bpl_node_nolemma, mkSASTAMeta
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import SynTree, UttId
 from sastadev.tokenmd import TokenListMD

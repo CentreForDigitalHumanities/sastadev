@@ -1,4 +1,3 @@
-from sastadev import sastatok
 from sastadev.cleanCHILDEStokens import cleantext, robustness
 
 utts = [(1, 'ja. [+EA]', 'ja.'),

@@ -4,10 +4,8 @@ from the lexicon module and from the treebankfunctions module
 """
 
 import sastadev.lexicon as lex
-from sastadev.methods import tarsp
 from sastadev.queryconstants import Tarsp_kijkVU
 from sastadev.sastatypes import SynTree
-from sastadev.sastatoken import Token
 from sastadev.treebankfunctions import (all_lower_consonantsnode, getattval, getnodeyield,
                                         is_duplicate_spec_noun, iscompound,
                                         isdiminutive, isnumber,

@@ -377,7 +377,7 @@ def getwordpositionsold(matchtree: SynTree, syntree: SynTree) -> List[int]:
     thequery2 = ".//node[@index and not(@pt) and not(@cat)]"
     try:
         matches2 = matchtree.xpath(thequery2)
-    except etree.XPathEvalError as e:
+    except etree.XPathEvalError:
         matches2 = []
     positions2 = []
     for m in matches2:

@@ -8,7 +8,7 @@ from typing import List
 
 from sastadev import xlsx
 from sastadev.conf import settings
-from sastadev.methods import Method, defaultfilters, tarsp, asta
+from sastadev.methods import Method, defaultfilters, tarsp
 from sastadev.query import Query, form_process, post_process
 from sastadev.sastatypes import (AltCodeDict, FileName, Item_Level2QIdDict,
                                  QId, QueryDict)
