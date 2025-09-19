@@ -1,2 +1,3 @@
 mijn	n
 zij	n
+geval	n

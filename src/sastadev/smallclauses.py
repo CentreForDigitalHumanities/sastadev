@@ -39,7 +39,7 @@ from typing import List
 
 from sastadev.conf import settings
 from sastadev.dedup import filledpauseslexicon
-from sastadev.lexicon import getwordinfo, known_word, tswnouns
+from sastadev.lexicon import getwordinfo, known_word, question_promotors, tswnouns
 from sastadev.metadata import (SASTA, Meta, bpl_delete, bpl_none,
                                defaultpenalty, insertion,
                                insertiontokenmapping)
@@ -153,6 +153,9 @@ def nomperspro(node):
     result = perspro(node) and lemma in uniquelynominativeperspros
     return result
 
+def vwtype(node) -> str:
+    result = getattval(node, 'vwtype')
+    return result
 
 def inf(node):
     result = getattval(node, 'pt') == 'ww' and getattval(node, 'wvorm') == 'inf'
@@ -352,6 +355,18 @@ def containsaanhetinf(nodes: List[SynTree]) -> bool:
             return True
     return False
 
+def containsvzhetinf(nodes: List[SynTree]) -> bool:
+    lnodes = len(nodes)
+    for i in range(lnodes - 2):
+        pt1 = getattval(nodes[i], 'pt')
+        lemma2 = getattval(nodes[i+1], 'lemma')
+        pt3 = getattval(nodes[i+2], 'pt')
+        wvorm3 = getattval(nodes[i+2], 'wvorm')
+        if pt1 == 'vz' and lemma2 == 'het' and pt3 == 'ww' and wvorm3 == 'inf':
+            return True
+    return False
+
+
 def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     '''
 
@@ -435,7 +450,19 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
         third = reducedleaves[2]
 
     if len(reducedleaves) == 2:
-        if (aanwvnw(first) or knownnoun(first) or perspro(first)) and (predadv(second) or vz(second) or bw(second)):
+        if aanwvnw(first) and bw(second) and lemma(second) in question_promotors and tokens[-1].word == '?':
+            bgfirst = bg(first)
+            if bgfirst in themap:
+                fpos = themap[bg(first)].pos - inflate_step
+                inserttokens = [Token('wat', fpos, subpos=5), Token('is' , fpos, subpos=8)]
+                resultlist = mktokenlist(tokens, fpos, inserttokens)
+                metadata += mkinsertmeta(inserttokens, resultlist)
+            else:
+                settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                      f'tokens={str(reducedtokens)}; No insertion done')
+
+        elif (aanwvnw(first) or knownnoun(first) or perspro(first)) and \
+                (predadv(second) or vz(second) or bw(second)) and lemma(second) not in question_promotors:
             bgfirst = bg(first)
             if bgfirst in themap:
                 fpos = themap[bg(first)].pos
@@ -582,19 +609,34 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             else:
                 settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                       f'tokens={str(reducedtokens)}; No insertion done')
-        elif theverb is not None and not nomperspro(first) and canbeinfinitive(getattval(theverb, 'word')) and \
+        elif (theverb is not None and not nomperspro(first)  and \
+                canbeinfinitive(getattval(theverb, 'word')) and \
                 not any([getattval(n, 'lemma') in ['moe', 'moeten'] for n in reducedleaves]) and \
-                not iswhpronoun(first) and not containsaanhetinf(reducedleaves):
-            # die daarin doen tarsp_03, 2
-            bgfirst = bg(first)
-            if bgfirst in themap:
-                fpos = themap[bg(first)].pos - inflate_step
-                inserttokens = [Token('jij', fpos, subpos=5), Token('moet', fpos, subpos=8)]
-                resultlist = mktokenlist(tokens, fpos, inserttokens)
-                metadata += mkinsertmeta(inserttokens, resultlist)
-            else:
-                settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
-                                      f'tokens={str(reducedtokens)}; No insertion done')
+                not iswhpronoun(first) and not containsvzhetinf(reducedleaves)):
+            if (not ishuman(first) or pt(first) not in ['n', 'vnw'] or vwtype(first)  in ['bez']):
+                # die daarin doen tarsp_03, 2
+                bgfirst = bg(first)
+                if bgfirst in themap:
+                    fpos = themap[bg(first)].pos - inflate_step
+                    inserttokens = [Token('jij', fpos, subpos=5), Token('moet', fpos, subpos=8)]
+                    resultlist = mktokenlist(tokens, fpos, inserttokens)
+                    metadata += mkinsertmeta(inserttokens, resultlist)
+                else:
+                    settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                          f'tokens={str(reducedtokens)}; No insertion done')
+            elif vwtype(first) not in ['bez']:
+                # Peter schotel hebben. td27, 41
+                bgfirst = bg(first)
+                if bgfirst in themap:
+                    fpos = themap[bg(first)].pos
+                    insertform = 'willen' if getal(first) == 'mv' else 'wil'
+                    inserttokens = [ Token(insertform, fpos, subpos=5)]
+                    resultlist = mktokenlist(tokens, fpos, inserttokens)
+                    metadata += mkinsertmeta(inserttokens, resultlist)
+                else:
+                    settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                          f'tokens={str(reducedtokens)}; No insertion done')
+
         elif theverb is None and knownnoun(first) and pt(second) == 'bw' and knownnoun(third):
             bgfirst = bg(first)
             if bgfirst in themap:

@@ -73,7 +73,7 @@ def simple_tokenise(sent: str) -> List[str]:
 
     cleansent = ''
     for c in sent:
-        if c in punctuationchars:
+        if c in punctuationchars and c !="'":
             cleansent += f' {c} '
         else:
             cleansent += c
@@ -563,12 +563,33 @@ def lpad(id: str, size:int = 3, sym: str= '0') -> str:
         properid = (size - lid) * sym + id
     return properid
 
+
+class SmartSortKey:
+    tpl: tuple
+    def __init__(self, tpl: tuple) -> None:
+        self.tpl = tpl
+    def __lt__(self, other) -> bool:
+        self0 = self.tpl[0]
+        other0 = other.tpl[0]
+        if self.tpl == () and other.tpl != ():
+            return True
+        if self.tpl != () and other.tpl == ():
+            return False
+        if self0 == other0:
+            result = SmartSortKey(self.tpl[1:]) < SmartSortKey(other.tpl[1:])
+            return result
+        if intre.match(self0) and intre.match(other0):
+            return int(self0) < int(other0)
+        else:
+            return self0 < other0
+
+
 intpattern = r'[0-9]+'
 intre = re.compile(intpattern)
-def smartsortkey(wrd:str) -> tuple:
+def smartsortkey(wrd:str) -> SmartSortKey:
     """
-    Turns a string into a tuple of strings and ints :
-    number parts of the string are turned into integers for sorting purposes
+    Turns a string into a tuple of strings  :
+    number parts of the string lead to  a new tuple element for sorting purposes
 '   :param wrd: input str
     """
     smartkeylist = []
@@ -577,12 +598,13 @@ def smartsortkey(wrd:str) -> tuple:
     for intmatch in intmatches:
         intstart = intmatch.start()
         intto = intmatch.end()
-        smartkeylist.append(wrd[start:intstart])
-        smartkeylist.append(int(wrd[intstart:intto]))
+        if wrd[start:intstart] != '':
+            smartkeylist.append(wrd[start:intstart])
+        smartkeylist.append(wrd[intstart:intto])
         start = intto
     if wrd[start:] != '':
         smartkeylist.append(wrd[start:])
-    result = tuple(smartkeylist)
+    result = SmartSortKey(tuple(smartkeylist))
     return result
 
 

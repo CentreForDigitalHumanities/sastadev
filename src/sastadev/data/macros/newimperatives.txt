@@ -74,7 +74,7 @@ nonsuindexnodecount = """(count(node[%nonsuindexnode%]))"""
 
 fillednode = """node[not(%indexnode%)]"""
 
-particlesvp = """(@rel="svp"  and not(%svpofhww%))"""
+particlesvp = """(@rel="svp"  and not(%svpofhww%) and not(%advsvpofww%))"""
 
 realcomplormodnodecount = """count(%realcomplormodnode% | node[%nonfinvc%]/%realcomplormodnode%)"""
 
@@ -200,9 +200,13 @@ Tarsp_OndWVCVCX = """(%declarative% and %Ond% and %Tarsp_W_X% and %Tarsp_VC_X_co
 
 Tarsp_BWOndBB = """(%declarative% and %Ond% and %Tarsp_W_X% and %Tarsp_B_X_count% = 3 and %realcomplormodnodecount% = 4)"""
 
-Tarsp_OndWVC = """
+Tarsp_OndWVC = """(%Tarsp_core_OndWVC% or %Tarsp_wvc_OndWVC%)"""
+
+Tarsp_core_OndWVC = """
 (%declarative% and %Ond% and  %Tarsp_W%  and %Tarsp_VC_X% and %realcomplormodnodecount% = 2 )
 """
+
+Tarsp_wvc_OndWVC = """(%declarative% and %Ond% and node[@rel="vc" and node[@rel="hd" and @pt="ww"] and node[%Tarsp_VC%]] and %realcomplormodnodecount% = 2 )"""
 
 Tarsp_WBVC = """(%declarative%  and  %Tarsp_W_X% and %Tarsp_B_X% and %Tarsp_VC_X% and %realcomplormodnodecount% = 2 )"""
 
@@ -305,7 +309,8 @@ Tarsp_Ov3 = """(%declarative% and
 				not(%Tarsp_WBVC%) and 
 				not(%Tarsp_OndB%) and
 				not(%Tarsp_OndVC%) and
-				%Tarsp_W% and
+				%Tarsp_W% and 
+				not(%BvBepZn%) and
 				%realcomplormodnodecount% = 2) """
 
 

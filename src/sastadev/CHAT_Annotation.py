@@ -37,7 +37,7 @@ specialform = 'Special Form'
 
 real_word_replacement_pattern_open = r'\[::'
 replacement_pattern_open = r'\[:\s'
-replacement_pattern_core = '([^\]]+)'
+replacement_pattern_core = '([^]]+)'
 replacement_pattern_close = r'\]'
 
 replacement_error_marking = replacement_pattern_open + replacement_pattern_core + replacement_pattern_close

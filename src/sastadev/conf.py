@@ -3,6 +3,7 @@ import logging
 from sastadev import SD_DIR, alpinoparsing
 
 
+
 class SastadevConfig:
     '''Class for keeping track of application configuration'''
 

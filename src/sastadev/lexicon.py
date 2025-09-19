@@ -60,6 +60,8 @@ hwwilemmas = {'behoren', 'blijven', 'doen', 'gaan', 'hoeven', 'horen', 'komen', 
               'laten', 'liggen','lopen', 'mogen', 'moeten',
               'staan', 'willen', 'zijn', 'zitten', 'zullen'}
 
+question_promotors = {'nou', 'nu', 'toch', 'dan'}
+
 def initializelexicon(lexiconfilename) -> set:
     lexicon = set()
     fptuples = readcsv(lexiconfilename, header=False)

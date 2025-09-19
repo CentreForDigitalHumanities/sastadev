@@ -10,8 +10,9 @@ The *alpinoparsing* module provides functions for:
 .. autofunction:: sastadev.alpinoparsing::previewurl
 
 '''
-
+import os
 import sastadev.conf
+#  import sastadev.treebankfunctions
 import re
 import urllib.parse
 import urllib.request
@@ -19,6 +20,7 @@ import urllib.request
 from lxml import etree  # type: ignore
 
 from sastadev.memoize import memoize
+# import sastadev.parsetreestore
 
 #from sastadev.sastatypes import SynTree, URL
 
@@ -37,6 +39,20 @@ previewurltemplate = 'https://gretel.hum.uu.nl/ng/tree?sent={sent}&xml={xml}'
 
 emptypattern = r'^\s*$'
 emptyre = re.compile(emptypattern)
+
+
+# storedparsespath = os.path.join(sastadev.conf.settings.SD_DIR, 'data', 'storedparses')
+# storedparsesfilename = 'storedparses.xml'
+# storedparsesfullname = os.path.join(storedparsespath, storedparsesfilename)
+# storedparsesdict = {}
+#
+# if os.path.exists(storedparsesfullname):
+#     fulltreebank = etree.parse(storedparsesfullname)
+#     treebank = fulltreebank.getroot()
+#     for tree in treebank:
+#         mwustr = sastadev.treebankfunctions.getyieldstr(tree)
+#         storedparsesdict[mwustr] = tree
+
 
 
 def isempty(sent: str) -> bool:
@@ -93,6 +109,53 @@ def parse(origsent: str, escape: bool = True):
         else:
             sastadev.conf.settings.LOGGER.error('parsing failed:', r1.status, r1.reason, sent)
             return None
+
+# def storeparse(origsent: str, escape: bool = True):
+#     '''
+#     The function *parse* invokes the alpino parser (over the internet, so an internet connection is required) to parse
+#     the string *origsent*.
+#     The parameter *escape* can be used to escape symbols that have a special meaning
+#     for Alpino. Its default value is *True*.
+#
+#     This function uses parsetree stored in a dictionaru.
+#
+#     '''
+#     if isempty(origsent):
+#         sastadev.conf.settings.LOGGER.error(f'No parse tree found for (empty) <{origsent}>')
+#         return None
+#     if escape:
+#         sent = escape_alpino_input(origsent)
+#     else:
+#         sent = origsent
+#     if sent in sastadev.parsetreestore.storedparsesdict:
+#         return sastadev.parsetreestore.storedparsesdict[sent]
+#     encodedsent = urllib.parse.quote(sent)
+#     fullurl = gretelurl.format(encodedsent)
+#     try:
+#         r1 = urllib.request.urlopen(fullurl)
+#     except urllib.request.HTTPError as e:
+#         sastadev.conf.settings.LOGGER.error('{}: parsing <{}> failed'.format(e, sent))
+#         return None
+#     except urllib.error.URLError as e:
+#         sastadev.conf.settings.LOGGER.error('{}: parsing <{}> failed'.format(e, sent))
+#         return None
+#     else:
+#         if 300 > r1.status >= 200:
+#             streebytes = r1.read()
+#             # print(streebytes.decode('utf8'))
+#             try:
+#                 stree = etree.fromstring(streebytes)
+#             except etree.XMLSyntaxError as e:
+#                 sastadev.conf.settings.LOGGER.error(f'Error: {e} for {sent}')
+#                 stree = None
+#             if stree is not None:
+#                 storedparsesdict[sent] = stree
+#             return stree
+#         else:
+#             sastadev.conf.settings.LOGGER.error('parsing failed:', r1.status, r1.reason, sent)
+#             return None
+
+
 
 #def previewurl(stree: SynTree) -> URL:
 

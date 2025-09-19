@@ -2,6 +2,7 @@
 Module to develop new functions in . This modulke is NOT used by sastadev. Functions and data in this file are only temporarily here.
 """
 import copy
+from lxml import etree
 import re
 from sastadev import correctionlabels
 from sastadev.conf import settings
@@ -10,6 +11,7 @@ from sastadev.metadata import Meta, bpl_wordlemma, mkSASTAMeta, mkinsertmeta
 from sastadev.parse_criteria import Criterion, negative
 from sastadev.sastatypes import SynTree, UttId
 from sastadev.sastatoken import mktokenlist, Token
+from sastadev.stringfunctions import smartsortkey, intre
 from sastadev.tokenmd import TokenListMD
 from sastadev.treebankfunctions import getattval as gav, getyieldstr, getxsid, inflate_step
 from typing import List
@@ -180,6 +182,14 @@ def koekoek(wrd:str) -> str:
     newwrd = re.sub(dup_pattern, r'\1', wrd)
     return newwrd
 
+def writetb(treebankdict, mwetreebankfullname):
+    tb = etree.Element("treebank")
+    for el in treebankdict:
+        tb.append(treebankdict[el])
+    fulltb = etree.ElementTree(tb)
+    fulltb.write(
+        mwetreebankfullname, encoding="UTF8", xml_declaration=False, pretty_print=True
+    )
 
 if __name__ == '__main__':
     for wrd in ['koekoeks_klok', 'boeken']:

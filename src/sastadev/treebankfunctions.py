@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from more_itertools import unique_everseen
 from lxml import etree
 
-from sastadev.anonymization import pseudonymre
+import sastadev.anonymization
 # from sastadev.lexicon import informlexiconpos, isa_namepart_uc, informlexicon, isa_namepart
 # import lexicon as lex
 from sastadev.conf import settings
@@ -663,7 +663,7 @@ def getuniqueleaves(stree: SynTree) -> List[SynTree]:
         else:
             uttid = getxsid(stree)
             sentence = getsentence(stree)
-            settings.LOGGER.error(f'No leave found for {position} in {uttid}: {sentences}')
+            settings.LOGGER.error(f'No leave found for {position} in {uttid}: {sentence}')
     return leaves
 
 
@@ -1164,7 +1164,7 @@ def sasta_pseudonym(node: SynTree) -> bool:
 
     """
     word = getattval(node, 'word')
-    match = pseudonymre.match(word)
+    match = sastadev.treebankfunctions.pseudonymre.match(word)
     result = match is not None
     return result
 
@@ -2495,6 +2495,16 @@ def removeskips(fatstree: SynTree, tokenlist: List[Token]) -> SynTree:
             else:
                 wordnode.getparent().remove(wordnode)
     return newfatstree
+
+def writetb(treebankdict, mwetreebankfullname):
+    tb = etree.Element("treebank")
+    for el in treebankdict:
+        tb.append(treebankdict[el])
+    fulltb = etree.ElementTree(tb)
+    fulltb.write(
+        mwetreebankfullname, encoding="UTF8", xml_declaration=False, pretty_print=True
+    )
+
 
 if __name__ == '__main__':
     # test()

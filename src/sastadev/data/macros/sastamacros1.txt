@@ -48,7 +48,7 @@ Tarsp_hww = """(
   @lemma = "zullen"  or contains(@lemma,"_zullen") or   
   @lemma = "doen"  or contains(@lemma,"_doen") or 
   @lemma = "gaan"   or contains(@lemma,"_gaan") or
-  @lemma = "horen"   or contains(@lemma,"_horen") or
+  %horen_hww% or
   @lemma = "komen"   or contains(@lemma,"_komen") or
   @lemma = "laten"  or contains(@lemma,"_laten") or
   @lemma = "liggen"  or contains(@lemma,"_liggen") or
@@ -62,6 +62,9 @@ Tarsp_hww = """(
  
  
  )"""
+
+
+horen_hww = """((@lemma = "horen"   or contains(@lemma,"_horen")) )"""
 
 hebbenwordenzijn = """( 
      @lemma = "hebben" or contains(@lemma,"_hebben") or
@@ -218,7 +221,7 @@ adjadv = """
 
 
 bbvb = """((@cat="ap" or @cat="advp" or @cat="np") and (node[@rel="mod" and %adjoradv%] and
-       node[@rel="hd"  and %adjoradv% and not(@positie="nom")])     
+       node[@rel="hd"  and %adjoradv% and not(@positie="nom")] and not(%Tarsp_BBX%))     
    )"""
 
 
@@ -249,7 +252,7 @@ countin = """(@pt or @cat or %abarboundtrace%)"""
 Tarsp_Basic_VC = """((@rel="obj1" or @rel="pc"  or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% ) and %countin% and not(%Tarsp_Basic_B%) )"""
 
 
-Tarsp_Basic_B = """(@rel="mod" or @rel="ld" or @rel="predm"  or %Tarsp_B_predc%) """
+Tarsp_Basic_B = """(@rel="mod" or @rel="ld" or @rel="predm"  or %Tarsp_B_predc% or %vzdisguisedasadj% ) """
 
 Tarsp_B_predc = """(@rel=predc and (@pt="vz" or @pt="bw" or @cat="pp" or @cat="advp" or %Rpronoun%))"""
 
@@ -275,13 +278,17 @@ Tarsp_B = """( not(%adjacentnogeen%) and
 		%Tarsp_nonmodadvcp% or
 		%Tarsp_pc_vc_exception% or
         %vzdisguisedasadj% or
-		%svpofhww% 
+		%svpofhww% or
+		%advsvpofww%
 		)
 		)
      
 """
 
 svpofhww = """ (@rel="svp" and @lemma!="mee" and ../node[%hwwwithsvp% and not(%hwwwithsvpexception%)])"""
+advsvpofww = """(@rel="svp" and @lemma!="mee" and ../node[%wwwithsvp% and %wwwithsvpexception%])"""
+
+wwwithsvp = """(not(%hwwwithsvp%) and contains(@lemma, "_"))"""
 
 hwwwithsvp = """(contains(@lemma,"_kunnen") or
                  contains(@lemma,"_moeten") or
@@ -304,6 +311,7 @@ hwwwithsvp = """(contains(@lemma,"_kunnen") or
 				) """
 
 hwwwithsvpexception = """(@lemma="terug_komen" or @lemma="vast_zitten" or @lemma="weg_gaan" or @lemma="aan_hebben" or @lemma="op_hebben" or @lemma="open_doen" or @lemma="aan_staan" or @lemma="weg_doen")""" 
+wwwithsvpexception = """(@lemma="af_slaan" or @lemma="in_gooien")"""
 
 complement = """((@rel="obj1" or @rel="obj2") or 
                  (@rel="predc" and not(%predcB%)) or
@@ -429,7 +437,7 @@ allbxrealwordnodes = """(./ancestor::alpino_ds/descendant::node[%bxrealwordnode%
 
 bxrealwordnode = """(%realwordnode% and not(%dlinkvg%) and not(%svp_verb_part%)) """
 
-svp_verb_part = """(@rel="svp" and @pt and ../node[@rel="hd" and @pt="ww" and contains(@lemma,"_")] and not %svpofhww%)"""
+svp_verb_part = """(@rel="svp" and @pt and ../node[@rel="hd" and @pt="ww" and contains(@lemma,"_")] and not %svpofhww% and not(%advsvpofww%))"""
 
 dlinkvg = """(@pt="vg" and (@rel="dlink" or @rel="--"))"""
 
@@ -932,7 +940,7 @@ BepBvZn = """(@cat="np" and
     node[@rel="mod" and @pt="adj"] and
     node[@rel="hd" and @pt="n"])"""
 
-OvWG4 = """((@cat="np" or @cat="ap") and count(.//node[@word and @rel!="mwp"]) + count(.//node[@cat="mwu"]) =3 and not(%BvBepZn%) and not(%BepBvZn%) and not(node[@rel="hd" and @pt="ww"]) and not(.//node[@rel="cnj"]))"""
+OvWG4 = """((@cat="np" or @cat="ap") and count(.//node[@word and @rel!="mwp"]) + count(.//node[@cat="mwu"]) =3 and not(%BvBepZn%) and not(%BepBvZn%) and not %Tarsp_BBX% and not(node[@rel="hd" and @pt="ww"]) and not(.//node[@rel="cnj"]))"""
 
 BezZn = """(@cat="np" and
             node[@pdtype="det" and @rel="det" and @positie="prenom"  and @vwtype="bez" and @pt="vnw" ] and
