@@ -3,6 +3,7 @@ various treebank functions
 
 """
 import functools
+import os
 import re
 # import logging
 from copy import copy, deepcopy
@@ -1164,7 +1165,7 @@ def sasta_pseudonym(node: SynTree) -> bool:
 
     """
     word = getattval(node, 'word')
-    match = sastadev.treebankfunctions.pseudonymre.match(word)
+    match = sastadev.anonymization.pseudonymre.match(word)
     result = match is not None
     return result
 
@@ -2501,6 +2502,9 @@ def writetb(treebankdict, mwetreebankfullname):
     for el in treebankdict:
         tb.append(treebankdict[el])
     fulltb = etree.ElementTree(tb)
+    mwetreebankpath, mwetreebankfilename = os.path.split(mwetreebankfullname)
+    if not os.path.exists(mwetreebankpath):
+        os.makedirs(mwetreebankpath)
     fulltb.write(
         mwetreebankfullname, encoding="UTF8", xml_declaration=False, pretty_print=True
     )

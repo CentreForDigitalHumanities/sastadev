@@ -152,6 +152,7 @@ from lxml import etree
 from sastadev import compounds
 from sastadev.allresults import (AllResults, mkresultskey, scores2counts,
                                  showreskey)
+import sastadev.alpinoparsing
 from sastadev.conf import settings
 from sastadev.constants import (analysissuffix, bronzefolder, bronzesuffix,
                                 byuttscoressuffix, checksuffix,
@@ -1660,8 +1661,8 @@ def main():
     else:
         percentagecompletion2str = 'N/A'
 
-    # write the parses to a treebank file
-    # writetb(storedparsesdict, storedparsesfullname)
+    # write the parses in the parse tree dictionary  to a treebank file
+    writetb(sastadev.alpinoparsing.storedparsesdict, sastadev.alpinoparsing.storedparsesfullname)
 
     finalmessagetemplate1 = '{} measures, {} undefined, {} defined,  of which {} invalid.'
     finalmessagetemplate2 = '{} measures defined for a non empty gold score out of {} ({}).'
