@@ -1,4 +1,6 @@
 from typing import Callable, List, Tuple
+
+from sastadev.basicreplacements import is_pronominal_adverb
 from sastadev.sasta_explanation import get_prefix_and_core
 from sastadev.lexicon import vuwordslexicon
 from sastadev.macros import expandmacros
@@ -7,6 +9,8 @@ from sastadev.stringfunctions import punctuationchars
 from sastadev.tblex import get_aanloop_and_core
 from sastadev.treebankfunctions import (adjacent, find1, get_left_siblings,
                                         getattval, getnodeyield, parent)
+
+gav = getattval
 
 comma = ','
 
@@ -281,3 +285,43 @@ def only_puncs(nodelist: List[SynTree]) -> bool:
         if nodelemma not in punctuationchars:
             return False
     return True
+
+potentialqwords = ['wat']
+def firstwordispotentialqword(stree: SynTree) -> bool:
+    nodeyield = getnodeyield(stree)
+    firstnode = nodeyield[0] if nodeyield != [] else None
+    if firstnode is None:
+        return False
+    else:
+        firstnodelemma = gav(firstnode, 'lemma')
+        result = firstnodelemma in potentialqwords
+        return result
+
+into_xpath = """.//node[@cat="top" and 
+       (not(.//node[@pt="ww" and @wvorm!="pt"]) or not(.//node[@cat="sv1" and (@rel="--" or @rel="nucl" or @rel="dp")])) and 
+       node[@lemma="?"] and 
+       .//node[@pt!="let" and @pt != "tsw"] and
+       not(.//node[@rel="tag" and @cat="sv1"]) and
+       not(.//node[@cat="whq"]) and
+       not(.//node[@pt="vnw" and (@vwtype="vrag" or @vwtype="vb")]) and
+       not(.//node[@lemma="he" or @lemma="hè"]) and
+       not(.//node[contains(@frame, "wh_adjective") or contains(@frame, "waar_adverb")]) and
+       not(.//node[@lemma="huh"])
+
+]
+
+"""
+def into(stree: SynTree) -> List[SynTree]:
+    wordnodes = stree.xpath('.//node[@word]')
+    wrongwordnodes = [wordnode for wordnode in wordnodes
+                        if gav(wordnode, 'lemma').startswith('waar') and
+                           is_pronominal_adverb(gav(wordnode,'lemma'))
+                      ]
+    if wrongwordnodes == []:
+        rawintos = stree.xpath(into_xpath)
+        result = [rawintos[0]] if rawintos != [] else []
+    else:
+        result = []
+    if firstwordispotentialqword(stree):
+        result = []
+    return result

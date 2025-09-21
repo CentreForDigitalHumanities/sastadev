@@ -10,6 +10,7 @@ The *alpinoparsing* module provides functions for:
 .. autofunction:: sastadev.alpinoparsing::previewurl
 
 '''
+import copy
 import os
 import time
 import sastadev.conf
@@ -231,7 +232,7 @@ if os.path.exists(storedparsesfullname):
     treebank = fulltreebank.getroot()
     for tree in treebank:
         mwustr = getyieldstr(tree)
-        storedparsesdict[mwustr] = tree
+        storedparsesdict[mwustr] = copy.deepcopy(tree)
 end_time = time.time()
 duration = end_time - start_time
 timing_message = f'reading stored parses took: {duration:.2f} seconds'
