@@ -142,7 +142,8 @@ def storeparse(origsent: str, escape: bool = True):
                 sastadev.conf.settings.LOGGER.error(f'Error: {e} for {sent}')
                 stree = None
             if stree is not None:
-                storedparsesdict[sent] = stree
+                streecopy = copy.deepcopy(stree)
+                storedparsesdict[sent] = streecopy
             return stree
         else:
             sastadev.conf.settings.LOGGER.error('parsing failed:', r1.status, r1.reason, sent)
