@@ -9,12 +9,98 @@ from sastadev.conf import settings
 from sastadev.displaytree import printtree
 from sastadev.metadata import Meta, bpl_wordlemma, mkSASTAMeta, mkinsertmeta
 from sastadev.parse_criteria import Criterion, negative
-from sastadev.sastatypes import SynTree, UttId
+from sastadev.sastatypes import PositionStr, SynTree, UttId
 from sastadev.sastatoken import mktokenlist, Token
+from sastadev.semantic_compatibility import getantecedentof
 from sastadev.stringfunctions import smartsortkey, intre
 from sastadev.tokenmd import TokenListMD
-from sastadev.treebankfunctions import getattval as gav, getyieldstr, getxsid, inflate_step
+from sastadev.treebankfunctions import find1, getattval, getbeginend, getyieldstr, getxsid, inflate_step
 from typing import List
+
+gav = getattval
+
+# these functions to be revised
+def normalisebeginend(instree: SynTree) -> SynTree:
+    """
+    :param instree: syntactic structure
+    :return: stree with the values of begin and end attributes normalised
+    """
+    stree = copy.deepcopy(instree)
+    begins = {getattval(node, 'begin')
+              for node in stree.xpath('.//node[count(node)=0]')}
+    sortedbegins = sorted(list(begins), key=lambda x: int(x))
+    result = normalisebeginend2(stree, sortedbegins)
+    return result
+
+
+def normalisebeginend2(instree: SynTree, sortedbegins: List[PositionStr]) -> SynTree:
+    """
+
+    :param instree: syntactic structure
+    :param sortedbegins: sorted list of begin values of @pt or @pos nodes
+    :return:  stree with the values of begin and end attributes normalised
+    """
+    stree = copy.deepcopy(instree)
+    children = list(stree)   # adapt this to select only children with tag node (because of the  ud extensions)
+    newchildren = []
+    for child in children:
+        newchild = normalisebeginend2(child, sortedbegins)
+        newchildren.append(newchild)
+    #remove the old children
+    for child in stree:
+        stree.remove(child)
+    if stree.tag == "node":
+        if newchildren == []:
+            nodebegin = getattval(stree, 'begin')
+            intnodebegin = int(nodebegin)
+            newintbegin = sortedbegins.index(nodebegin)
+            newbegin = str(newintbegin)
+            newend = str(newintbegin + 1)
+            stree.attrib['begin'] = newbegin
+            stree.attrib['end'] = newend
+        else:
+            (minbegin, maxend) = getbeginend(newchildren)
+            stree.attrib['begin'] = minbegin
+            stree.attrib['end'] = maxend
+
+    #append the new chidren
+    stree.extend(newchildren)
+    return stree
+
+
+def denormalisebeginend2(instree: SynTree, sortedbegins: List[PositionStr]) -> SynTree:
+    """
+    adapts the begins and ends of a tree to the sortedbegins: first word will get the first sortedegin, etc
+    :param instree: syntactic structure
+    :param sortedbegins: sorted list of begin values of @pt or @pos nodes
+    :return: None
+    """
+    stree = copy.deepcopy(instree)
+    children = list(stree) if stree is not None else [] # adapt this to select only children with tag node (because of
+    # the  ud extensions) but be careful we should allow metadata etc alpino_ds, sentence
+    newchildren = []
+    for child in children:
+        newchild = denormalisebeginend2(child, sortedbegins)
+        newchildren.append(newchild)
+    #remove the old children
+    for child in stree:
+        stree.remove(child)
+    if stree.tag == "node":
+        if newchildren == []:
+            nodebegin = getattval(stree, 'begin')
+            intnodebegin = int(nodebegin)
+            newbegin = sortedbegins[intnodebegin]
+            newend = str(int(newbegin) + 1)
+            stree.attrib['begin'] = newbegin
+            stree.attrib['end'] = newend
+        else:
+            (minbegin, maxend) = getbeginend(newchildren)
+            stree.attrib['begin'] = minbegin
+            stree.attrib['end'] = maxend
+    # append the new children
+    stree.extend(newchildren)
+    return stree
+
 
 
 # added this to parse_criteria.py
@@ -182,14 +268,8 @@ def koekoek(wrd:str) -> str:
     newwrd = re.sub(dup_pattern, r'\1', wrd)
     return newwrd
 
-def writetb(treebankdict, mwetreebankfullname):
-    tb = etree.Element("treebank")
-    for el in treebankdict:
-        tb.append(treebankdict[el])
-    fulltb = etree.ElementTree(tb)
-    fulltb.write(
-        mwetreebankfullname, encoding="UTF8", xml_declaration=False, pretty_print=True
-    )
+
+
 
 if __name__ == '__main__':
     for wrd in ['koekoeks_klok', 'boeken']:

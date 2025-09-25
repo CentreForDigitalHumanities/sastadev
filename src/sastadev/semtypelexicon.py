@@ -106,8 +106,8 @@ verbs = [ ('liggen', 'intransitive', [{su: sh(Object)}], sh(State)),
           ('maken', 'pred_np', [{su: sh(Animate), obj1: sh(Object), predc:Alt([And([State]), And([Property])])}], sh(Activity)),
           ('kapot_maken', 'part_transitive(kapot)', [{su: sh(Animate), obj1: sh(Object)}], sh(Activity)),
           ('maaien', 'intransitive', [{su: sh(Animate)}], sh(Activity) ),
-          ('maaien', 'transitive', [{su:sh(Animate), obj1: sh(NonAnimate)}], sh(Activity)),
-         # ('maken', 'transitive', [{su:sh(Animate), obj1: sh(NonAnimate)}], sh(Activity))
+          ('maaien', 'transitive', [{su:sh(Animate), obj1: sh(Object)}], sh(Activity)),
+          ('maken', 'transitive', [{su:sh(Animate), obj1: sh(Object)}], sh(Activity))
 ]
 
 wwsemdict = {(lemma, frame): semtype for (lemma, frame, _, semtype) in verbs }

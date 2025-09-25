@@ -68,7 +68,7 @@ ParsedCorrection = Tuple[List[str], SynTree, List[Meta]]
 TupleNint = Tuple[19 * (int,)]
 
 
-smartreplacepairs = [('me', 'mijn'), ('ze', 'zijn')]
+smartreplacepairs = [('me', 'mijn'), ('ze', 'zijn'), ('me', 'we')]
 smartreplacedict = {w1: w2 for w1, w2 in smartreplacepairs}
 
 
@@ -270,17 +270,20 @@ def smartreplace(node: SynTree, word: str, method: Method) -> SynTree:
     newnodept = getattval(newnode, 'pt')
     nodept = getattval(node, 'pt')
     nodelemma = getattval(node, 'lemma')
+    nodeword = getattval(node, 'word')
     newnodelemma = getattval(newnode, 'lemma')
     if isvalidword(word, mn) and \
             (issamewordclass(node, newnode) or is_pronadv_dempro(node, newnode)) and \
             not isrobustnoun(newnode) and \
-            newnodelemma not in nochildwords:
+            newnodelemma not in nochildwords and (word, nodeword) not in smartreplacepairs:
         result = newnode
         if nodept == 'ww' and '_' in nodelemma and newnodelemma in nodelemma and '_' not in newnodelemma:
             # e.g. nodelemma == 'op_hebben', newnodelemma='hebben'
             cpseppos = nodelemma.find('_')
             prt = nodelemma[:cpseppos]
             result.set('lemma', f'{prt}_{newnodelemma}')
+        elif nodept == 'vz':  # we keep the lemma of replacer for adpositions
+            result.set('lemma', nodelemma)
         result.set('begin', getattval(node, 'begin'))
         result.set('end', getattval(node, 'end'))
         result.set('rel', getattval(node, 'rel'))

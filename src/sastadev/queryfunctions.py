@@ -52,7 +52,7 @@ vobijxpath = expandmacros('.//node[%Vobij%]')
 mvznxpath = """.//node[@pt = "n" and  @getal ="mv"]"""
 mvznsuffixes = ['en', 'e', 's', 'n']
 
-verklxpath = expandmacros(""".//node[@pt="n" and @graad="dim" and not(%nodimlemma%)]""")
+verklxpath = expandmacros(""".//node[(@pt="n" and @graad="dim" and not(%nodimlemma%)) or %extradimlemma%]""")
 verklsuffixes = ['je', 'jes', 'ie', 'ies', 'ke', 'kes']
 
 

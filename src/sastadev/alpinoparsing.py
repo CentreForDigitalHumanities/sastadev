@@ -21,6 +21,7 @@ import urllib.request
 
 import lxml.etree
 
+from sastadev import SD_DIR
 import sastadev.memoize
 # import sastadev.parsetreestore
 
@@ -121,7 +122,8 @@ def storeparse(origsent: str, escape: bool = True):
     else:
         sent = origsent
     if sent in storedparsesdict:
-        return storedparsesdict[sent]
+        storedparsecopy = copy.deepcopy(storedparsesdict[sent])
+        return storedparsecopy
     encodedsent = urllib.parse.quote(sent)
     fullurl = gretelurl.format(encodedsent)
     try:
@@ -222,7 +224,9 @@ def test1() -> None:
 
 parse = storeparse
 
-storedparsespath = os.path.join('data', 'storedparses')
+
+# storedparsespath = os.path.join(sastadev.conf.settings.SD_DIR, 'data', 'storedparses')
+storedparsespath = os.path.join(SD_DIR, 'data', 'storedparses')
 storedparsesfilename = 'storedparses.xml'
 storedparsesfullname = os.path.join(storedparsespath, storedparsesfilename)
 storedparsesdict = {}

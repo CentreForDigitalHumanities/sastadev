@@ -898,6 +898,7 @@ intrmodalverb = """( @pt="ww" and
 
 
 nodimlemma = """(@lemma="meisje" or @lemma="koek" or @lemma="beet")"""  
+extradimlemma = """(@lemma="ijsje")"""
 
 hequery = """((@lemma="hè" or @lemma="he") and @end != 1 and
        ( (@end = ancestor::node[@cat="top"]/@end) or
@@ -924,7 +925,7 @@ covertnonfinsubj = """(@rel="su" and not(@pt) and not(@cat) and @index and paren
 
 abarboundtrace = """(not(%aboundtrace%) and not(@rel="su"  and parent::node[@cat="inf" or @cat="ppart"]) and not(@pt) and not(@cat) and @index = ancestor::node/node[@rel="rhd" or @rel="whd"]/@index)"""
 
-aboundtrace = """((@rel="obj1" or @rel="obj2") and not(@pt) and not(@cat) and @index = parent::node/parent::node/node[@rel="su"]/@index)""" 
+aboundtrace = """((@rel="obj1" or @rel="obj2") and not(@pt) and not(@cat) and @index = parent::node/parent::node/node[@rel="su" or @rel="obj1"]/@index)""" 
 
 ellipticgap = """(not(@pt) and not(@cat) and not(@pos) and not(%covertnonfinsubj%) and not(%abarboundtrace%) and not(%aboundtrace%) and %hasantecedent%)"""
 
