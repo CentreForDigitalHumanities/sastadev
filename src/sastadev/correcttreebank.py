@@ -747,6 +747,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     if lmetadatalist == 0:
         settings.LOGGER.error('Missing metadata in utterance {}'.format(uttid))
         origmetadata = None
+        origmetadatalist = []
     else:
         if lmetadatalist > 1:
             settings.LOGGER.error(

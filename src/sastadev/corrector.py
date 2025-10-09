@@ -1551,7 +1551,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
     # clause intial maar must be parsed as conjunction not as an adverb: we replace it by "en" to avoid the ambiguity
     if token.word == 'maar':
-        initialmaars = tree.xpath(initialmaarvgxpath)
+        initialmaars = tree.xpath(initialmaarvgxpath) if tree is not None else []
         for initialmaar in initialmaars:
             if initialmaar == tokennodes[tokenctr]:
                 newwords = ['en']
@@ -1691,7 +1691,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
     # een blauwe tentje -> een blauw tentje; een grotere tentje -> een groter tentje
     # print(getxsid(tree))
-    token_node = tokennodes[tokenctr]
+    # token_node = tokennodes[tokenctr]
     if tokenctr < len(tokens):
         if is_adj_e(token) and \
            not issuperlative(token) and \

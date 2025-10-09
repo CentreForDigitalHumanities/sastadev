@@ -6,7 +6,7 @@ from sastadev.metadata import Meta
 from sastadev.methods import MethodName, Method
 from sastadev.NLtypes import Animate, AnyType, Event, Human, Object, SemType, UnKnown, Alt, And
 from sastadev.sastatypes import ExactResultsDict, List, SynTree
-from sastadev.semtypelexicon import sh, vnwsemdict, wwsemdict, wwreqsemdict, defaultreqsemdict
+from sastadev.semtypelexicon import sh, vnwsemdict, wwsemdict, wwreqsemdict, defaultreqsemdict, get_n_semtype
 from sastadev.treebankfunctions import bareindexnode, find1, getattval, getheadof, getsentence
 
 comma = ','
@@ -88,6 +88,8 @@ def semlookup(stree: SynTree) -> List[SemType]:
             result = wwsemdict[(lemma, realframe)]
         else:
             result = sh(Event)
+    elif pt == 'n':
+        result = get_n_semtype(lemma, pt)
     else:
         result = sh(UnKnown)
     return result
@@ -281,12 +283,30 @@ def semincompatiblecount(stree: SynTree, exact_results: ExactResultsDict, method
         result += node_count
     return result
 
+def is_semantically_incompatible_node(stree: SynTree, exact_results: ExactResultsDict, method: Method) -> bool:
+    """'stree is an argument of a head; checks compatibility with the head'
+    """
+    thehead = find1(stree, '../node[@rel="hd"]')
+    if thehead is None:
+        return False
+    reqs_list = semreqlookup(thehead)
+    if not reqs_list:
+        return False
+    stree_rel = getattval(stree, 'rel')
+    for reqs in reqs_list:
+        if stree_rel in reqs:
+            stree_semtype = getsemtype(stree)
+            result = not compatible(stree_semtype, reqs[stree_rel])
+            return result
+    return False
+
+
+
 def get_semantically_incompatible_nodes(stree: SynTree, exact_results: ExactResultsDict, method: Method) -> List:
     incompatible_nodes = []
     word_nodes = stree.xpath(word_node_xpath)
     for node in word_nodes:
-        node_count = _semantically_incompatible_node_count(node, exact_results, method)
-        if node_count > 0:
+        if is_semantically_incompatible_node(node, exact_results, method):
             incompatible_nodes.append(node)
     return incompatible_nodes
 

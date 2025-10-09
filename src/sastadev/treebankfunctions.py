@@ -2507,6 +2507,18 @@ def writetb(treebankdict, mwetreebankfullname):
         mwetreebankfullname, encoding="UTF8", xml_declaration=False, pretty_print=True
     )
 
+def getposcat(node: SynTree) -> str:
+    pt = getattval(node,'pt')
+    cat = getattval(node,'cat')
+    pos = getattval(node,'pos')
+    if pt != '':
+        return pt
+    elif cat != '':
+        return cat
+    elif pos != '':
+        return pos
+    else:
+        return ''
 
 if __name__ == '__main__':
     # test()

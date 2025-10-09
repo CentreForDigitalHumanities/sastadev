@@ -1063,6 +1063,7 @@ def main():
     # read the annotation reference file if available, otherwise the gold file, otherwise quit
     goldscores = {}
     if options.annotationfilename != '' and os.path.exists(options.annotationfilename):
+        settings.LOGGER.info('Reading Bronze reference...')
         allannutts, richexactgoldscores = get_golddata(
             options.annotationfilename, themethod, options.includeimplies)
         annuttcount = len(allannutts)
@@ -1095,6 +1096,7 @@ def main():
 
     # read in the silver references if available otherwise equalt o the boronze data
     if options.platinuminfilename != '' and os.path.exists(options.platinuminfilename):
+        settings.LOGGER.info('Reading Silver reference...')
         silverallannutts, richexactsilverscores = get_golddata(options.platinuminfilename, themethod,
                                                                options.includeimplies)
         silverannuttcount = len(silverallannutts)
