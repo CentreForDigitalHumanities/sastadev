@@ -380,3 +380,5 @@ detnp = """ (@rel="det" and @cat="np")
 possdetp = """(@rel="det" and @cat="detp" and node[@pt="n" and @rel="mod"] and node[@rel="hd"and @pt="vnw" and @vwtype="bez"]) """
 
 mwpbijvbep = """(@rel="mwp" and @pt="tw" and not(%monthname%) and ../node[%monthname%])""" 
+
+relzvnw3 = """(@pt="vnw" and @vwtype="betr" and @rel="rhd" and parent::node[@cat="rel" and @rel="--"])"""
