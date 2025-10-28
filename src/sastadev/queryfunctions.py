@@ -2,6 +2,7 @@ from typing import Callable, List, Tuple
 
 from sastadev.basicreplacements import is_pronominal_adverb
 from sastadev.sasta_explanation import get_prefix_and_core
+from sastadev.imperatives import wx, imperatives
 from sastadev.lexicon import vuwordslexicon
 from sastadev.macros import expandmacros
 from sastadev.sastatypes import SynTree
@@ -325,3 +326,40 @@ def into(stree: SynTree) -> List[SynTree]:
     if firstwordispotentialqword(stree):
         result = []
     return result
+
+stamxpath = """.//node[@pt="ww" and @pvtijd="tgw" and
+                       not(%verbal_VU%) and not(%Tarsp_Kop%) and
+ not(%Tarsp_hww% or
+     @lemma = "hebben" or
+     @lemma = "worden" or
+     @lemma = "zijn"   
+  )
+and @pvagr="ev"  ]"""
+#  and not(parent::node[%basicimperative%]) eruit gehaald
+
+expandedstamxpath = expandmacros(stamxpath)
+
+def stam(stree: SynTree) -> List[SynTree]:
+    results  = []
+    coreresults = stree.xpath(expandedstamxpath)
+    for result in coreresults:
+        resultparent = result.getparent()
+        imps = imperatives(resultparent)
+        if imps == []:
+            results.append(result)
+    return results
+
+bx_xpath = """.//node[%Tarsp_BX%]"""
+expanded_bx_xpath = expandmacros(bx_xpath)
+
+def bx(stree: SynTree) -> List[SynTree]:
+    raw_bx_results = stree.xpath(expanded_bx_xpath)
+    results = []
+    for result in raw_bx_results:
+        wxresults = wx(result)
+        if wxresults == []:
+            results.append(result)
+    return results
+
+
+

@@ -64,7 +64,7 @@ Tarsp_hww = """(
  )"""
 
 
-horen_hww = """((@lemma = "horen"   or contains(@lemma,"_horen")) )"""
+horen_hww = """(((@lemma = "horen" and not(contains(@frame, "transitive")))   or contains(@lemma,"_horen")) )"""
 
 hebbenwordenzijn = """( 
      @lemma = "hebben" or contains(@lemma,"_hebben") or
@@ -492,7 +492,8 @@ Tarsp_BX = """( (%coreBX% or
                 not(%Xneg%) and 
 				not(@cat="smain" and count(node) = 1 and node[@rel="vc" and %Xneg%]) and
 				not(%wx%) and
-				not(%bbvb%)
+				not(%bbvb%) and
+				not(%Tarsp_kijkVU%)
 			)"""
 
 Tarsp_bnonfin = """((@cat="inf" or @cat="ppart") and @rel="vc" and parent::node[@cat="smain" and count(node)=1] and node[%Tarsp_B%] and node[@pt="ww" and @rel="hd"] and count(node[%realcomplormod%])=1 )"""
@@ -897,8 +898,8 @@ intrmodalverb = """( @pt="ww" and
 ) """ 
 
 
-nodimlemma = """(@lemma="meisje" or @lemma="koek" or @lemma="beet")"""  
-extradimlemma = """(@lemma="ijsje")"""
+nodimlemma = """(@lemma="meisje" or @lemma="koek" or @lemma="beet" or @lemma="ijsje")"""  
+extradimlemma = """(@lemma="")"""
 
 hequery = """((@lemma="hè" or @lemma="he") and @end != 1 and
        ( (@end = ancestor::node[@cat="top"]/@end) or

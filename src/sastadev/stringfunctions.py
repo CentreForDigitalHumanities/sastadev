@@ -549,6 +549,10 @@ def remove_underscore(lemma: str) -> str:
     newlemma = ''.join(lemmaparts)
     return newlemma
 
+def remove_spaces(wrd: str) -> str:
+    return ''.join(wrd.split())
+
+
 def normalise_word(wrd: str) -> str:
     cleanwrd = wrd.lower()
     cleanwrd = strip_accents(cleanwrd)
