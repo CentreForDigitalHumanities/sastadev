@@ -225,7 +225,7 @@ def getsucount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
 
 # d_hyphen_xpath = './/node[@rel="--" and @pt and @pt!="let"]'
 # revised to:
-d_hyphen_xpath = """.//node[@rel="--" and @pt!="let"  and @pt!="tsw" and @word!="kijk" and 
+d_hyphen_xpath = """.//node[@rel="--" and @pt!="let"  and @pt!="tsw" and @word!="kijk" and @word!="alsjeblieft" and
                  ancestor::node[@cat="top" and count(node[(@pt!="let" and @pt!="tsw" and @word!="kijk") or @cat]) > 1 
                  ]]"""
 def get_double_hyphen_nodes(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> List:

@@ -449,7 +449,7 @@ tsw_non_words = ['ee']
 
 modalverbs = ['hoeven', 'moeten', 'mogen', 'kunnen', 'willen', 'zullen']
 
-preferably_intransitive_verbs = ['gaan', 'slapen', 'rekenen'] + modalverbs
+preferably_intransitive_verbs = ['gaan', 'slapen', 'rekenen', 'zullen']   #   + modalverbs modalverbs removed
 
 kijkvuadverbs = ['eens', 'dan', 'hier', 'zo']
 

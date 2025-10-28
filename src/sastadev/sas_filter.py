@@ -165,3 +165,31 @@ def filterbymetadata(
         if replacements == [] and not isASTAX and not recognised_extra_grammatical:
             unknownwordnodes.append((wn, message, suggestions))
     return unknownwordnodes
+
+def filterbymetadata2(
+    rawresults: SAS_Result_List, exact_results_dict: ExactResultsDict, method_name: str
+) -> List[SynTree]:
+    """
+    Remove nodes, under the ASTA method, for words that have also been marked for SampleSize (SSZX) or MLU (MLUX)
+    and remove recognised extragrammatical items
+    """
+    unknownwordnodes = []
+    for item in rawresults:
+        (wn, message, suggestions) = item
+        fulltrees = wn.xpath("ancestor::alpino_ds")
+        fulltree = fulltrees[0] if fulltrees != [] else None
+        uttid = getxsid(fulltree)
+        session = getmeta(fulltree, "session")
+        wnbegin = getattval(wn, "begin")
+        exact_results = exact_results_dict[uttid] if uttid in exact_results_dict else []
+        if exact_results == []:
+            print(
+                f'{session}: Empty exactresults: {getattval(wn, "word")} in {uttid}: {getyieldstr(fulltree)}'
+            )
+        isASTAX = (
+            wnisanASTAX(wn, fulltree, exact_results) if method_name == asta else False
+        )
+        recognised_extra_grammatical = is_recognised_extra_grammatical(wn, fulltree)
+        if  not isASTAX and not recognised_extra_grammatical:
+            unknownwordnodes.append((wn, message, suggestions))
+    return unknownwordnodes
