@@ -3,9 +3,8 @@ import os
 from sastadev.sastatypes import FileName, TreeBank
 from sastadev.conf import settings
 from sastadev.constants import outtreebanksfolder, treesfolder
-from sastadev.datasets import DataSet
 from sastadev.readcsv import writecsv
-from sastadev.treebankfunctions import getmeta, getxsid
+from sastadev.treebankfunctions import getxsid
 
 tree_extension = '.xml'
 propersize = 3

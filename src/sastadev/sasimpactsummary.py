@@ -1,4 +1,3 @@
-from sastadev.datasets import dsname2ds
 from sastadev.sastatypes import HeadedTable
 from typing import Tuple
 from sastadev.conf import settings

@@ -1,4 +1,4 @@
-from sastadev.lexicon import getwordinfo, isa_inf, isa_vd
+from sastadev.lexicon import isa_inf, isa_vd
 
 words = ['trouwen', 'getrouwd', 'getrouwen', 'geheb']
 for word in words:

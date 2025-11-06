@@ -1,5 +1,4 @@
 from lxml import etree
-import re
 from sastadev.conf import settings
 from sastadev.macros import expandmacros
 from sastadev.metadata import Meta

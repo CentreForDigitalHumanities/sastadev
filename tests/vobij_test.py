@@ -153,7 +153,7 @@ def test():
         results = [n.attrib['begin'] for n in vobij(stree)]
         try:
             assert results == reference[i][0]
-        except AssertionError as e:
+        except AssertionError:
             print(
                 f'Vobij: i={i}, reference={reference[i][0]}, =/= results={results}')
             raise AssertionError
@@ -161,7 +161,7 @@ def test():
         results = [n.attrib['begin'] for n in voslashbij(stree)]
         try:
             assert results == reference[i][1]
-        except AssertionError as e:
+        except AssertionError:
             print(
                 f'Vo/bij: i={i}, reference={reference[i][1]}, =/= results={results}')
             raise AssertionError

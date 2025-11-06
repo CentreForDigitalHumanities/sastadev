@@ -1,15 +1,11 @@
-import copy
 from sastadev import correctionlabels
 from sastadev.celexlexicon import celexpv2dcoi
-from sastadev.lexicon import informlexicon, getwordinfo, pvinfl2dcoi
-from sastadev.allresults import AllResults
+from sastadev.lexicon import informlexicon, getwordinfo
 from sastadev.basicreplacements import basicreplacements
-from sastadev.CHAT_Annotation import CHAT_errormarking, CHAT_wordnoncompletion, CHAT_replacement
 from sastadev.deregularise import detailed_detect_error
-from sastadev.metadata import bpl_none, Meta, mkSASTAMeta
-from sastadev.predcvagreement import get_predc_v_mismatches
-from sastadev.sastatypes import SynTree, TreeBank
-from sastadev.treebankfunctions import add_metadata, find1, getattval as gav, getnodeyield
+from sastadev.metadata import bpl_none, Meta
+from sastadev.sastatypes import SynTree
+from sastadev.treebankfunctions import getattval as gav
 from typing import List, Optional
 
 sasta = 'SASTA'

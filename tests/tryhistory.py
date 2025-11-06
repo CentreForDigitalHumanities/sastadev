@@ -3,7 +3,6 @@ import os
 from sastadev.conf import settings
 from sastadev.constants import intreebanksfolder
 from sastadev.history import gathercorrections, mergecorrections, HistoryCorrection
-import sastadev.sastatok
 
 
 def tryhistory():

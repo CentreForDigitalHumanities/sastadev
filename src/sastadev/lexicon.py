@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional
 
 from sastadev import celexlexicon, treebankfunctions
 from sastadev.conf import settings
-from sastadev.methods import MethodName, asta, stap, tarsp
+from sastadev.methods import MethodName, stap, tarsp
 from sastadev.namepartlexicon import (namepart_isa_namepart,
                                       namepart_isa_namepart_uc)
 from sastadev.readcsv import readcsv

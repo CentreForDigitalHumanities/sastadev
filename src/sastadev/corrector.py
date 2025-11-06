@@ -4,15 +4,13 @@ to be added
 
 import copy
 import re
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from sastadev.alpino import getdehetwordinfo
 from sastadev.basicreplacements import (basicexpansions, basicreplacementpairs, basicreplacements, ervzvariantsdict,
                                         getdisambiguationdict, is_er_pronoun)
 from sastadev.CHAT_Annotation import CHAT_retracing
-from sastadev.childesspellingcorrector import (adult_correctionsdict, adult_correctspelling,
-                                               children_correctionsdict, children_correctspelling,  allfrqdict)
-from sastadev.context import findbestwords, getcontext
+from sastadev.childesspellingcorrector import (children_correctionsdict, children_correctspelling,  allfrqdict)
 from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
 from sastadev.cleanCHILDEStokens import cleantokens
@@ -25,9 +23,7 @@ from sastadev.dedup import (cleanwordofnort, filled_pause_exceptions, find_dupli
 from sastadev.deregularise import correctinflection, separable_prefixes
 from sastadev.find_ngram import (Ngram, findmatches, ngram1, ngram2, ngram7,
                                  ngram10, ngram11, ngram16, ngram17)
-from sastadev.history import (childescorrections, childescorrectionsexceptions, mergecorrections, putcorrections,
-                              children_samplecorrections,  children_samplecorrectionsfullname,
-                              adult_samplecorrections,  adult_samplecorrectionsfullname)
+from sastadev.history import (childescorrections, childescorrectionsexceptions)
 from sastadev.iedims import getjeforms
 from sastadev.lexicon import (alt_pt_ww_n_pairdict, WordInfo, de, definite_determiners, dets, getwordinfo, het,
                               hwwilemmas, informlexicon, isa_namepart, isa_inf, isa_vd, known_word, nochildword,

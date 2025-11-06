@@ -26,7 +26,7 @@ from sastadev.treebankfunctions import (clausecats, countav,
                                         getcompoundcount, getnodeyield,
                                          getsentence,  getxsid,
                                         getyield, isdefdet, is_neut_sg)
-from typing import Callable, Dict, List, Optional, Set, Tuple
+from typing import Callable, List, Tuple
 
 
 class Criterion():

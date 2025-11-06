@@ -8,7 +8,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='sastadev',
-    version='0.3.1',
+    version='0.4.0',
     description='Linguistic functions for SASTA tool',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -31,6 +31,7 @@ setup(
         'openpyxl',
         'XlsxWriter',
         'typing-extensions',
-        'pyspellchecker'
+        'pyspellchecker',
+        'more-itertools',
     ],
 )

@@ -3,10 +3,7 @@ The module *update_inflectioncorrection* generates a new version of the file inf
 It reads the file *irregverbfilename* and generates paradigms by using the function *makeparadigm*
 """
 
-import os
-from sastadev.conf import settings
-from sastadev.deregularise import (correctionfullname, getcorrections,
-                                   makeparadigm, tab)
+from sastadev.deregularise import (correctionfullname, makeparadigm, tab)
 
 
 # read the irregular verbs

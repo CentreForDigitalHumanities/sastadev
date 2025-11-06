@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List
 
 from sastadev.allresults import mkresultskey
 from sastadev.CHAT_Annotation import CHAT_replacement, CHAT_wordnoncompletion
@@ -40,7 +40,7 @@ from sastadev.metadata import (
     THISSAMPLECORRECTIONS,
     HISTORY
 )
-from sastadev.methods import Method, asta
+from sastadev.methods import asta
 from sastadev.sastatypes import ExactResults, ExactResultsDict, SAS_Result_List, SynTree
 from sastadev.ASTApostfunctions import mluxqid, samplesizeqid
 from sastadev.stringfunctions import normalise_word

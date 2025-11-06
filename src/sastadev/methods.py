@@ -6,9 +6,8 @@ from sastadev.conf import settings
 from sastadev.query import pre_process
 from sastadev.sastatypes import (AltCodeDict, ExactResult, ExactResultsDict,
                                  ExactResultsFilter, FileName,
-                                 Item_Level2QIdDict, Level, MethodName,
+                                 Item_Level2QIdDict, MethodName,
                                  Pattern, QId, Query, QueryDict)
-from sastadev.stringfunctions import str2list
 
 lemmaqid = 'A051'
 lexreskey = mkresultskey('A018')

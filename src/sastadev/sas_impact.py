@@ -5,11 +5,10 @@ import copy
 from collections import Counter
 from typing import Dict, List, Tuple
 
-from sastadev.allresults import AllResults
 from sastadev.conf import settings
 from sastadev.methods import Method
 from sastadev.resultsbyutterance import getresultsbyutt, getscoresbyutt2
-from sastadev.rpf1 import getevalscores, getscores, sumfreq
+from sastadev.rpf1 import getevalscores, sumfreq
 from sastadev.sastatypes import ResultsDict, UttId
 
 # maximum nuber of utterances to be reviewed

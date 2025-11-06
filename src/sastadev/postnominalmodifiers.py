@@ -1,9 +1,8 @@
 import copy
 from lxml import etree
-from sastadev.metadata import Meta, defaultpenalty, insertion, bpl_delete, SASTA
 from sastadev.sastatypes import SynTree, XpathExpression
 from sastadev.treebankfunctions import getattval, hasnominativehead
-from typing import List, Tuple
+from typing import Tuple
 
 postnominalmodifier = "Postnominal Modifier Adaptation"
 

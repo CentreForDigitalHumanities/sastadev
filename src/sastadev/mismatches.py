@@ -3,14 +3,9 @@ from copy import copy
 from typing import Tuple
 
 from lxml import etree
-import os
 from sastadev.conf import settings
-from sastadev.constants import checksuffix
-from sastadev import correctionlabels
-from sastadev.sastatoken import deflate
-from sastadev.allresults import mkresultskey, ResultsKey, showreskey
-from typing import Tuple
-from sastadev.sastatypes import Position, SynTree, UttId
+from sastadev.allresults import ResultsKey, showreskey
+from sastadev.sastatypes import Position, UttId
 from sastadev.treebankfunctions import (find1, getattval, getmarkedyield,
                                         getyield, getparsedas)
 
@@ -61,7 +56,7 @@ def getwordpositionsold(matchtree, syntree):
     thequery2 = ".//node[@index and not(@pt) and not(@cat)]"
     try:
         matches2 = matchtree.xpath(thequery2)
-    except etree.XPathEvalError as e:
+    except etree.XPathEvalError:
         matches2 = []
     positions2 = []
     for m in matches2:

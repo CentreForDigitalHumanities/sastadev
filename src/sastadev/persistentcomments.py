@@ -2,8 +2,6 @@ from math import isnan
 import os
 from collections import Counter
 from sastadev.conf import settings
-from sastadev.constants import (checksuffix, errorsummaryfolder, errorsummarysuffix, intreebanksfolder,
-                                silverpermfolder as permfolder, resultsfolder)
 from sastadev.counterfunctions import counter2liststr
 from sastadev.xlsx import  getxlsxdata, mkworkbook
 from sastadev.filefunctions import savecopy

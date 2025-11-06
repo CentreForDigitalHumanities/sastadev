@@ -40,7 +40,7 @@ space = ' '
 CHAT_explanation = 'Explanation'
 explannwordlistxpath = f'.//xmeta[@name="{CHAT_explanation}"]/@annotationwordlist'
 explannposlistxpath = f'.//xmeta[@name="{CHAT_explanation}"]/@annotationposlist'
-explanationtierxpath = f'.//meta[@name="explanation"]'
+explanationtierxpath = './/meta[@name="explanation"]'
 
 interpunction = '.,;?!'
 

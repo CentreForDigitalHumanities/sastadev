@@ -1,4 +1,4 @@
-from sastadev.lexicon import informlexiconpos, issuperadjective
+from sastadev.lexicon import issuperadjective
 
 
 def test_super_adjective():

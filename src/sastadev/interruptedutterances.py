@@ -12,7 +12,7 @@ and the annotations belonging to the continuation utterances are associated with
 
 from sastadev.conf import settings
 from sastadev.sastatypes import ExactResults, SynTree
-from sastadev.treebankfunctions import getorigutt, getsentence, getxsid
+from sastadev.treebankfunctions import getorigutt, getsentence
 from sastadev.cleanCHILDEStokens import cleantext
 
 def getcombinationtree(interrupted_tree, continuation_tree) -> SynTree:
