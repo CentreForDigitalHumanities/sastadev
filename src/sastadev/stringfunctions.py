@@ -10,6 +10,7 @@ slash = '/'
 tab = '\t'
 comma = ','
 underscore = '_'
+schwa = 'ə'
 
 punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actually use unicode categories
 
@@ -72,7 +73,7 @@ def simple_tokenise(sent: str) -> List[str]:
 
     cleansent = ''
     for c in sent:
-        if c in punctuationchars:
+        if c in punctuationchars and c !="'":
             cleansent += f' {c} '
         else:
             cleansent += c
@@ -548,6 +549,10 @@ def remove_underscore(lemma: str) -> str:
     newlemma = ''.join(lemmaparts)
     return newlemma
 
+def remove_spaces(wrd: str) -> str:
+    return ''.join(wrd.split())
+
+
 def normalise_word(wrd: str) -> str:
     cleanwrd = wrd.lower()
     cleanwrd = strip_accents(cleanwrd)
@@ -561,6 +566,50 @@ def lpad(id: str, size:int = 3, sym: str= '0') -> str:
     else:
         properid = (size - lid) * sym + id
     return properid
+
+
+class SmartSortKey:
+    tpl: tuple
+    def __init__(self, tpl: tuple) -> None:
+        self.tpl = tpl
+    def __lt__(self, other) -> bool:
+        self0 = self.tpl[0]
+        other0 = other.tpl[0]
+        if self.tpl == () and other.tpl != ():
+            return True
+        if self.tpl != () and other.tpl == ():
+            return False
+        if self0 == other0:
+            result = SmartSortKey(self.tpl[1:]) < SmartSortKey(other.tpl[1:])
+            return result
+        if intre.match(self0) and intre.match(other0):
+            return int(self0) < int(other0)
+        else:
+            return self0 < other0
+
+
+intpattern = r'[0-9]+'
+intre = re.compile(intpattern)
+def smartsortkey(wrd:str) -> SmartSortKey:
+    """
+    Turns a string into a tuple of strings  :
+    number parts of the string lead to  a new tuple element for sorting purposes
+'   :param wrd: input str
+    """
+    smartkeylist = []
+    intmatches = intre.finditer(wrd)
+    start = 0
+    for intmatch in intmatches:
+        intstart = intmatch.start()
+        intto = intmatch.end()
+        if wrd[start:intstart] != '':
+            smartkeylist.append(wrd[start:intstart])
+        smartkeylist.append(wrd[intstart:intto])
+        start = intto
+    if wrd[start:] != '':
+        smartkeylist.append(wrd[start:])
+    result = SmartSortKey(tuple(smartkeylist))
+    return result
 
 
 if __name__ == '__main__':

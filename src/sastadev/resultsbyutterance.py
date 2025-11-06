@@ -11,6 +11,7 @@ from sastadev.methods import Method
 from sastadev.query import query_inform, query_exists
 from sastadev.rpf1 import getscores
 from sastadev.sastatypes import ExactResultsDict, GoldResults, QId, ResultsDict, Table, UttId
+from sastadev.stringfunctions import smartsortkey
 
 silverf1col = 21
 
@@ -96,7 +97,7 @@ def mkscoresbyuttrows(allresults: AllResults, bronzerefscores: ResultsDict, silv
     silveruttids = {uttid for uttid in silverbyutt}
     alluttids = resultsuttids.union(bronzeuttids.union(silveruttids))
     alluttidlist = list(alluttids)
-    sortedalluttidlist = sorted(alluttidlist, key=lambda x: int(x))
+    sortedalluttidlist = sorted(alluttidlist, key=lambda x: smartsortkey(str(x)))
     bronze_intersections = {uttid: bronzebyutt[uttid] & resultsbyutt[uttid] for uttid in alluttids}
     bronze_ref_minus_inter = {uttid: bronzebyutt[uttid] - bronze_intersections[uttid] for uttid in alluttids}
     bronze_results_minus_inter = {uttid: resultsbyutt[uttid] - bronze_intersections[uttid] for uttid in alluttids}
@@ -181,7 +182,7 @@ def exactbyuttdict2table(exactbyuttdict) -> Table:
     for uttid in exactbyuttdict:
         newrow = [uttid, str(exactbyuttdict[uttid])]
         table.append(newrow)
-    sortedtable = sorted(table, key=lambda row: int(row[0]))
+    sortedtable = sorted(table, key=lambda row: smartsortkey(str(row[0])))
     return sortedtable
 
 def table2exactbyuttdict(table: Table) -> dict:

@@ -21,6 +21,8 @@ dp3 = mp(130)  # dp + 3
 dp2 = mp(120)  # dp + 2
 pron = 'Pronunciation'
 orth = 'Orthography'
+infaltform = 'Informal alterative form'
+infgram = 'Informal grammatical variant'
 infpron = 'Informal Pronunciation'
 initdev = 'Initial Devoicing'
 codared = 'Coda Reduction'
@@ -276,13 +278,15 @@ basicreplacementlist: List[BasicReplacement] = [('as', 'als', pron, infpron, cod
                                                 ('poppe', 'pop', pron, wrongpron, emphasis, dp),
                                                 ('lus', 'lust', pron, infpron, codared, dp),
                                                 ('mij', 'mijn', pron, infpron, codared, dp),
-                                                ('drinken', 'voedsel',  avoidambiguity, wwnambiguity, wwnambiguity, dp ),
+                                                ('zijn', "z'n", avoidambiguity, avoidambiguity, ww_vnw_ambiguity, dp),
+                                                ('mijnes', 'mijne', grammar, infgram, infaltform ,dp),
+                                                ('jouwes', 'jouwe', grammar, infgram, infaltform ,dp),
                                                 ('heelboel', 'heleboel', pron, infpron, schwadrop, dp),
                                                 ('jou', 'jouw', pron, infpron, codared, -dp), # Td 22, 30 ik wil ook keer naar jou huis find criterion
                                                 ('hun', 'zij', grammar, regionalform, casevariant, mp(0) ),
-                                                ('zijn', "z'n", avoidambiguity, avoidambiguity, ww_vnw_ambiguity, dp),
                                                 ('teefee', 'tv', pron, infpron, vzdevoicing, dp),
                                                 ('itte', 'eerst', pron, wrongpron, codared, dp),
+                                                ('allemaal', ' veel', grammar, alpino_unknown_word, '', dp)
                                                 # ('kijke', 'kijk', pron, infpron, emphasis, dp), # TD05, 32 moved to disambuguationdict
                                                 # ('geel', 'mooi', avoidambiguity, adjnambiguity, dp), #TD05, 24
                                                 # ('Roy', 'Jan', avoidambiguity, pnnambiguity, dp)
@@ -399,6 +403,9 @@ knownreplacements: List[KnownReplacement] = [
     ('ze', "z'n", pron, infpron, fndrop, bpl_word),
     ('desu', 'deze', pron, infpron, zdev, bpl_word),
     ('mij', 'mijn', pron, infpron, fndrop, bpl_word),
+    ('zijn', "z'n", avoidambiguity, avoidambiguity, ww_vnw_ambiguity, dp),
+    ('jou', 'jouw', pron, infpron, codared, -dp),  # Td 22, 30 ik wil ook keer naar jou huis find criterion
+    ('allemaal', ' veel', grammar, alpino_unknown_word, '', dp)
 
 ]
 
@@ -471,6 +478,7 @@ disambiguation_replacements: List[Tuple[TokenTreePredicate, List[str], str]] = \
      (dtp, ['Roy'], 'Jan'),
      # (dtp, ['kijke'], 'he'),
      (dtp, ['surf'], 'turf'),
+     (dtp, ['gevallen'], 'gedonderd'),
      # (dtp, ['weg'], 'boven'),  # disprefer 'weg' as noun, prefer it as an adverb problematic because weg is often
      # an svp
      # (dtp, ['zijn'], "z'n"),

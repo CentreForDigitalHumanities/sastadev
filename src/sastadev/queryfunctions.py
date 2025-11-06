@@ -1,4 +1,8 @@
 from typing import Callable, List, Tuple
+
+from sastadev.basicreplacements import is_pronominal_adverb
+from sastadev.sasta_explanation import get_prefix_and_core
+from sastadev.imperatives import wx, imperatives
 from sastadev.lexicon import vuwordslexicon
 from sastadev.macros import expandmacros
 from sastadev.sastatypes import SynTree
@@ -6,6 +10,8 @@ from sastadev.stringfunctions import punctuationchars
 from sastadev.tblex import get_aanloop_and_core
 from sastadev.treebankfunctions import (adjacent, find1, get_left_siblings,
                                         getattval, getnodeyield, parent)
+
+gav = getattval
 
 comma = ','
 
@@ -47,7 +53,7 @@ vobijxpath = expandmacros('.//node[%Vobij%]')
 mvznxpath = """.//node[@pt = "n" and  @getal ="mv"]"""
 mvznsuffixes = ['en', 'e', 's', 'n']
 
-verklxpath = expandmacros(""".//node[@pt="n" and @graad="dim" and not(%nodimlemma%)]""")
+verklxpath = expandmacros(""".//node[(@pt="n" and @graad="dim" and not(%nodimlemma%)) or %extradimlemma%]""")
 verklsuffixes = ['je', 'jes', 'ie', 'ies', 'ke', 'kes']
 
 
@@ -280,3 +286,80 @@ def only_puncs(nodelist: List[SynTree]) -> bool:
         if nodelemma not in punctuationchars:
             return False
     return True
+
+potentialqwords = ['wat']
+def firstwordispotentialqword(stree: SynTree) -> bool:
+    nodeyield = getnodeyield(stree)
+    firstnode = nodeyield[0] if nodeyield != [] else None
+    if firstnode is None:
+        return False
+    else:
+        firstnodelemma = gav(firstnode, 'lemma')
+        result = firstnodelemma in potentialqwords
+        return result
+
+into_xpath = """.//node[@cat="top" and 
+       (not(.//node[@pt="ww" and @wvorm!="pt"]) or not(.//node[@cat="sv1" and (@rel="--" or @rel="nucl" or @rel="dp")])) and 
+       node[@lemma="?"] and 
+       .//node[@pt!="let" and @pt != "tsw"] and
+       not(.//node[@rel="tag" and @cat="sv1"]) and
+       not(.//node[@cat="whq"]) and
+       not(.//node[@pt="vnw" and (@vwtype="vrag" or @vwtype="vb")]) and
+       not(.//node[@lemma="he" or @lemma="hè"]) and
+       not(.//node[contains(@frame, "wh_adjective") or contains(@frame, "waar_adverb")]) and
+       not(.//node[@lemma="huh"])
+
+]
+
+"""
+def into(stree: SynTree) -> List[SynTree]:
+    wordnodes = stree.xpath('.//node[@word]')
+    wrongwordnodes = [wordnode for wordnode in wordnodes
+                        if gav(wordnode, 'lemma').startswith('waar') and
+                           is_pronominal_adverb(gav(wordnode,'lemma'))
+                      ]
+    if wrongwordnodes == []:
+        rawintos = stree.xpath(into_xpath)
+        result = [rawintos[0]] if rawintos != [] else []
+    else:
+        result = []
+    if firstwordispotentialqword(stree):
+        result = []
+    return result
+
+stamxpath = """.//node[@pt="ww" and @pvtijd="tgw" and
+                       not(%verbal_VU%) and not(%Tarsp_Kop%) and
+ not(%Tarsp_hww% or
+     @lemma = "hebben" or
+     @lemma = "worden" or
+     @lemma = "zijn"   
+  )
+and @pvagr="ev"  ]"""
+#  and not(parent::node[%basicimperative%]) eruit gehaald
+
+expandedstamxpath = expandmacros(stamxpath)
+
+def stam(stree: SynTree) -> List[SynTree]:
+    results  = []
+    coreresults = stree.xpath(expandedstamxpath)
+    for result in coreresults:
+        resultparent = result.getparent()
+        imps = imperatives(resultparent)
+        if imps == []:
+            results.append(result)
+    return results
+
+bx_xpath = """.//node[%Tarsp_BX%]"""
+expanded_bx_xpath = expandmacros(bx_xpath)
+
+def bx(stree: SynTree) -> List[SynTree]:
+    raw_bx_results = stree.xpath(expanded_bx_xpath)
+    results = []
+    for result in raw_bx_results:
+        wxresults = wx(result)
+        if wxresults == []:
+            results.append(result)
+    return results
+
+
+

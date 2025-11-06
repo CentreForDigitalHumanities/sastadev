@@ -1,12 +1,30 @@
 from lxml import etree
 from sastadev.conf import settings
-from sastadev.methods import Method
+from sastadev.macros import expandmacros
+from sastadev.metadata import Meta
+from sastadev.methods import MethodName, Method
 from sastadev.NLtypes import Animate, AnyType, Event, Human, Object, SemType, UnKnown, Alt, And
 from sastadev.sastatypes import ExactResultsDict, List, SynTree
-from sastadev.semtypelexicon import sh, vnwsemdict, wwsemdict, wwreqsemdict, defaultreqsemdict
-from sastadev.treebankfunctions import getattval, getsentence
+from sastadev.semtypelexicon import sh, vnwsemdict, wwsemdict, wwreqsemdict, defaultreqsemdict, get_n_semtype
+from sastadev.treebankfunctions import bareindexnode, find1, getattval, getheadof, getsentence
 
 comma = ','
+
+gav = getattval
+
+intransitive_scs = [ 'aci_no_obj', 'adv_meas', 'ap_pred_np', 'dip_sbar_subj', 'fixed([[in,de,gaten],acc],no_passive)',
+                     'fixed([er_pp([op,los])],imp_passive)', 'fixed([no_subj,yt(compar)],no_passive)',
+                     'fixed([svp_er_pp(uit)],no_passive)', 'het_subj', 'intransitive', 'ld_adv', 'ld_dir', 'ld_pp',
+                     'modifier(tr_sbar)', 'nonp_pred_np', 'nonp_pred_np_ndev',
+                     'part_fixed(uit,[nonp_pred,svp_er],no_passive)', 'pred_np', 'pred_np_sbar', 'pred_refl',
+                     'refl', 'refl_np', 'sbar', 'sbar_subj', 'so_pp_np'
+                   ]
+
+param_intransitive_scs = [ 'mod_pp(', 'er_pc_pp(', 'er_pc_pp(', 'part_intransitive(', 'part_ld_pp(',
+                           'part_pc_pp', 'part_refl(', 'part_sbar(', 'part_sbar(uit)', 'part_sbar_subj(',
+                           'pc_pp(', 'refl_pc_pp(', 'subj_control('
+                        ]
+
 
 
 def getsemheads(stree: SynTree) -> SynTree:
@@ -69,6 +87,8 @@ def semlookup(stree: SynTree) -> List[SemType]:
             result = wwsemdict[(lemma, realframe)]
         else:
             result = sh(Event)
+    elif pt == 'n':
+        result = get_n_semtype(lemma, pt)
     else:
         result = sh(UnKnown)
     return result
@@ -80,6 +100,7 @@ def getrealframe(fullframe: str) -> str:
     parts = corefullframe.split(comma)
     result = parts[-1] if len(parts) > 0 else ''
     return result
+
 def semreqlookup(stree: SynTree) -> List[dict]:
     pt = getattval(stree, 'pt')
     lemma = getattval(stree, 'lemma')
@@ -87,7 +108,10 @@ def semreqlookup(stree: SynTree) -> List[dict]:
         fullframe = getattval(stree, 'frame')
         realframe = getrealframe(fullframe)
         if (lemma, realframe) in wwreqsemdict:
-            result = wwreqsemdict[(lemma, realframe)]
+            if ispassive(stree):
+                result = makepassivesemreq(wwreqsemdict[(lemma, realframe)])
+            else:
+                result = wwreqsemdict[(lemma, realframe)]
         elif realframe in defaultreqsemdict:
             result = defaultreqsemdict[realframe]
         else:
@@ -95,6 +119,62 @@ def semreqlookup(stree: SynTree) -> List[dict]:
     else:
         result = []
     return result
+
+indexobj1xpath = expandmacros('../node[@rel="obj1" and %indexnode%]')
+def ispassive(node: SynTree) -> bool:
+    nodept = gav(node, 'pt')
+    nodewvorm = gav(node, 'wvorm')
+    if not(nodept == 'ww' and nodewvorm == "vd"):
+        return False
+    auxnode = find1(node, 'parent::node/parent::node/node[@rel="hd" and @pt="ww"]')
+    if auxnode is None:
+        return False
+    auxnodelemma = gav(auxnode, 'lemma')
+    if auxnodelemma not in ['zijn', 'worden']:
+        return False
+    objectnode = find1(node, indexobj1xpath)
+    if objectnode == None and intransitive(node):
+        return True
+    if not isaboundtrace(objectnode):
+        return False
+    else:
+        return True
+
+# aboundtrace = """((@rel="obj1" or @rel="obj2") and not(@pt) and not(@cat) and @index = parent::node/parent::node/node[@rel="su" or @rel="obj1"]/@index)""" #
+
+def isaboundtrace(node: SynTree) -> bool:
+    if node is None:
+        return False
+    if not bareindexnode(node):
+        return False
+    noderel = gav(node, 'rel')
+    potentialantecedents = node.xpath('parent::node/parent::node/node[@rel="su" or @rel="obj1"]')
+    node_index = gav(node, 'index')
+    result1 = noderel in ['obj1', 'obj2']
+    result2 = any([node_index == gav(n, 'index') for n in potentialantecedents])
+    result = result1 and result2
+    return result
+
+
+def intransitive(node: SynTree) -> bool:
+    pass
+    nodept = gav(node, 'pt')
+    nodesc = gav(node, 'sc')
+    if nodept != 'ww':
+        return False
+    result1 = nodesc in intransitive_scs
+    result2 = any([nodesc.startswith(val) for val in param_intransitive_scs])
+    result = result1 or result2
+    return result
+
+
+def makepassivesemreq(semreqlist: List[dict]) -> List[dict]:
+    newsemreqlist = []
+    for semreq in semreqlist:
+        if 'su' in semreq:
+            newsemreq = {rel: val for rel, val in semreq.items() if rel != 'su'}
+            newsemreqlist.append(newsemreq)
+    return newsemreqlist
 
 
 
@@ -195,16 +275,37 @@ def semincompatiblecount(stree: SynTree, exact_results: ExactResultsDict, method
     # gather the words
     word_nodes = stree.xpath(word_node_xpath)
     for node in word_nodes:
-        node_count = _semantically_incompatible_node_count(node, exact_results, method)
+        if node is not None:
+            node_count = _semantically_incompatible_node_count(node, exact_results, method)
+        else:
+            node_count = 0
         result += node_count
     return result
+
+def is_semantically_incompatible_node(stree: SynTree, exact_results: ExactResultsDict, method: Method) -> bool:
+    """'stree is an argument of a head; checks compatibility with the head'
+    """
+    thehead = find1(stree, '../node[@rel="hd"]')
+    if thehead is None:
+        return False
+    reqs_list = semreqlookup(thehead)
+    if not reqs_list:
+        return False
+    stree_rel = getattval(stree, 'rel')
+    for reqs in reqs_list:
+        if stree_rel in reqs:
+            stree_semtype = getsemtype(stree)
+            result = not compatible(stree_semtype, reqs[stree_rel])
+            return result
+    return False
+
+
 
 def get_semantically_incompatible_nodes(stree: SynTree, exact_results: ExactResultsDict, method: Method) -> List:
     incompatible_nodes = []
     word_nodes = stree.xpath(word_node_xpath)
     for node in word_nodes:
-        node_count = _semantically_incompatible_node_count(node, exact_results, method)
-        if node_count > 0:
+        if is_semantically_incompatible_node(node, exact_results, method):
             incompatible_nodes.append(node)
     return incompatible_nodes
 

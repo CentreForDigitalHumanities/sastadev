@@ -319,7 +319,7 @@ def is_proper_alignment(utterance: str, raw_explanation: str, alignment: str) ->
         result1 = False
     if applied_alignment != explanation:
         # issue a warning
-        sdsettings.LOGGER.info(f'Improper alignment (aply): <{applied_alignment}> != <{explanation}>')
+        sdsettings.LOGGER.info(f'Improper alignment (apply): <{applied_alignment}> != <{explanation}>')
         result2 = False
 
     result = result1 and result2

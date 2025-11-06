@@ -152,6 +152,7 @@ from lxml import etree
 from sastadev import compounds
 from sastadev.allresults import (AllResults, mkresultskey, scores2counts,
                                  showreskey)
+import sastadev.alpinoparsing
 from sastadev.conf import settings
 from sastadev.constants import (analysissuffix, bronzefolder, bronzesuffix,
                                 byuttscoressuffix, checksuffix,
@@ -178,6 +179,7 @@ from sastadev.history import (adult_samplecorrections,
 from sastadev.macros import expandmacros
 from sastadev.methods import Method, supported_methods, treatmethod
 from sastadev.mismatches import exactmismatches, informcol, literalmissedmatches, samplecol, uttidcol
+# from sastadev.parsetreestore import storedparsesdict, storedparsesfullname
 from sastadev.permcomments import (getallcomments, pcheaders,
                                    platinumcheck_column_widths)
 from sastadev.query import (Query, is_preorcore, post_process, query_exists,
@@ -206,7 +208,7 @@ from sastadev.targets import get_mustbedone, get_targets, target_all
 from sastadev.treebank2trees import treebank2trees
 from sastadev.treebankfunctions import (find1, getattval,
                                         getxmetatreepositions, getxsid,
-                                        getyield, showtree)
+                                        getyield, showtree, writetb)
 from sastadev.xlsx import add_worksheet, mkworkbook
 
 start_time = time.time()
@@ -1061,6 +1063,7 @@ def main():
     # read the annotation reference file if available, otherwise the gold file, otherwise quit
     goldscores = {}
     if options.annotationfilename != '' and os.path.exists(options.annotationfilename):
+        settings.LOGGER.info('Reading Bronze reference...')
         allannutts, richexactgoldscores = get_golddata(
             options.annotationfilename, themethod, options.includeimplies)
         annuttcount = len(allannutts)
@@ -1093,6 +1096,7 @@ def main():
 
     # read in the silver references if available otherwise equalt o the boronze data
     if options.platinuminfilename != '' and os.path.exists(options.platinuminfilename):
+        settings.LOGGER.info('Reading Silver reference...')
         silverallannutts, richexactsilverscores = get_golddata(options.platinuminfilename, themethod,
                                                                options.includeimplies)
         silverannuttcount = len(silverallannutts)
@@ -1658,6 +1662,9 @@ def main():
         percentagecompletion2str = '{0:.1f}%'.format(percentagecompletion2)
     else:
         percentagecompletion2str = 'N/A'
+
+    # write the parses in the parse tree dictionary  to a treebank file
+    writetb(sastadev.alpinoparsing.storedparsesdict, sastadev.alpinoparsing.storedparsesfullname)
 
     finalmessagetemplate1 = '{} measures, {} undefined, {} defined,  of which {} invalid.'
     finalmessagetemplate2 = '{} measures defined for a non empty gold score out of {} ({}).'

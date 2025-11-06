@@ -50,10 +50,12 @@ def ishuman(node: SynTree) -> bool:
     '''
     lemma = getattval(node, 'lemma')
     pt = getattval(node, 'pt')
+    neclass = getattval(node, 'neclass')
     vwtype = getattval(node, 'vwtype')
     result = (lemma, pt) in semlexicon and 'human' in semlexicon[(lemma, pt)]
     result = result or (vwtype == 'pers' and lemma != 'het')
     result = result or namepart_isa_namepart(lemma)
+    result = result or (pt == 'n' and neclass == 'PER')
     return result
 
 
@@ -65,6 +67,7 @@ def isanimate(node: SynTree) -> bool:
     lemma = getattval(node, 'lemma')
     pt = getattval(node, 'pt')
     result = (lemma, pt) in semlexicon and 'animate' in semlexicon[(lemma, pt)]
+    result = result or ishuman(node)
     return result
 
 

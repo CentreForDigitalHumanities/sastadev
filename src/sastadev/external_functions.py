@@ -28,7 +28,7 @@ from sastadev.compounds import getcompounds
 from sastadev.dedup import correct, mlux, onvolledig, samplesize
 from sastadev.imperatives import bbx, wond4, wond5plus, wondx, wx, wxy, wxyz, wxyz5
 from sastadev.methods import allok, astalemmafilter
-from sastadev.queryfunctions import (VzN, hequery, tarsp_mvzn, tarsp_verkl,
+from sastadev.queryfunctions import (bx, VzN, hequery, into, stam, tarsp_mvzn, tarsp_verkl,
                                      vobij, voslashbij, vudivers, xneg_neg,
                                      xneg_x)
 from sastadev.stapforms import makestapform
@@ -68,9 +68,9 @@ def oldgetfname(f: Callable) -> str:
 
 
 # Initialisation
-thetarspfunctions = [bbx, getcompounds, hequery, sziplus6, xenx, vr5plus, wx, wxy, wxyz, wxyz5, wondx, wond4, wond5plus,
+thetarspfunctions = [bx, bbx, getcompounds, hequery, into, sziplus6, xenx, vr5plus, wx, wxy, wxyz, wxyz5, wondx, wond4, wond5plus,
                      tarsp_screening, vutotaal, gofase, gtotaal, pf2, pf3, pf4, pf5, pf6, pf7, pf, xneg_x, xneg_neg,
-                     mktarspform, tarsp_mvzn, tarsp_verkl, VzN, vobij, voslashbij, vudivers]
+                     mktarspform, stam, tarsp_mvzn, tarsp_verkl, VzN, vobij, voslashbij, vudivers]
 
 thestapfunctions = [BB_totaal, GLVU, GL5LVU, makestapform]
 

@@ -3,6 +3,7 @@ various treebank functions
 
 """
 import functools
+import os
 import re
 # import logging
 from copy import copy, deepcopy
@@ -12,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from more_itertools import unique_everseen
 from lxml import etree
 
-from sastadev.anonymization import pseudonymre
+import sastadev.anonymization
 # from sastadev.lexicon import informlexiconpos, isa_namepart_uc, informlexicon, isa_namepart
 # import lexicon as lex
 from sastadev.conf import settings
@@ -663,7 +664,7 @@ def getuniqueleaves(stree: SynTree) -> List[SynTree]:
         else:
             uttid = getxsid(stree)
             sentence = getsentence(stree)
-            settings.LOGGER.error(f'No leave found for {position} in {uttid}: {sentences}')
+            settings.LOGGER.error(f'No leave found for {position} in {uttid}: {sentence}')
     return leaves
 
 
@@ -1164,7 +1165,7 @@ def sasta_pseudonym(node: SynTree) -> bool:
 
     """
     word = getattval(node, 'word')
-    match = pseudonymre.match(word)
+    match = sastadev.anonymization.pseudonymre.match(word)
     result = match is not None
     return result
 
@@ -1350,17 +1351,15 @@ def nodecopy(node: SynTree) -> Optional[SynTree]:
             newnode.remove(ch)
         return newnode
 
-
+# de node zou nooit None mogen zijn maar incidenteel crashte hij daar toch op
 def bareindexnode(node: SynTree) -> bool:
-    result = node.tag == 'node' and terminal(node) and 'index' in node.attrib and \
+    result = node is not None and  node.tag == 'node' and terminal(node) and 'index' in node.attrib and \
         'word' not in node.attrib and 'lemma' not in node.attrib and 'cat' not in node.attrib
     # print(props2str(get_node_props(node)), result, file=sys.stderr)
-    return (result)
+    return result
 
 
 # herdefinieren want met UD hebben terminale nodes wel children (maar geen children met tag=node)
-
-
 def terminal(node: SynTree) -> bool:
     result = isinstance(
         node, etree._Element) and node is not None and len(node) == 0
@@ -2355,7 +2354,7 @@ def normalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
 
 def denormalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
     """
-    adapts the begins and ends of a tree to the sortedbegins: first word will get the first sortedegin, etc
+    adapts the begins and ends of a tree to the sortedbegins: first word will get the first sortedbegin, etc
     :param stree: syntactic structure
     :param sortedbegins: sorted list of begin values of @pt or @pos nodes
     :return: None
@@ -2495,6 +2494,31 @@ def removeskips(fatstree: SynTree, tokenlist: List[Token]) -> SynTree:
             else:
                 wordnode.getparent().remove(wordnode)
     return newfatstree
+
+def writetb(treebankdict, mwetreebankfullname):
+    tb = etree.Element("treebank")
+    for el in treebankdict:
+        tb.append(treebankdict[el])
+    fulltb = etree.ElementTree(tb)
+    mwetreebankpath, mwetreebankfilename = os.path.split(mwetreebankfullname)
+    if not os.path.exists(mwetreebankpath):
+        os.makedirs(mwetreebankpath)
+    fulltb.write(
+        mwetreebankfullname, encoding="UTF8", xml_declaration=False, pretty_print=True
+    )
+
+def getposcat(node: SynTree) -> str:
+    pt = getattval(node,'pt')
+    cat = getattval(node,'cat')
+    pos = getattval(node,'pos')
+    if pt != '':
+        return pt
+    elif cat != '':
+        return cat
+    elif pos != '':
+        return pos
+    else:
+        return ''
 
 if __name__ == '__main__':
     # test()

@@ -8,6 +8,7 @@ from sastadev.adapt_pt import adapt_pt
 from sastadev.basicreplacements import ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
 from sastadev.cleanCHILDEStokens import cleantext, bare_angled_brackets
 from sastadev.conf import settings
+from sastadev.displaytree import printtree
 from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
 from sastadev.corrector import (Correction, getcorrections,
@@ -37,8 +38,8 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         showtree, simpleshow, subclasscompatible, transplant_node,
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
-from sastadev.treetransform import adaptlemmas, transformtagcomma, transformtreeld, transformtreenogeen, \
-    transformtreenogde, transformhwwwithsvp
+from sastadev.treetransform import adaptlemmas, splitpronzelf, transformtagcomma, transformtreeld, transformtreenogeen, \
+    transformtreenogde, transform_ppinap, transformhwwwithsvp
 from sastadev.eenbeetje import transform_eenbeetje
 
 ampersand = '&'
@@ -61,7 +62,7 @@ ParsedCorrection = Tuple[List[str], SynTree, List[Meta]]
 TupleNint = Tuple[19 * (int,)]
 
 
-smartreplacepairs = [('me', 'mijn'), ('ze', 'zijn')]
+smartreplacepairs = [('me', 'mijn'), ('ze', 'zijn'), ('me', 'we')]
 smartreplacedict = {w1: w2 for w1, w2 in smartreplacepairs}
 
 
@@ -263,17 +264,20 @@ def smartreplace(node: SynTree, word: str, method: Method) -> SynTree:
     newnodept = getattval(newnode, 'pt')
     nodept = getattval(node, 'pt')
     nodelemma = getattval(node, 'lemma')
+    nodeword = getattval(node, 'word')
     newnodelemma = getattval(newnode, 'lemma')
     if isvalidword(word, mn) and \
             (issamewordclass(node, newnode) or is_pronadv_dempro(node, newnode)) and \
             not isrobustnoun(newnode) and \
-            newnodelemma not in nochildwords:
+            newnodelemma not in nochildwords and (word, nodeword) not in smartreplacepairs:
         result = newnode
         if nodept == 'ww' and '_' in nodelemma and newnodelemma in nodelemma and '_' not in newnodelemma:
             # e.g. nodelemma == 'op_hebben', newnodelemma='hebben'
             cpseppos = nodelemma.find('_')
             prt = nodelemma[:cpseppos]
             result.set('lemma', f'{prt}_{newnodelemma}')
+        elif nodept == 'vz':  # we keep the lemma of replacer for adpositions
+            result.set('lemma', nodelemma)
         result.set('begin', getattval(node, 'begin'))
         result.set('end', getattval(node, 'end'))
         result.set('rel', getattval(node, 'rel'))
@@ -569,17 +573,34 @@ def cleantextdone(metadataelement):
 def bare_angled_brackets_replace_tree(stree: SynTree) -> SynTree:
     """
     reparses the cleaned utterance if the original utterance contains bare angled brackets
-    needed because of an inconsistency between the the two methods of cleaning used (in SASTA v. SASTADEV)
+    needed because of an inconsistency between the two methods of cleaning used (in SASTA v. SASTADEV)
     :param stree:
     :return: possibly modified syntactic structure
     """
     origutt = getorigutt(stree)
+    if origutt is None:
+        return stree
     cleanutt, chatmetadata = cleantext(origutt, False, tokenoutput=False)
     if any([meta.name == bare_angled_brackets for meta in chatmetadata]):
         newstree = settings.PARSE_FUNC(cleanutt)
     else:
         newstree = stree
     return newstree
+
+def dotreetransformations(fulltree: SynTree) -> SynTree:
+    fulltree = transformtagcomma(fulltree)
+    fulltree = transformtreeld(fulltree)
+    fulltree = transformppinnp(fulltree)
+    fulltree = transformbwinnp(fulltree)
+    fulltree = transformmodRinnp(fulltree)
+    fulltree = transformtreenogeen(fulltree)
+    fulltree = transformtreenogde(fulltree)
+    fulltree = transform_eenbeetje(fulltree)
+    fulltree = transformhwwwithsvp(fulltree)
+    fulltree = splitpronzelf(fulltree)
+    fulltree = transform_ppinap(fulltree)
+    # stree = nognietsplit(stree)  # put off because it should not be done
+    return fulltree
 
 
 def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: CorrectionParameters) \
@@ -691,16 +712,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     # Step 3
     # tree transformations
     if correctionparameters.method.name in ['tarsp', ' stap']:
-        stree = transformtagcomma(stree)
-        stree = transformtreeld(stree)
-        stree = transformppinnp(stree)
-        stree = transformbwinnp(stree)
-        stree = transformmodRinnp(stree)
-        stree = transformtreenogeen(stree)
-        stree = transformtreenogde(stree)
-        stree = transform_eenbeetje(stree)
-        stree = transformhwwwithsvp(stree)
-        # stree = nognietsplit(stree)  # put off because it should not be done
+        stree = dotreetransformations(stree)
 
     # Step 4
     # adapt lemmas for words of which we know Alpino does it wrong
@@ -729,6 +741,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     if lmetadatalist == 0:
         settings.LOGGER.error('Missing metadata in utterance {}'.format(uttid))
         origmetadata = None
+        origmetadatalist = []
     else:
         if lmetadatalist > 1:
             settings.LOGGER.error(
@@ -823,6 +836,10 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                 if debugb:
                     showtree(fatnewstree)
                 # etree.dump(fatnewstree)
+
+                # do tree transformations
+                if correctionparameters.method.name in ['tarsp', ' stap']:
+                    fatnewstree = dotreetransformations(fatnewstree)
 
         else:
             # make sure to include the xmeta from CHAT cleaning!! variable allmetadata, or better metadata but perhaps rename to chatmetadata
@@ -1070,19 +1087,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     # etree.dump(fulltree, pretty_print=True)
 
     # Step 17
-    # tree transformations
-    if correctionparameters.method.name in ['tarsp', ' stap']:
-        fulltree = transformtagcomma(fulltree)
-        fulltree = transformtreeld(fulltree)
-        fulltree = transformppinnp(fulltree)
-        fulltree = transformbwinnp(fulltree)
-        fulltree = transformmodRinnp(fulltree)
-        fulltree = transformtreenogeen(fulltree)
-        fulltree = transformtreenogde(fulltree)
-        fulltree = transform_eenbeetje(fulltree)
-        fulltree = transformhwwwithsvp(fulltree)
-
-        # fulltree = nognietsplit(fulltree) # put off because it should not be done
+    # tree transformations moved to directly after the parsing of the candidates
 
     # adapt lemmas for words of which we know Alpino does it wrong
     fulltree = adaptlemmas(fulltree)

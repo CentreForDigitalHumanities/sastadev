@@ -74,7 +74,7 @@ nonsuindexnodecount = """(count(node[%nonsuindexnode%]))"""
 
 fillednode = """node[not(%indexnode%)]"""
 
-particlesvp = """(@rel="svp"  and not(%svpofhww%))"""
+particlesvp = """(@rel="svp"  and not(%svpofhww%) and not(%advsvpofww%))"""
 
 realcomplormodnodecount = """count(%realcomplormodnode% | node[%nonfinvc%]/%realcomplormodnode%)"""
 
@@ -200,9 +200,13 @@ Tarsp_OndWVCVCX = """(%declarative% and %Ond% and %Tarsp_W_X% and %Tarsp_VC_X_co
 
 Tarsp_BWOndBB = """(%declarative% and %Ond% and %Tarsp_W_X% and %Tarsp_B_X_count% = 3 and %realcomplormodnodecount% = 4)"""
 
-Tarsp_OndWVC = """
+Tarsp_OndWVC = """(%Tarsp_core_OndWVC% or %Tarsp_wvc_OndWVC%)"""
+
+Tarsp_core_OndWVC = """
 (%declarative% and %Ond% and  %Tarsp_W%  and %Tarsp_VC_X% and %realcomplormodnodecount% = 2 )
 """
+
+Tarsp_wvc_OndWVC = """(%declarative% and %Ond% and node[@rel="vc" and node[@rel="hd" and @pt="ww"] and node[%Tarsp_VC%]] and %realcomplormodnodecount% = 2 )"""
 
 Tarsp_WBVC = """(%declarative%  and  %Tarsp_W_X% and %Tarsp_B_X% and %Tarsp_VC_X% and %realcomplormodnodecount% = 2 )"""
 
@@ -219,7 +223,8 @@ Tarsp_W = """node[@rel="hd" and @pt="ww"]"""
 Tarsp_VCr1 = """node[%Tarsp_VC%] """
 Tarsp_VC = """((%independentobj1% or (@rel="pc" and not(%Tarsp_pc_vc_exception%)) or @rel="predc" or @rel="ld" or @rel="obj2" or %Tarsp_finvc% or %Tarsp_vcvnw% or %Tarsp_ofmod%) and not(%Tarsp_B%) )"""
 Tarsp_finvc = """(@rel="vc" and (@cat="cp" or @cat="whsub"))"""
-Tarsp_ofmod = """(@rel="mod" and node[@rel="cmp" and @pt="vg" and @lemma="of"])"""
+Tarsp_ofmod = """((@rel="mod" or @rel="dp") and node[@rel="cmp" and @pt="vg" and @lemma="of"])"""
+Tarsp_datmod = """((@rel="mod" or @rel="dp") and node[@rel="cmp" and @pt="vg" and @lemma="of"])"""
 Tarsp_vcvnw = """(@rel="vc" and @pt="vnw")"""
 
 Tarsp_WOndX = """(%ynquery% and not(%basicimperative%) and %topcontainsquestionmark% and %Tarsp_W% and %Ond% and %realcomplormodnodecount% <= 2 and not(%vrwondplus%))
@@ -304,7 +309,8 @@ Tarsp_Ov3 = """(%declarative% and
 				not(%Tarsp_WBVC%) and 
 				not(%Tarsp_OndB%) and
 				not(%Tarsp_OndVC%) and
-				%Tarsp_W% and
+				%Tarsp_W% and 
+				not(%BvBepZn%) and
 				%realcomplormodnodecount% = 2) """
 
 
@@ -320,7 +326,7 @@ Tarsp_coreW = """ ( @pt="ww" and (@wvorm="pv" or parent::node[@rel!="vc"] or %Ta
 Tarsp_BarenonfinW = """parent::node[@rel="vc" and  parent::node[@cat="smain" and count(node)=1]]"""
 
 Tarsp_coreHwwi = """ ( @pt="ww" and @rel="hd" and (@wvorm="pv" or @wvorm="inf") and
-                       %Tarsp_hww% and
+                       (%Tarsp_hww% or @lemma="zijn") and
                        ((parent::node[node[@cat="inf" and @rel="vc" and node[@rel="hd" and @pt="ww"]]]) or
                         (parent::node[node[@pt="ww" and @rel="vc" and @wvorm="inf"]]) or
 						(parent::node[node[@cat="ti" and @rel="vc"]])
@@ -349,36 +355,52 @@ nosvpnode = """node[not(%svp_verb_part%)]"""
 Tarsp_hehe = """ (@lemma="hè" and @end = ancestor::node[@cat="top"]/descendant::node[@lemma="hè"]/@begin)"""
 
 simplevcw = """
-( node[@rel="hd" and @pt="ww" and not(%verbal_VU%)] and
+( node[@rel="hd" and @pt="ww" and (@wvorm= "pv" or parent::node[@rel!="vc"]) and not(%verbal_VU%)] and
   node[%Tarsp_Basic_VC%] and
+  not(node[@rel="vc"]) and
   count(%nosvpnode%) = 2 and
-  %onlythesearerealwords%
+  (@rel="body" or %onlythesearerealwords%)
 )
 """
 
-infsuvcw = """
-( node[@rel="hd" and @pt="ww" and not(%verbal_VU%)] and
+nonfinsuvcw = """
+( %corenonfinsuvcw% and
+  not(parent::node[node[@rel="hd" and @pt="ww"] and count(node) = 2]) 
+)
+"""
+
+
+corenonfinsuvcw = """
+( node[@rel="hd" and @pt="ww" and @wvorm!="pv" and not(%verbal_VU%)] and
   node[%Tarsp_Basic_VC%] and
   node[@rel="su" and not(@cat) and not(@word)] and
-  count(%nosvpnode%) = 3 and
-  %onlythesearerealwords%
+  count(%nosvpnode%) = 3 
 )
 """
 
 
-infvcw = """
-( node[@rel="hd" and @pt="ww" and not(%verbal_VU%)] and
-  node[%Tarsp_Basic_VC%] and
-  count(%nosvpnode%) = 2 and
-  %onlythesearerealwords%
+
+nonfinvcw = """
+( %corenonfinvcw% and
+  not(parent::node[node[@rel="hd" and @pt="ww"] and count(node) = 2]) 
 )
 """
+
+corenonfinvcw = """( node[@rel="hd" and @pt="ww" and @wvorm!="pv" and not(%verbal_VU%)] and
+                       node[%Tarsp_Basic_VC%] and
+                       count(%nosvpnode%) = 2 
+)"""
 
 
 vcvcw = """
-(node[@rel="vc" and @cat="inf" and (%infvcw% or %infsuvcw%) and %onlythesearerealwords%]
+(node[@rel="vc" and @cat="inf" and (%nonfinvcw% or %nonfinsuvcw%) and %onlythesearerealwords%]
 )
 """
+
+wvcvcw = """(node[@rel="hd" and @pt="ww"] and 
+             node[@rel="vc" and (@cat="inf" or @cat="ppart") and (%corenonfinvcw% or %corenonfinsuvcw%)] and 
+			 count(node) = 2 and not(%wx%) and
+             %onlythesearerealwords%)"""
 
 suvcw = """
 ( node[@rel="su"] and
@@ -391,7 +413,8 @@ suvcw = """
 Tarsp_vcw = """
 ( 
  ( %simplevcw% or
-   %vcvcw%   
+   %vcvcw%   or
+   %wvcvcw%
  )
 )
 """

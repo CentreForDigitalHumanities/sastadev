@@ -10,15 +10,20 @@ The *alpinoparsing* module provides functions for:
 .. autofunction:: sastadev.alpinoparsing::previewurl
 
 '''
-
+import copy
+import os
+import time
 import sastadev.conf
+# import sastadev.treebankfunctions
 import re
 import urllib.parse
 import urllib.request
 
-from lxml import etree  # type: ignore
+import lxml.etree
 
-from sastadev.memoize import memoize
+from sastadev import SD_DIR
+import sastadev.memoize
+# import sastadev.parsetreestore
 
 #from sastadev.sastatypes import SynTree, URL
 
@@ -35,8 +40,13 @@ gretelurl = 'https://gretel.hum.uu.nl/api/src/router.php/parse_sentence/{}?forma
 previewurltemplate = 'https://gretel.hum.uu.nl/ng/tree?sent={sent}&xml={xml}'
 #previewurltemplate = 'http://gretel.hum.uu.nl/ng/tree?sent={sent}&xml={xml}'
 
+space = ' '
 emptypattern = r'^\s*$'
 emptyre = re.compile(emptypattern)
+
+
+
+
 
 
 def isempty(sent: str) -> bool:
@@ -49,9 +59,9 @@ def isempty(sent: str) -> bool:
     return result
 
 
-@memoize
+@sastadev.memoize.memoize
 #def parse(origsent: str, escape: bool = True) -> Optional[SynTree]:
-def parse(origsent: str, escape: bool = True):
+def memoparse(origsent: str, escape: bool = True):
     '''
     The function *parse* invokes the alpino parser (over the internet, so an internet connection is required) to parse
     the string *origsent*.
@@ -64,6 +74,7 @@ def parse(origsent: str, escape: bool = True):
 
     '''
     if isempty(origsent):
+        sastadev.conf.settings.LOGGER.error(f'No parse tree found for (empty) <{origsent}>')
         return None
     if escape:
         sent = escape_alpino_input(origsent)
@@ -84,14 +95,70 @@ def parse(origsent: str, escape: bool = True):
             streebytes = r1.read()
             # print(streebytes.decode('utf8'))
             try:
-                stree = etree.fromstring(streebytes)
-            except etree.XMLSyntaxError as e:
+                stree = lxml.etree.fromstring(streebytes)
+            except lxml.etree.XMLSyntaxError as e:
                 sastadev.conf.settings.LOGGER.error(f'Error: {e} for {sent}')
                 stree = None
             return stree
         else:
             sastadev.conf.settings.LOGGER.error('parsing failed:', r1.status, r1.reason, sent)
             return None
+
+def storeparse(origsent: str, escape: bool = True):
+    '''
+    The function *parse* invokes the alpino parser (over the internet, so an internet connection is required) to parse
+    the string *origsent*.
+    The parameter *escape* can be used to escape symbols that have a special meaning
+    for Alpino. Its default value is *True*.
+
+    This function uses parsetree stored in a dictionaru.
+
+    '''
+    if isempty(origsent):
+        sastadev.conf.settings.LOGGER.error(f'No parse tree found for (empty) <{origsent}>')
+        return None
+    if escape:
+        sent = escape_alpino_input(origsent)
+    else:
+        sent = origsent
+    if sent in storedparsesdict:
+        storedparsecopy = copy.deepcopy(storedparsesdict[sent])
+        return storedparsecopy
+    encodedsent = urllib.parse.quote(sent)
+    fullurl = gretelurl.format(encodedsent)
+    try:
+        r1 = urllib.request.urlopen(fullurl)
+    except urllib.request.HTTPError as e:
+        sastadev.conf.settings.LOGGER.error('{}: parsing <{}> failed'.format(e, sent))
+        return None
+    except urllib.error.URLError as e:
+        sastadev.conf.settings.LOGGER.error('{}: parsing <{}> failed'.format(e, sent))
+        return None
+    else:
+        if 300 > r1.status >= 200:
+            streebytes = r1.read()
+            # print(streebytes.decode('utf8'))
+            try:
+                stree = lxml.etree.fromstring(streebytes)
+            except lxml.etree.XMLSyntaxError as e:
+                sastadev.conf.settings.LOGGER.error(f'Error: {e} for {sent}')
+                stree = None
+            if stree is not None:
+                streecopy = copy.deepcopy(stree)
+                storedparsesdict[sent] = streecopy
+            return stree
+        else:
+            sastadev.conf.settings.LOGGER.error('parsing failed:', r1.status, r1.reason, sent)
+            return None
+
+
+def getyieldstr(tree):
+    wordnodes = tree.xpath('.//node[@word]')
+    sortedwordnodes = sorted(wordnodes, key=lambda x: int(x.attrib['end']))
+    sortedwords = [node.attrib['word'] for node in sortedwordnodes]
+    result = space.join(sortedwords)
+    return result
+
 
 #def previewurl(stree: SynTree) -> URL:
 
@@ -108,10 +175,10 @@ def previewurl(stree):
     '''
     sents = stree.xpath('.//sentence')
     if sents != []:
-        sent = etree.tostring(sents[0])
+        sent = lxml.etree.tostring(sents[0])
     else:
         sent = ''
-    xml = etree.tostring(stree)
+    xml = lxml.etree.tostring(stree)
     encodedsent = urllib.parse.quote(sent)
     encodedxml = urllib.parse.quote(xml)
     fullurl = previewurltemplate.format(sent=encodedsent, xml=encodedxml)
@@ -155,6 +222,27 @@ def test1() -> None:
     with open('previewurl.txt', 'w', encoding='utf8') as outfile:
         print(thepreviewurl, file=outfile)
 
+parse = storeparse
+
+
+# storedparsespath = os.path.join(sastadev.conf.settings.SD_DIR, 'data', 'storedparses')
+storedparsespath = os.path.join(SD_DIR, 'data', 'storedparses')
+storedparsesfilename = 'storedparses.xml'
+storedparsesfullname = os.path.join(storedparsespath, storedparsesfilename)
+storedparsesdict = {}
+
+start_time = time.time()
+if os.path.exists(storedparsesfullname):
+    fulltreebank = lxml.etree.parse(storedparsesfullname)
+    treebank = fulltreebank.getroot()
+    for tree in treebank:
+        mwustr = getyieldstr(tree)
+        storedparsesdict[mwustr] = copy.deepcopy(tree)
+end_time = time.time()
+duration = end_time - start_time
+timing_message = f'reading stored parses took: {duration:.2f} seconds'
+print(timing_message)
+junk = 0
 
 if __name__ == '__main__':
     test1()

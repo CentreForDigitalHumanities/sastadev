@@ -1,5 +1,5 @@
 from editdistance import distance
-from sastadev.basicreplacements import basicreplacements
+from sastadev.basicreplacements import basicreplacements, knownreplacementsdict
 from sastadev.conf import settings
 from sastadev.corrector import (disambiguationdict, initialmaarvgxpath)
 from sastadev.lexicon import de, dets, nochildword, preferably_intransitive_verbs, tsw_non_words, validnouns, \
@@ -225,7 +225,7 @@ def getsucount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
 
 # d_hyphen_xpath = './/node[@rel="--" and @pt and @pt!="let"]'
 # revised to:
-d_hyphen_xpath = """.//node[@rel="--" and @pt!="let"  and @pt!="tsw" and @word!="kijk" and 
+d_hyphen_xpath = """.//node[@rel="--" and @pt!="let"  and @pt!="tsw" and @word!="kijk" and @word!="alsjeblieft" and
                  ancestor::node[@cat="top" and count(node[(@pt!="let" and @pt!="tsw" and @word!="kijk") or @cat]) > 1 
                  ]]"""
 def get_double_hyphen_nodes(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> List:
@@ -427,11 +427,13 @@ def getnotknownbyalpinocount(tree: SynTree, mds: List[Meta] = [], method: Method
 
 def get_basic_replacement_nodes(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> List:
     word_nodes = tree.xpath(words_xpath)
-    basic_replacement_nodes = [
-        node
-        for node in word_nodes
-        if getattval(node, "word").lower() in basicreplacements
-    ]
+    basic_replacement_nodes = []
+    for node in word_nodes:
+        nodeword = getattval(node, "word").lower()
+        if nodeword in basicreplacements:
+            pairs = [(nodeword, replword[0]) for replword in basicreplacements[nodeword]]
+            if all([pair not in knownreplacementsdict for pair in pairs]):
+                basic_replacement_nodes.append(node)
     return basic_replacement_nodes
 
 def getbasicreplaceecount(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> int:
@@ -464,7 +466,7 @@ def gettotaleditdistance(tree: SynTree, metadata: List[Meta], method: Method = d
     for meta in metadata:
         fullsource = meta.source
         mainsource, subsource = splitsource(fullsource)
-        if subsource in replacementsubsources and \
+        if subsource in replacementsubsources and subsource != BASICREPLACEMENTS and\
                 len(meta.annotationwordlist) == 1 and \
                 len(meta.annotatedwordlist) == 1:
             correctword = meta.annotationwordlist[0]
@@ -495,6 +497,15 @@ def get_predc_v_mismatch_count(tree: SynTree, mds: List[Meta] = [], method: Meth
     predc_v_mismatches = get_predc_v_mismatches(tree)
     return len(predc_v_mismatches)
 
+predmxpath = './/node[@rel="predm"]'
+
+def getpredmcount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
+    predms = getpredm(tree)
+    return len(predms)
+
+def getpredm(tree):
+    predms = tree.xpath(predmxpath)
+    return predms
 
 def compute_penalty(nt: SynTree, md: List[Meta], method: Method = defaultmethod) -> Penalty:
     totalpenalty = 0
@@ -539,6 +550,7 @@ criteria = [
     Criterion("Predc - V mismatches", get_predc_v_mismatch_count, negative, "Number of mismatches between "
                                                                             "nominal predicate and copular verb"),
     Criterion("Wrong Adj-Noun agreement", get_e_adj_neut_noun_count, negative, "Adj-Noun agreement Error"),
+    Criterion("basicreplaceecount", getbasicreplaceecount, negative, "Number of words from the basic replacements"),
     Criterion('ReplacementPenalty', getreplacementpenalty, negative, 'Plausibility of the replacement'),
     Criterion('Total Edit Distance', gettotaleditdistance, negative, "Total of the edit distances for all replaced words"),
     # Criterion('Subcatscore', getsubcatprefscore, positive,
@@ -548,8 +560,9 @@ criteria = [
     Criterion("topclause", gettopclause, positive, "Single clause under top"),
     Criterion("complsucount", getcomplsucount, negative, ""),
     Criterion("badcatcount", getbadcatcount, negative, "Count of bad categories: du that contains a node with relation dp"),
-    Criterion("basicreplaceecount", getbasicreplaceecount, negative, "Number of words from the basic replacements"),
     Criterion("hyphencount", gethyphencount, negative, "Number of words that contain hyphens"),
+    Criterion('predmcount', getpredmcount, negative,
+                            "Count of number of occurrences of nodes with relation 'predm'"),
     Criterion("subjunctivecount", getsubjunctivecount, negative, "Number of subjunctive verb forms"),
     Criterion("smainsucount", countsmainsu, positive, "Count of smain nodes that contain a subject"),
     Criterion("dimcount", getdimcount, positive, "Number of words that are diminutives"),

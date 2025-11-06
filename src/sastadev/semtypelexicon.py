@@ -1,4 +1,5 @@
-from sastadev.NLtypes import Activity, alt, Alt, And, Animate, Event, Human, Location, NonAnimate, NonHuman, Object, Property, Quantity, SemType, State, UnKnown
+from sastadev.NLtypes import Activity, alt, sand, Alt, And, Animate, Event, Human, Location, NonAnimate, NonHuman, Object, Property, Quantity, SemType, State, UnKnown
+from sastadev.top3000 import semlexicon
 from typing import List
 
 su = 'su'
@@ -8,6 +9,11 @@ mod = 'mod'
 ld = 'ld'
 predc = 'predc'
 
+human = 'human'
+animate = 'animate'
+nonhuman = 'nonhuman'
+nonanimate = 'nonanimate'
+
 
 def s(x: SemType) -> Alt:
     return alt([x])
@@ -15,6 +21,7 @@ def s(x: SemType) -> Alt:
 def sh(sem: SemType) -> Alt:
     result = Alt([And([sem])])
     return result
+
 def aa(semtypelist: List[SemType]) -> Alt:
     result = Alt([And(semtypelist)])
     return result
@@ -39,11 +46,11 @@ vnws_auris_vankampen_schlichtingvankampen =[
 ('vnw',	'grad',	'onbep',	'veel', aa([Object, Quantity]),	598),
 ('vnw',	'grad',	'onbep',	'weinig', aa([Object, Quantity]),	29),
 ('vnw',	'pron',	'aanw',	'dat',  alt([NonHuman, Event]),	9964),
-('vnw',	'pron',	'aanw',	'die',  alt([Object, Event]),	7284),
+('vnw',	'pron',	'aanw',	'die',  alt([Human, NonHuman, Event]),	7284),
 ('vnw',	'pron',	'aanw',	'dit',  alt([NonHuman, Event]),	3198),
 ('vnw',	'pron',	'aanw',	'zulk',  alt([NonHuman, Event]),	1),
 ('vnw',	'pron',	'betr',	'dat',  alt([Object, Event]),	55),   # must inherit it from its antecedent
-('vnw',	'pron',	'betr',	'die',  alt([Object, Event]),	966),
+('vnw',	'pron',	'betr',	'die',  alt([Human, NonHuman, Event]),	966),
 ('vnw',	'pron',	'onbep',	'alles',  alt([NonAnimate, Event]),	289),
 ('vnw',	'pron',	'onbep',	'andermans',  alt([Human]),	1),
 ('vnw',	'pron',	'onbep',	'eentje',  alt([Object, Quantity]),	119),  # Count v. Mass
@@ -61,7 +68,7 @@ vnws_auris_vankampen_schlichtingvankampen =[
 ('vnw',	'pron',	'pers',	'ge',  alt([Human]),	7),
 ('vnw',	'pron',	'pers',	'haar',  alt([Human]),	193),
 ('vnw',	'pron',	'pers',	'haarzelf',  alt([Human]),	3),
-('vnw',	'pron',	'pers',	'hem',  alt([Human]),	1927),
+('vnw',	'pron',	'pers',	'hem',  alt([Human, NonHuman]),	1927),
 ('vnw',	'pron',	'pers',	'het',  alt([NonHuman]),	6113),
 ('vnw',	'pron',	'pers',	'hij',  alt([Human]),	4513),
 ('vnw',	'pron',	'pers',	'hun',  alt([Human]),	16),
@@ -105,8 +112,10 @@ verbs = [ ('liggen', 'intransitive', [{su: sh(Object)}], sh(State)),
           ('maken', 'pred_np', [{su: sh(Animate), obj1: sh(Object), predc:Alt([And([State]), And([Property])])}], sh(Activity)),
           ('kapot_maken', 'part_transitive(kapot)', [{su: sh(Animate), obj1: sh(Object)}], sh(Activity)),
           ('maaien', 'intransitive', [{su: sh(Animate)}], sh(Activity) ),
-          ('maaien', 'transitive', [{su:sh(Animate), obj1: sh(NonAnimate)}], sh(Activity))
-]
+          ('maaien', 'transitive', [{su:sh(Animate), obj1: sh(NonAnimate)}], sh(Activity)),
+          ('maken', 'transitive', [{su:sh(Animate), obj1: sh(NonAnimate)}], sh(Activity)),
+          ('pakken', 'transitive', [{su: sh(Animate), obj1: sh(NonAnimate)}], sh(Activity))
+          ]
 
 wwsemdict = {(lemma, frame): semtype for (lemma, frame, _, semtype) in verbs }
 wwreqsemdict = {(lemma, frame): reqsemtype for (lemma, frame, reqsemtype, _) in verbs}
@@ -115,3 +124,22 @@ wwreqsemdict = {(lemma, frame): reqsemtype for (lemma, frame, reqsemtype, _) in 
 defaultreqsemdict = {'transitive': [{su: sh(Animate), obj1: sh(Object)}],
                      'unacc': [{su: sh(Object)}]
                     }
+
+def get_n_semtype(lemma: str, pt: str) :
+    if (lemma, pt) in semlexicon:
+        semtypelist = semlexicon[(lemma, pt)]
+        if human in semtypelist:
+            result = sh(Human)
+        elif animate in semtypelist:
+            result = sh(Animate)
+        elif nonhuman in semtypelist:
+            result = sh(NonHuman)
+        elif nonanimate in semtypelist:
+            result = sh(NonAnimate)
+        elif semtypelist == []:
+            result = sh(UnKnown)
+        else:
+            result = sh(NonAnimate)
+    else:
+        result = sh(UnKnown)
+    return result

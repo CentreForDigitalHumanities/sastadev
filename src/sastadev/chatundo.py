@@ -19,6 +19,8 @@ from chamd.cleanCHILDESMD import (atsignletters, barezero, bch, blocking,
 space = ' '
 eps = ''
 
+herezerostr = re.compile(r"(0[\w']+)")
+
 simpleinterpunction = re.compile(r'([.?!,])')
 
 
@@ -185,8 +187,8 @@ def chatundo(instr):
     # remove www intentionally after phonological fragments
     result = www.sub(eps, result)
 
-    # remove 0[A-z]
-    result = zerostr.sub(eps, result)
+    # remove 0[A-z']
+    result = herezerostr.sub(eps, result)
 
     # delete any remaining 0's
     result = barezero.sub(space, result)

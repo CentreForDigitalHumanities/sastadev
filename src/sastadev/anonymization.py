@@ -8,7 +8,6 @@ See https://github.com/UUDigitalHumanitieslab/sasta/blob/develop/backend/anonymi
 import json
 import os.path
 import re
-
 from sastadev.conf import settings
 
 vertbar = '|'
