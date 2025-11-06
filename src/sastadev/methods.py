@@ -27,7 +27,7 @@ validmethods = astamethods + stapmethods + tarspmethods
 astalexicalmeasures = [mkresultskey('A018'), mkresultskey('A021')]  # LEX and N
 
 basicpattern: Pattern = '[,;]'
-extendedpattern: Pattern = '[,;/\|]'
+extendedpattern: Pattern = '[,;/|]'
 
 methodseparators = {}
 methodseparators[tarsp] = basicpattern
@@ -39,6 +39,9 @@ tarsp2017 = 'tarsp2017'
 tarspauris = 'tarspauris'
 astae = 'astae'
 astafuture = 'astafuture'
+
+validmethodvariantpairs = [(tarsp, tarsp2005), (tarsp, tarsp2017), (tarsp, tarspauris), (stap, ''),
+                           (asta, ''), (asta, astae), (asta, astafuture)]
 
 
 class SampleSize:

@@ -8,9 +8,9 @@ from typing import List
 
 from sastadev import xlsx
 from sastadev.conf import settings
-from sastadev.methods import Method, defaultfilters, tarsp, asta
+from sastadev.methods import Method, defaultfilters, tarsp, asta, supported_methods
 from sastadev.query import Query, form_process, post_process
-from sastadev.sastatypes import (AltCodeDict, FileName, Item_Level2QIdDict,
+from sastadev.sastatypes import (AltCodeDict, FileName, Item_Level2QIdDict, MethodName,
                                  QId, QueryDict)
 from sastadev.stringfunctions import str2list
 
@@ -195,3 +195,9 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
                        methodfilename, defaultfilter)
 
     return themethod
+
+
+def getmethod(methodname: MethodName, variant) -> Method:
+    methodfullname = supported_methods[methodname]
+    method = read_method(methodname, methodfullname, variant=variant)
+    return method
