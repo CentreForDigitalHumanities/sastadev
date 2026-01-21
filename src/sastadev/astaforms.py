@@ -38,6 +38,8 @@ semparqid = 'A026'
 subpvqid = 'A032'
 tijdfoutpvqid = 'A041'
 lemmaqid = 'A051'
+pvfoutqid = 'A014'
+pvgetalfoutqid = 'A050'
 
 bijzinreskey = mkresultskey(bijzinqid)
 correctreskey = mkresultskey(correctqid)
@@ -53,6 +55,8 @@ semparreskey = mkresultskey(semparqid)
 subpvreskey = mkresultskey(subpvqid)
 tijdfoutpvreskey = mkresultskey(tijdfoutpvqid)
 lemmareskey = mkresultskey(lemmaqid)
+pvfoutreskey = mkresultskey(pvfoutqid)
+pvgetalfoutreskey = mkresultskey(pvgetalfoutqid)
 
 
 green = '#00FF00'
@@ -386,7 +390,9 @@ def getuttlist(allresults):
     )
     tijdfoutpvs = allresults.coreresults[tijdfoutpvreskey] if tijdfoutpvreskey in allresults.coreresults else Counter(
     )
-    foutepvs = subpvs + delpvs + tijdfoutpvs
+    pvfoutpvs = allresults.coreresults[pvfoutreskey] if pvfoutreskey in allresults.coreresults else Counter()
+    pvgetalfoutpvs = allresults.coreresults[pvgetalfoutreskey] if pvgetalfoutreskey in allresults.coreresults else Counter()
+    foutepvs = subpvs + delpvs + tijdfoutpvs + pvfoutpvs + pvgetalfoutpvs
     updatewithctr(resultdict, foutepvs, 'foutepvs')
     update(resultdict, allresults.coreresults, bijzinreskey, 'bijzincount')
 
