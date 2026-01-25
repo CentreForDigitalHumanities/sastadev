@@ -1,7 +1,7 @@
 from methods import Method
 from resultsbyutterance import getexactbyutt
 from sas_meta import SAS_Meta
-import sas_queries  # @@currently in sastacode, move to sastadev
+import sas_queries
 from sastatypes import ExactResultsDict, TreeBank
 from treebankfunctions import (find1, getcleanedutt, getnodeyield, getrealwordcount, origuttxpath,
                                parsedasquery, xsidxpath)
