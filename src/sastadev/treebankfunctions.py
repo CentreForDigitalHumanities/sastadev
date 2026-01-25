@@ -23,7 +23,7 @@ from sastadev.sastatoken import Token
 from sastadev.sastatypes import (FileName, OptPhiTriple, PhiTriple, Position,
                                  PositionMap, PositionStr, Span, SynTree,
                                  UttId)
-from sastadev.stringfunctions import allconsonants
+from sastadev.stringfunctions import allconsonants, string2list
 
 # from sastadev.tblex import recognised_wordnode, recognised_lemmanode, recognised_wordnodepos, recognised_lemmanodepos
 
@@ -125,6 +125,18 @@ sentidxpath = './/sentence/@sentid'
 metaquerytemplate = "//meta[@name='{}']/@value"
 sentencexpathquery = "//sentence/text()"
 
+prefix = 'ancestor::alpino_ds/'   # if the query searches for a cat=top node
+# prefix = ''                       # if the query searches for alpino_ds
+sentencexpath = f'{prefix}descendant::sentence'
+
+parsedasquery = f'{prefix}descendant::xmeta[(@name="parsed_as" or @name="parsed as")]/@value'
+origuttxpath = f'{prefix}descendant::meta[@name="origutt"]/@value'
+preoriguttxpath = f'{prefix}descendant::meta[@name="pre_origutt"]/@value'
+xsidxpath = f'{prefix}descendant::meta[@name="xsid"]/@value'
+cleanedtokenisationxpath = f'{prefix}descendant::xmeta[@name="cleanedtokenisation"]/@value'
+realwordxpath = """ancestor::alpino_ds/descendant::node[@pt and @pt!='let']"""
+
+
 uniquecounter = 0
 
 countattvalxpathtemplate = 'count(.//node[@{att}="{val}"])'
@@ -133,7 +145,7 @@ countcompoundxpath = 'count(.//node[contains(@lemma, "_")])'
 monthnames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus',
               'september', 'oktober', 'november', 'december']
 
-origuttxpath = './/meta[@name="origutt"]/@value'
+# origuttxpath = './/meta[@name="origutt"]/@value'
 
 
 inflectional_attributes = {'ww': {'buiging', 'getalN',  'pvagr', 'pvtijd', 'wvorm'},
@@ -173,6 +185,16 @@ def adjacent(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
             result = prec == node2 or succ == node2
             return result
     return False
+
+
+def getcleanedutt(stree: SynTree) -> str:
+    cleanedtokenisations = stree.xpath(cleanedtokenisationxpath)
+    if cleanedtokenisations == []:
+        return ''
+    cleanedtokenisation = cleanedtokenisations[0]
+    tokenlist = string2list(cleanedtokenisation, quoteignore=True)
+    result = space.join(tokenlist)
+    return result
 
 
 def immediately_precedes(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
@@ -404,6 +426,11 @@ def getsentence(syntree: SynTree, treebank: bool = True) -> Optional[str]:
     prefix = "." if treebank else ""
     thequery = prefix + sentencexpathquery
     result = getqueryresult(syntree, xpathquery=thequery)
+    return result
+
+def getrealwordcount(match: SynTree) -> int:
+    realwordnodes = match.xpath(realwordxpath)
+    result = len(realwordnodes)
     return result
 
 
