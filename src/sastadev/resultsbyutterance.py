@@ -5,7 +5,7 @@ The module *resultsbyutterance* provides functions to compute the results and th
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple
 
-from sastadev.allresults import AllResults
+from sastadev.allresults import AllResults, getexactbyutt
 from sastadev.conf import settings
 from sastadev.methods import Method
 from sastadev.query import query_inform, query_exists
@@ -169,13 +169,6 @@ def counter2str(scores: Counter, method: Method) -> str:
     resultlist = counter2itemlist(scores, method)
     result = comma.join(resultlist)
     return result
-
-def getexactbyutt(exactresults: ExactResultsDict):
-    resultdict = defaultdict(list)
-    for qid in exactresults:
-        for (uttid, position) in exactresults[qid]:
-            resultdict[uttid].append((qid, position))
-    return resultdict
 
 def exactbyuttdict2table(exactbyuttdict) -> Table:
     table = []

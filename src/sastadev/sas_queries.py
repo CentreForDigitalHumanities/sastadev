@@ -230,7 +230,7 @@ postnommodquerymessage = "Utterance contains postnominal modifiers"
 
 
 vcombinationsxpath = """.//node[@cat="top" and 
-                                .//node[@pt="ww"] and 
+                                .//node[@pt="ww" and @word!="kijk"] and 
                                 .//node[@pt!="ww" and @pt!="tsw" and @pt!="let" and 
                                         @pt!="vz" and @pt!="lid" and not(@pt and @rel="svp") ]
                                ]"""
@@ -404,7 +404,11 @@ def get_wrongly_non_mod_nodes(nt: TreeBank, exactresults: ExactResultsDict, meth
     mn = method.name
     results = []
     rawunknownwordnodes = []
-    for tree in nt:
+    if nt.tag == 'alpino_ds':
+        trees = [nt]
+    else:
+        trees = nt.xpath('.//alpino_ds')
+    for tree in trees:
         uttid = getxsid(tree)
         if uttid == "0":
             continue
@@ -884,7 +888,7 @@ criteria: Dict[str, Callable] =\
                                                        lambda x: []),
     "wrong_pos": apply_criterion(get_wrong_pos_word_nodes, get_wrong_pos_word_message_function(wrong_pos_word_message),
                                  lambda x: []),
-    "preferably_mod": apply_criterion(get_wrongly_non_mod_nodes, get_no_mod_message_function(wrongly_no_mod_message),
+    "preferably_mod": apply_criterion(get_wrongly_non_mod_nodes, get_message_with_word_function(wrongly_no_mod_message),
                                       lambda x: [])
 
    # "Low Confidence": low_avg_confidence  # temporarily put off gives too many unwanted results

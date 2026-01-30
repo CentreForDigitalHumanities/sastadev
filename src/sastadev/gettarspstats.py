@@ -1,8 +1,8 @@
 import os
 from sastadev.readcsv import readheadedcsv
 
-inputpath1 = './tarspcodes'
-inputpath2 = './referencestatistics'
+inputpath1 = './data/tarspcodes'
+inputpath2 = './data/referencestatistics'
 
 
 tarsp_predictions1filename = 'tarsppredictions1.txt'

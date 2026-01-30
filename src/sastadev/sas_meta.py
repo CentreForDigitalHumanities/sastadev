@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from sastatypes import FileName, SynTree, UttId
-from typing import List
+from sastadev.sastatypes import FileName, SynTree, UttId
+from typing import List, Tuple
+
 
 @dataclass
 class SAS_Meta:
@@ -15,7 +16,7 @@ class SAS_Meta:
 
     * xsid: the utterance identifier
 
-    * sentnodelist: (to be added)
+    * sentnodelist: list of nodes for words in the parsetree
 
     * origutt: the original utterance
 
@@ -42,3 +43,19 @@ class SAS_Meta:
     suggestedcodes: List[str]
     realwordcount: int
     codecount: int
+
+@dataclass
+class SAS_Result:
+    """
+    """
+    xsid: str
+    node: SynTree
+    message: str
+    suggestedcodes: List[str]
+
+SAS_Match_and_Meta = Tuple[SynTree, SAS_Meta]
+
+def sas_matchmeta2result(matchmeta: SAS_Match_and_Meta) -> SAS_Result:
+    match, meta = matchmeta
+    result = SAS_Result(meta.xsid, match, meta.message, meta.suggestedcodes)
+    return result

@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from lxml import etree
 
-from sastadev.allresults import (AllResults, ExactResultsDict, MatchesDict,
+from sastadev.allresults import (AllResults, ExactResultsDict, getexactbyutt, MatchesDict,
                                  ResultsKey, mkresultskey)
 from sastadev.ASTApostfunctions import getastamaxsamplesizeuttidsandcutoff
 from sastadev.conf import settings
@@ -15,6 +15,7 @@ from sastadev.mismatches import getmarkposition
 from sastadev.query import (Query, form_process, is_core, is_literal, is_pre,
                             post_process, query_exists)
 from sastadev.reduceresults import exact2results, reduceallresults
+from sastadev.sample_sas import sample_sas
 from sastadev.sasta_explanation import finalexplanation_adapttreebank
 from sastadev.sastatypes import (FileName, MethodName, Position, QId,
                                  QueryDict, SampleSizeTuple, SynTree, TreeBank,
@@ -179,6 +180,13 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
     dopostqueries(allresults, formquerylist, themethod.queries)
 
     allresults = find_grammar_errors_in_allresults(allresults)
+
+    xmlfilename = ''
+    datasetname = ''
+    select_criterion = lambda x: True
+    exactresultsbyuttid = getexactbyutt(allresults.exactresults)
+    allresults.sasresults = sample_sas(correctedtreebank,exactresultsbyuttid, select_criterion,
+                             datasetname, xmlfilename, themethod)
 
     return allresults, samplesizetuple
 
