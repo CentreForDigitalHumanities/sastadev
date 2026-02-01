@@ -1,10 +1,10 @@
 from collections import defaultdict
-from methods import Method
-from resultsbyutterance import getexactbyutt
-from sas_meta import SAS_Meta, SAS_Result, SAS_Match_and_Meta, sas_matchmeta2result
-from sas_queries import criteria, sortorderfunction
-from sastatypes import ExactResultsDict, SynTree, TreeBank, UttId
-from treebankfunctions import (find1, getcleanedutt, getnodeyield, getrealwordcount, origuttxpath,
+from sastadev.methods import Method
+from sastadev.resultsbyutterance import getexactbyutt
+from sastadev.sas_meta import SAS_Meta, SAS_Result, SAS_Match_and_Meta, sas_matchmeta2result
+from sastadev.sas_queries import criteria, sortorderfunction
+from sastadev.sastatypes import ExactResultsDict, SynTree, TreeBank, UttId
+from sastadev.treebankfunctions import (find1, getcleanedutt, getnodeyield, getrealwordcount, origuttxpath,
                                parsedasquery, xsidxpath)
 from typing import Callable, List, Tuple
 

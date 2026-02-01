@@ -78,6 +78,7 @@ OptPhiTriple: TypeAlias = Optional[PhiTriple]
 PositionMap: TypeAlias = Dict[Position, Position]
 QueryDict: TypeAlias = Dict[QId, Query]
 QIdCount: TypeAlias = Dict[QId, int]
+Row = List[Any]
 MethodName: TypeAlias = str  # perhaps in the future NewType('MethodName', str)
 FileName: TypeAlias = str  # perhaps in the future NewType('FileName', str)
 ReplacementMode: TypeAlias = int

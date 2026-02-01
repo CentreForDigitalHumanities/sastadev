@@ -612,5 +612,13 @@ def smartsortkey(wrd:str) -> SmartSortKey:
     return result
 
 
+def sf(number):
+    if isinstance(number, float) or isinstance(number, int):
+        result = '{0:.1f}'.format(number)
+    else:
+        result = number
+    return result
+
+
 if __name__ == '__main__':
     test()

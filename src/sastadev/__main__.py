@@ -204,6 +204,7 @@ from sastadev.sastatypes import (AltCodeDict, DataSetName, ExactResultsDict,
                                  ResultsCounter, ResultsKey, SynTree, TreeBank,
                                  UttId)
 from sastadev.SRFreader import read_referencefile
+from sastadev.stringfunctions import  sf
 from sastadev.targets import get_mustbedone, get_targets, target_all
 from sastadev.treebank2trees import treebank2trees
 from sastadev.treebankfunctions import (find1, getattval,
@@ -320,13 +321,14 @@ def mkerrorreport(errordict, errorreportfilename: str):
     wb.close()
 
 
+# @@ remove this, moved to mak_analysis_table
 def erow(cnt: int) -> List[str]:
     result = []
     for i in range(cnt):
         result.append('')
     return result
 
-
+# @@ remove this, moved to mak_analysis_table
 def getpostval(qid, thepostresults):
     if qid in thepostresults:
         result = thepostresults[qid]
@@ -342,12 +344,13 @@ def getpostval(qid, thepostresults):
 #        counts[el] = countval
 #    return counts
 
-def sf(number):
-    if isinstance(number, float) or isinstance(number, int):
-        result = '{0:.1f}'.format(number)
-    else:
-        result = number
-    return result
+# moved to stringfunctions
+# def sf(number):
+#     if isinstance(number, float) or isinstance(number, int):
+#         result = '{0:.1f}'.format(number)
+#     else:
+#         result = number
+#     return result
 
 
 def getmarkedutt(m: SynTree, syntree: SynTree) -> str:
@@ -562,7 +565,7 @@ def getmethodfromfile(filename: str) -> str:
     else:
         return result
 
-
+# @@remove this one here - now defined in mk_analysis_table
 def getsortedgolduttscore(reskey: ResultsKey, goldscores) -> str:
     if reskey in goldscores:
         # (goldlevel, golditem, goldcounter) = goldscores[queryid]
@@ -574,7 +577,7 @@ def getsortedgolduttscore(reskey: ResultsKey, goldscores) -> str:
         sortedgolduttstr = ''
     return sortedgolduttstr
 
-
+# @@remove this one her e- now defined in mk_analysis_table
 def updatequerycounts(queryid, themethod, invalidqcount, undefinedqcount) -> Tuple[str, int, int]:
     thequery = themethod.queries[queryid]
     if query_exists(thequery):
@@ -673,7 +676,7 @@ def oldgetfullscoreandplatinumstr(reskey, themethod, theresults, resultstr, gold
 
     return fullresultrow, platinumrow
 
-
+# @@ remove here - now defined in mk_analysis_table
 def getfullscoreandplatinumstr(reskey, themethod, theresults, resultstr, goldscores,
                                platinuminfilefound, platinumresults, sortedgolduttstr, qex) -> Tuple[str, str]:
     queryid = reskey[0]

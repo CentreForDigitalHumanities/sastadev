@@ -130,7 +130,7 @@ prefix = 'ancestor::alpino_ds/'   # if the query searches for a cat=top node
 sentencexpath = f'{prefix}descendant::sentence'
 
 parsedasquery = f'{prefix}descendant::xmeta[(@name="parsed_as" or @name="parsed as")]/@value'
-origuttxpath = f'{prefix}descendant::meta[@name="origutt"]/@value'
+origuttxpath = f'{prefix}descendant::meta[@name="origutt"]/@value'  # this is wrong for getorigutt
 preoriguttxpath = f'{prefix}descendant::meta[@name="pre_origutt"]/@value'
 xsidxpath = f'{prefix}descendant::meta[@name="xsid"]/@value'
 cleanedtokenisationxpath = f'{prefix}descendant::xmeta[@name="cleanedtokenisation"]/@value'
@@ -145,7 +145,7 @@ countcompoundxpath = 'count(.//node[contains(@lemma, "_")])'
 monthnames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus',
               'september', 'oktober', 'november', 'december']
 
-# origuttxpath = './/meta[@name="origutt"]/@value'
+getorigutt_origuttxpath = './/meta[@name="origutt"]/@value'
 
 
 inflectional_attributes = {'ww': {'buiging', 'getalN',  'pvagr', 'pvtijd', 'wvorm'},
@@ -2089,7 +2089,7 @@ def olddeletewordnodes2(tree: SynTree, begins: List[Position]):
 
 
 def getorigutt(stree: SynTree) -> Optional[str]:
-    origuttlist = stree.xpath(origuttxpath)
+    origuttlist = stree.xpath(getorigutt_origuttxpath)
     if origuttlist == []:
         origutt = None
     else:

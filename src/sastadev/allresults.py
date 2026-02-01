@@ -59,7 +59,7 @@ class AllResults:
         self.analysedtrees: List[Tuple[UttId, SynTree]] = analysedtrees
         self.allutts: UttWordDict = allutts
         self.annotationinput: bool = annotationinput
-        self.sasresults: List[SAS_Results] = sasresults
+        self.sasresults: List[SAS_Result] = sasresults
 
 
 CoreQueryFunction = Callable[[SynTree], List[SynTree]]
