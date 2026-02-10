@@ -55,6 +55,7 @@ errorsummaryfolder = 'errorsummaries'
 lemmafolder = 'lemmas'
 
 analysissuffix = '_analysis'
+sasanalysissuffix = '_sasanalysis'
 analysistsvsuffix = '_analysis.tsv'
 bronzesuffix = '_bronze'
 byuttscoressuffix = '_scoresbyutt'

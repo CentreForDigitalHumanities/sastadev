@@ -15,6 +15,7 @@ from sastadev.mismatches import getmarkposition
 from sastadev.query import (Query, form_process, is_core, is_literal, is_pre,
                             post_process, query_exists)
 from sastadev.reduceresults import exact2results, reduceallresults
+from sastadev.sas_queries import synxsid, hasxsid
 from sastadev.sample_sas import sample_sas
 from sastadev.sasta_explanation import finalexplanation_adapttreebank
 from sastadev.sastatypes import (FileName, MethodName, Position, QId,
@@ -183,7 +184,7 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
 
     xmlfilename = ''
     datasetname = ''
-    select_criterion = lambda x: True
+    select_criterion = hasxsid
     exactresultsbyuttid = getexactbyutt(allresults.exactresults)
     allresults.sasresults = sample_sas(correctedtreebank,exactresultsbyuttid, select_criterion,
                              datasetname, xmlfilename, themethod)

@@ -265,6 +265,23 @@ def syn(x: SynTree) -> bool:
     result = qresults != []
     return result
 
+def hasxsid(match: SynTree) -> bool:
+    """
+    checks whether a syntactic structure has  an xsid metadata element
+
+    :param match:
+    :return:
+    """
+    if match.tag == 'alpino_ds':
+        xsids = match.xpath('.//meta[@name="xsid"]/@value')
+    else:
+        xsids = match.xpath(xsidxpath)
+    sent = getyieldstr(match)
+    xsid = xsids[0] if xsids != [] else '0'
+    result = xsid != '0'
+    return result
+
+
 
 def synxsid(match: SynTree) -> bool:
     """
@@ -273,10 +290,14 @@ def synxsid(match: SynTree) -> bool:
     :param match:
     :return:
     """
-    xsids = match.xpath(xsidxpath)
-    xsid = xsids[0] if xsids != [] else 0
+    if match.tag == 'alpino_ds':
+        xsids = match.xpath('.//meta[@name="xsid"]/@value')
+    else:
+        xsids = match.xpath(xsidxpath)
+    sent = getyieldstr(match)
+    xsid = xsids[0] if xsids != [] else '0'
     synresult = syn(match)
-    xsidresult = xsid != 0
+    xsidresult = xsid != '0'
     result = synresult and xsidresult
     return result
 

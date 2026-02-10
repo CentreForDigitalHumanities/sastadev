@@ -158,7 +158,7 @@ from sastadev.constants import (analysissuffix, bronzefolder, bronzesuffix,
                                 byuttscoressuffix, checksuffix,
                                 correctedsuffix, formsfolder,
                                 intreebanksfolder, loggingfolder,
-                                outtreebanksfolder, resultsfolder,
+                                outtreebanksfolder, resultsfolder, sasanalysissuffix,
                                 silverfolder, silverpermfolder, silversuffix)
 from sastadev.context import getcontextdict
 from sastadev.correctionparameters import CorrectionParameters
@@ -179,6 +179,7 @@ from sastadev.history import (adult_samplecorrections,
 from sastadev.macros import expandmacros
 from sastadev.methods import Method, supported_methods, treatmethod
 from sastadev.mismatches import exactmismatches, informcol, literalmissedmatches, samplecol, uttidcol
+from sastadev.mk_analysis_table import mk_analysis_table, AnalysisTableParameters, get_qid_reskeys
 # from sastadev.parsetreestore import storedparsesdict, storedparsesfullname
 from sastadev.permcomments import (getallcomments, pcheaders,
                                    platinumcheck_column_widths)
@@ -195,6 +196,7 @@ from sastadev.rpf1 import getevalscores, getscores, sumfreq
 from sastadev.SAFreader import (get_golddata, richexact2global,
                                 richscores2scores)
 from sastadev.sample_uttid_tuples import get_samplename_uttids_tuples
+from sastadev.sas_adapt_results import sas_adapt_results
 from sastadev.sas_impact import mksas_impactrows, sas_impact
 from sastadev.sastacore import (SastaCoreParameters, doauchann, dopostqueries,
                                 isxpathquery, sastacore)
@@ -1350,22 +1352,20 @@ def main():
     wb.close()
 
 
-
-    # netx is now obsolete
-    # platinumresults: Dict[ResultsKey, Counter] = reduceresults(platinumresults, samplesizetuple, options.methodname)
-
-    (base, ext) = os.path.splitext(options.infilename)
-    outputfullname = os.path.join(
-        resultspath, corefilename + analysissuffix + tsvext + txtext)
-    outfile = open(outputfullname, 'w', encoding='utf8')
-
-    outxlsx = os.path.join(resultspath, corefilename + "_analysis" + xlsxext)
-    outworkbook = xlsxwriter.Workbook(outxlsx, {"strings_to_numbers": True})
-    outworksheet = outworkbook.add_worksheet()
-    outstartrow = 0
-    outstartcol = 0
-    outrowctr = outstartrow
-    outworksheet.freeze_panes('E2')
+    # @@ next must be adapted after the analysis tabe has been made
+    #
+    # (base, ext) = os.path.splitext(options.infilename)
+    # outputfullname = os.path.join(
+    #     resultspath, corefilename + analysissuffix + tsvext + txtext)
+    # outfile = open(outputfullname, 'w', encoding='utf8')
+    #
+    # outxlsx = os.path.join(resultspath, corefilename + "_analysis" + xlsxext)
+    # outworkbook = xlsxwriter.Workbook(outxlsx, {"strings_to_numbers": True})
+    # outworksheet = outworkbook.add_worksheet()
+    # outstartrow = 0
+    # outstartcol = 0
+    # outrowctr = outstartrow
+    # outworksheet.freeze_panes('E2')
 
     countcomparisonfilename = os.path.join(
         resultspath, corefilename + '_countcomparison' + '.tsv' + '.txt')
@@ -1376,13 +1376,7 @@ def main():
         settings.LOGGER.error("{}: {}: <{}>".format(
             q, invalidqueries[q], themethod.queries[q].query))
 
-    # print the header
-    print(resultsheaderstring, file=outfile)
-    outworksheet.write_row(outrowctr, outstartcol, resultsheaderrow)
-    outrowctr += 1
 
-    # print the platinumheader  (now obsolete)
-    # print(platinumheaderstring, file=platinumoutfile)
 
     # print the results
     qcount = 0
@@ -1400,32 +1394,58 @@ def main():
 
     analysedtreesdict = {uttid: stree for uttid, stree in allresults.analysedtrees}
 
-    for queryid in themethod.queries:
-        qcount += 1
-        thequery = themethod.queries[queryid]
-        if queryid not in reskeyindex:
-            reskeys = [mkresultskey(queryid)]
-        else:
-            reskeys = reskeyindex[queryid]
-        for reskey in reskeys:
-            theresults = results[reskey] if reskey in results else Counter()
-            resultstr = counter2liststr(theresults)
+    qid_reskeys = get_qid_reskeys(allresults, themethod)
 
-            sortedgolduttstr = getsortedgolduttscore(reskey, goldscores)
+    # statement to fill the atp object:
+    atp = AnalysisTableParameters(allresults=allresults, exactgoldscores=exactgoldscores,
+                                  exactsilverscores=exactsilverscores, themethod=themethod, invalidqueries=invalidqueries,
+                                  platinuminfilefound=platinuminfilefound, infilename=options.infilename, allannutts=allannutts,
+                                  reffilename=reffilename, qid_reskeys=qid_reskeys)
 
-            qex, invalidqcount, undefinedqcount = updatequerycounts(queryid, themethod, invalidqcount,
-                                                                    undefinedqcount)
+    analysis_table = mk_analysis_table(atp)
+    (base, ext) = os.path.splitext(options.infilename)
+    outputfullname = os.path.join(
+        resultspath, corefilename + analysissuffix + tsvext + txtext)
+    # outfile = open(outputfullname, 'w', encoding='utf8')
+    #
+    outxlsx = os.path.join(resultspath, corefilename + "_analysis" + xlsxext)
+    analysis_column_widths = {'A:AZ': 8.11}
+    outworkbook = mkworkbook(outxlsx, [resultsheaderrow], analysis_table, freeze_panes=(4,1),
+                             column_widths=analysis_column_widths )
+    outworkbook.close()
+    writecsv(analysis_table, outputfullname, header=resultsheaderrow)
 
-            fullresultrow, platinumrow = getfullscoreandplatinumstr(reskey, themethod, theresults, resultstr,
-                                                                    goldscores, platinuminfilefound,
-                                                                    silverscores, sortedgolduttstr, qex)
+    # statement to fill the atp object for sas-results:
 
-            print(tab.join(fullresultrow), file=outfile)
-            outworksheet.write_row(outrowctr, outstartcol, fullresultrow)
-            outrowctr += 1
+    sas_adapted_results = sas_adapt_results(allresults.coreresults, allresults.sasresults,
+                                            silverscores, themethod)
 
-            # print(tab.join(platinumrow), file=platinumoutfile)  # now obsolete
+    sas_allresults = copy.copy(allresults)
+    sas_allresults.coreresults = sas_adapted_results
 
+    atp = AnalysisTableParameters(allresults=sas_allresults, exactgoldscores=exactgoldscores,
+                                  exactsilverscores=exactsilverscores, themethod=themethod, invalidqueries=invalidqueries,
+                                  platinuminfilefound=platinuminfilefound, infilename=options.infilename, allannutts=allannutts,
+                                  reffilename=reffilename, qid_reskeys=qid_reskeys)
+    sas_analysis_table = mk_analysis_table(atp)
+    (base, ext) = os.path.splitext(options.infilename)
+    sas_outputfullname = os.path.join(
+        resultspath, corefilename + sasanalysissuffix + tsvext + txtext)
+    # outfile = open(outputfullname, 'w', encoding='utf8')
+    #
+    sas_outxlsx = os.path.join(resultspath, corefilename + sasanalysissuffix + xlsxext)
+    analysis_column_widths = {'A:AZ': 8.11}
+    outworkbook = mkworkbook(sas_outxlsx, [resultsheaderrow], sas_analysis_table, freeze_panes=(4,1),
+                             column_widths=analysis_column_widths )
+    outworkbook.close()
+    writecsv(sas_analysis_table, sas_outputfullname, header=resultsheaderrow)
+
+
+
+
+
+    for qid, reskeys in qid_reskeys:
+       for reskey in reskeys  :
             # @with an annotationfile allmatches is empty so we need to redefine newrows (exactmismatches) markedutt (getmarkedutt)-done
             if exact:
                 # breakpoint()
@@ -1434,9 +1454,6 @@ def main():
                 allrows += newrows
                 # breakpoint()
 
-    # platinumcheckfullname = platinumcheckfile.name
-    # (base, ext) = os.path.splitext(platinumcheckfilename)
-    # platinumcheckxlfullname = base + '.xlsx'
 
     # add missed literal hits
     literalmissedrows = literalmissedmatches(themethod.queries, exactresults, exactgoldscores, allmatches, allutts,
@@ -1445,7 +1462,6 @@ def main():
 
     # breakpoint()
 
-# filters=[(informcol, "inform == yes")] added again
     wb = mkworkbook(platinumcheckxlfullname, pcheaders, allrows, freeze_panes=(1, 9),
                     column_widths=platinumcheck_column_widths, filters=[(informcol, "inform == yes")])
     wb.close()
@@ -1462,173 +1478,29 @@ def main():
 
 
 
-    # compute the gold postresults
-    goldpostresults: Dict[UttId, int] = {}
-    goldcounters: Dict[QId, ResultsCounter] = {}
-    allgoldmatches: MatchesDict = {}
-    for reskey in goldscores:
-        goldcounters[reskey] = goldscores[reskey]
-    allgoldresults = AllResults(uttcount, goldcounters, exactgoldscores, goldpostresults, allgoldmatches, reffilename,
-                                [],
-                                allannutts, annotationinput)
-    postquerylist: List[QId] = [
-        q for q in themethod.postquerylist if themethod.queries[q].process == post_process]
-    dopostqueries(allgoldresults, postquerylist, themethod.queries)
 
-    # compute the platinum postresults
-
-    platinumpostresults: Dict[ResultsKey, Any] = {}
-
-    # print the postresults
-    thepostresults = allresults.postresults
-    for queryid in postquerylist:
-        resultposval = str(getpostval(queryid, thepostresults))
-        goldpostval = str(getpostval(queryid, goldpostresults))
-        platinumpostval = str(getpostval(queryid, platinumpostresults))
-        if themethod.queries[queryid].query != '':
-            qex = 'yes'
-        else:
-            qex = 'no'
-
-        queryreskey = mkresultskey(queryid)
-        queryreskeystr = showreskey(queryreskey)
-        queryinforow = [queryreskeystr, themethod.queries[queryid].cat, themethod.queries[queryid].subcat,
-                        themethod.queries[queryid].item]
-        queryresultsrow = ['', resultposval, '', goldpostval,
-                           qex] + erow(6) + [platinumpostval] + erow(11)
-
-        postrow = queryinforow + queryresultsrow
-        postrowstring = tab.join(queryinforow + queryresultsrow)
-        print(postrowstring, sep=tab, file=outfile)
-        outworksheet.write_row(outrowctr, outstartcol, postrow)
-        outrowctr += 1
-
-    # gather overall results, 2 cases: (1)for defined original measure queries only; (2) for all original measure queries
-
-    overallmethods = [(1, 'Overall (defined pre and core queries in the profile)',
-                       lambda x: is_preorcore(x) and query_exists(x) and query_inform(x)),
-                      (2, 'Overall (all pre and core queries in the profile)',
-                       lambda x: is_preorcore(x) and query_inform(x)),
-                      (3, 'Overall (original pre and core measures with defined queries only)',
-                       lambda x: is_preorcore(x) and query_exists(x)),
-                      (4, 'Overall (all original pre and core measures)', lambda x: is_preorcore(x))]
-
-    logheader = ['datetime', 'treebank', 'scorenr,' 'R', 'P', 'F1', 'P-R', 'P-P', 'P-F1', 'GP-R', 'GP-P', 'GP-F1',
-                 'ref',
-                 'method']
-    logname = 'sastalog.txt'
-    logpath = os.path.join(codepath, '../../sastalog')
-    os.makedirs(logpath, exist_ok=True)
-    logfullname = os.path.join(logpath, logname)
-    biglogfile = open(logfullname, 'a', encoding='utf8')
-
-    exactlynow = datetime.datetime.now()
-    now = exactlynow.replace(microsecond=0).isoformat()
-
-    for (ctr, message, queryfunction) in overallmethods:
-        # gather resultscount
-        resultscount = 0
-        for reskey in results:
-            queryid = reskey[0]
-            thequery = themethod.queries[queryid]
-            if thequery.original and queryfunction(thequery):
-                resultscount += sum(results[reskey].values())
-
-        # gather goldcount
-        goldcount = 0
-        for reskey in goldscores:
-            queryid = reskey[0]
-            thequery = themethod.queries[queryid]
-            goldcounter = goldscores[reskey]
-            if thequery.original and queryfunction(thequery):
-                goldcount += sum(goldcounter.values())
-
-        # gather platinumcount
-        platinumcount = 0
-        for reskey in silverscores:
-            queryid = reskey[0]
-            if queryid in themethod.queries:
-                thequery = themethod.queries[queryid]
-                if thequery.original and queryfunction(thequery):
-                    platinumcount += sum(silverscores[reskey].values())
-            else:
-                settings.LOGGER.warning(
-                    f'Query {reskey} found in silver scores but {queryid} not in queries')
-
-        # resultsgoldintersectiocount
-        resultsgoldintersectioncount = 0
-        for reskey in results:
-            queryid = reskey[0]
-            thequery = themethod.queries[queryid]
-            if thequery.original and queryfunction(thequery):
-                if reskey in goldscores:
-                    goldcounter = goldscores[reskey]
-                    intersection = results[reskey] & goldcounter
-                    resultsgoldintersectioncount += sum(intersection.values())
-                else:
-                    pass
-                    # settings.LOGGER.warning(f'Query {reskey} found in results but not in goldscores')
-
-        # resultsplatinumintersectioncount
-        resultsplatinumintersectioncount = 0
-        for reskey in results:
-            queryid = reskey[0]
-            thequery = themethod.queries[queryid]
-            if thequery.original and queryfunction(thequery):
-                if reskey in silverscores:
-                    intersection = results[reskey] & silverscores[reskey]
-                    resultsplatinumintersectioncount += sum(
-                        intersection.values())
-                else:
-                    pass
-                    # settings.LOGGER.warning('queryid {} not in silverscores'.format(queryid))
-
-        # goldplatinumintersectioncount
-        goldplatinumintersectioncount = 0
-        for reskey in silverscores:
-            queryid = reskey[0]
-            if queryid in themethod.queries:
-                thequery = themethod.queries[queryid]
-                if thequery.original and queryfunction(thequery):
-                    if reskey in goldscores:
-                        goldcounter = goldscores[reskey]
-                        intersection = goldcounter & silverscores[reskey]
-                        goldplatinumintersectioncount += sum(
-                            intersection.values())
-                    else:
-                        pass
-                        # settings.LOGGER.warning('Query {} in silverscores but not in goldscores'.format(queryid))
-            else:
-                settings.LOGGER.warning(
-                    f'Query {reskey} in silverscores but {queryid} not in queries')
-
-        (recall, precision, f1score) = getevalscores(
-            resultscount, goldcount, resultsgoldintersectioncount)
-        (platinumrecall, platinumprecision, platinumf1score) = getevalscores(resultscount, platinumcount,
-                                                                             resultsplatinumintersectioncount)
-        (gprecall, gpprecision, gpf1score) = getevalscores(
-            goldcount, platinumcount, goldplatinumintersectioncount)
-
-        overallrow = ['', '', '', message, '', '', '', '', '', sf(recall), sf(precision), sf(f1score),
-                      '', '', '', '', sf(platinumrecall), sf(
-            platinumprecision), sf(platinumf1score), '', '',
-            sf(gprecall), sf(gpprecision), sf(gpf1score), '', '', '']
-
-        print(tab.join(overallrow), file=outfile)
-        outworksheet.write_row(outrowctr, outstartcol, overallrow)
-        outrowctr += 1
-
-        logrow = [now, options.infilename, str(ctr), sf(recall), sf(precision), sf(f1score),
-                  sf(platinumrecall), sf(platinumprecision), sf(platinumf1score),
-                  sf(gprecall), sf(gpprecision), sf(gpf1score),
-                  reffilename, options.methodfilename]
-
-        print(tab.join(logrow), file=biglogfile)
-
-    biglogfile.close()
-    outfile.close()
-    outworkbook.close()
-    # platinumoutfile.close()
+    # I put ti off because is is not used anymore and requires input from mk_analysis_table
+    # logheader = ['datetime', 'treebank', 'scorenr,' 'R', 'P', 'F1', 'P-R', 'P-P', 'P-F1', 'GP-R', 'GP-P', 'GP-F1',
+    #              'ref',
+    #              'method']
+    # logname = 'sastalog.txt'
+    # logpath = os.path.join(codepath, '../../sastalog')
+    # os.makedirs(logpath, exist_ok=True)
+    # logfullname = os.path.join(logpath, logname)
+    # biglogfile = open(logfullname, 'a', encoding='utf8')
+    #
+    # exactlynow = datetime.datetime.now()
+    # now = exactlynow.replace(microsecond=0).isoformat()
+    #
+    #
+    #     logrow = [now, options.infilename, str(ctr), sf(recall), sf(precision), sf(f1score),
+    #               sf(platinumrecall), sf(platinumprecision), sf(platinumf1score),
+    #               sf(gprecall), sf(gpprecision), sf(gpf1score),
+    #               reffilename, options.methodfilename]
+    #
+    #     print(tab.join(logrow), file=biglogfile)
+    #
+    # biglogfile.close()
 
     resultscounts = scores2counts(results)
 

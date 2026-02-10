@@ -4,7 +4,7 @@ from sastadev.conf import settings
 from sastadev.corrector import (disambiguationdict, initialmaarvgxpath)
 from sastadev.lexicon import de, dets, nochildword, preferably_intransitive_verbs, tsw_non_words, validnouns, \
     validword, \
-    wordsunknowntoalpinolexicondict, wrongposwordslexicon
+    wordsunknowntoalpinolexicondict, wrongposlemmaslexicon, wrongposwordslexicon
 from sastadev.macros import expandmacros
 from sastadev.metadata import (Meta,  defaultpenalty,
                                ADULTSPELLINGCORRECTION, ALLSAMPLECORRECTIONS, BASICREPLACEMENTS, CONTEXT,
@@ -204,15 +204,33 @@ def getunknownwordcount(tree: SynTree, mds: List[Meta] = [], methodname: str='')
     unknownwords += [w for w in words if not isvalidword(w.lower(), methodname) ]
     return len(unknownwords)
 
-wrongposwordxpathtemplate = './/node[@lemma="{word}" and @pt="{pos}"]'
+# wrongposwordxpathtemplate = './/node[@word="{word}" and @pt="{pos}"]'
+# wrongposlemmaxpathtemplate = './/node[@lemma="{word}" and @pt="{pos}"]'
+# def old_get_wrong_pos_word_nodes(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> List:
+#     wrong_pos_words = []
+#     for word, pos in wrongposwordslexicon:
+#         wrong_pos_word_xpath = wrongposwordxpathtemplate.format(word=word, pos=pos)
+#         matches = tree.xpath(wrong_pos_word_xpath)
+#         for match in matches:
+#             wrong_pos_words.append(match)
+#     return wrong_pos_words
+
 def get_wrong_pos_word_nodes(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> List:
+    wordnodes = tree.xpath('.//node[@word]')
     wrong_pos_words = []
-    for word, pos in wrongposwordslexicon:
-        wrong_pos_word_xpath = wrongposwordxpathtemplate.format(word=word, pos=pos)
-        matches = tree.xpath(wrong_pos_word_xpath)
-        for match in matches:
-            wrong_pos_words.append(match)
+    for wordnode in wordnodes:
+        lemma = getattval(wordnode, 'lemma')
+        word = getattval(wordnode, 'word')
+        pos = getattval(wordnode, 'pt')
+        lcword = word.lower()
+        if (lemma, pos) in wrongposlemmaslexicon:
+            wrong_pos_words.append(wordnode)
+        if (word, pos) in wrongposwordslexicon:
+            wrong_pos_words.append(wordnode)
+        if (lcword, pos) in wrongposwordslexicon:
+            wrong_pos_words.append(wordnode)
     return wrong_pos_words
+
 
 def getwrongposwordcount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
     wrong_pos_word_matches = get_wrong_pos_word_nodes(tree)

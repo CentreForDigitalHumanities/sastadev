@@ -1,4 +1,2 @@
-mijn	n
-zij	n
-geval	n
-zit	n
+spelen	n
+ogen	ww

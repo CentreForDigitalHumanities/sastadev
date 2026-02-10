@@ -35,6 +35,7 @@ class AnalysisTableParameters:
     allannutts: UttWordDict
     infilename: FileName
     reffilename: FileName
+    qid_reskeys:  List[Tuple[QId, ResultsKey]]
 
 def erow(cnt: int) -> List[str]:
     result = []
@@ -183,7 +184,7 @@ def get_qid_reskeys(allresults: AllResults, themethod: Method) -> List[Tuple[QId
 # atp = AnalysisTableParameters(allresults=allresults, exactgoldscores=exactgoldscores,
 #                               exactsilverscores=exactsilverscores, themethod=themethod, invalidqueries=invalidqueries,
 #                               platinuminfilefound=platinuminfilefound, infilename=infilename, allannutts=allannutts,
-#                               reffilename=reffilename)
+#                               reffilename=reffilename, sas=sas)
 
 def mk_analysis_table(atp: AnalysisTableParameters) -> Table:
 
@@ -195,10 +196,7 @@ def mk_analysis_table(atp: AnalysisTableParameters) -> Table:
     corepath, lastfolder = os.path.split(basepath)
     resultspath = os.path.join(corepath, resultsfolder)
 
-    # append the header
     analysis_table = []
-    # analysis_table.append(resultsheaderrow) # no we keep the header separate
-
 
     # add the results
     qcount = 0
@@ -209,11 +207,9 @@ def mk_analysis_table(atp: AnalysisTableParameters) -> Table:
 
     allrows = []
 
-    qid_reskeys = get_qid_reskeys(atp.allresults, atp.themethod)
-
     analysedtreesdict = {uttid: stree for uttid, stree in atp.allresults.analysedtrees}
 
-    for queryid, reskeys in qid_reskeys:
+    for queryid, reskeys in atp.qid_reskeys:
         for reskey in reskeys:
             theresults = results[reskey] if reskey in results else Counter()
             resultstr = counter2liststr(theresults)
@@ -229,14 +225,6 @@ def mk_analysis_table(atp: AnalysisTableParameters) -> Table:
                                                                     atp.invalidqueries)
 
             analysis_table.append(fullresultrow)
-
-
-
-
-    filteredrows = [row for row in allrows if row[informcol] == 'yes']
-    datasetname, samplename = get_dataset_samplename(atp.infilename)
-    sample_uttids_tuples = get_samplename_uttids_tuples(filteredrows, samplecol, uttidcol)
-    make_filelist(f'{samplename}_platinum_check', datasetname, sample_uttids_tuples, resultspath)
 
     # compute the gold postresults
     goldpostresults: Dict[UttId, int] = {}
@@ -380,6 +368,9 @@ def mk_analysis_table(atp: AnalysisTableParameters) -> Table:
         analysis_table.append(overallrow)
 
     return analysis_table
+
+
+
 
 
 

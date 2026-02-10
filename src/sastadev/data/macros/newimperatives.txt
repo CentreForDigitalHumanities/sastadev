@@ -120,8 +120,12 @@ declarative = """(@cat="smain" or %nonfindeclarative% or %npnonfindeclarative% o
 nonfindeclarative = """((@cat="inf" or @cat="ppart") and @rel!="vc" and  %onlythesearerealwords% )"""
 npnonfindeclarative = """(@cat="np" and node[@rel="hd" and @pt="ww" and @wvorm="inf"])"""
 
-Tarsp_OndB = """((%Ond% or node[@naamval="nomin"] or node[@cat and node[@rel="hd" and @naamval="nomin"]]) and  node[%Tarsp_Basic_B%]  and count(node) = 2 and %onlythesearerealwords% and not(%Tarsp_BX%) and not(%Xneg%)) """
+Tarsp_OndB = """(%Tarsp_core_OndB% or Tarsp_smain_OndB)"""
+
+Tarsp_core_OndB = """((%Ond% or node[@naamval="nomin"] or node[@cat and node[@rel="hd" and @naamval="nomin"]]) and  node[%Tarsp_Basic_B%]  and count(node) = 2 and %onlythesearerealwords% and not(%Tarsp_BX%) and not(%Xneg%)) """
 Tarsp_OndVC = """((%coreondvc% or %dpdpondvc%)  and count(node) = 2 and %onlythesearerealwords%) """
+
+Tarsp_smain_OndB = """(@cat="smain" and node[@rel="su"] and node[@rel="mod"] and count(node) =2 and %onlythesearerealwords%) """
 
 beetje = """(@word="beetje")"""
 

@@ -406,6 +406,12 @@ wrongposwordslexiconfilename = 'wrongposwordslexicon.txt'
 wrongposwordslexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, wrongposwordslexiconfilename)
 wrongposwordslexicon = initializelexicon(wrongposwordslexiconfullname)
 
+wrongposlemmaslexiconfilename = 'wrongposlemmaslexicon.txt'
+wrongposlemmaslexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, wrongposlemmaslexiconfilename)
+wrongposlemmaslexicon = initializelexicon(wrongposlemmaslexiconfullname)
+
+
+
 # validnouns is intended for nous  that Alpino assigns frame (both,both, both) but that are valid Dutch words
 validnouns = {'knijper', 'roosvicee'}
 
@@ -455,6 +461,7 @@ kijkvuadverbs = ['eens', 'dan', 'hier', 'zo']
 
 chatcodes = ["xxx", "xx", "yyy", "yy"]
 
+shortrep_exceptions = ['de']
 
 junk = 0
 
