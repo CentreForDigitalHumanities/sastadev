@@ -73,6 +73,7 @@ avoidambiguity = 'Avoiding ambiguity'
 wwnambiguity = 'Verb - Noun ambiguity'
 pnnambiguity = 'Person name - combined surname ambiguity'
 ww_vnw_ambiguity = 'Verb - Pronoun ambiguity'
+spellingerror = 'Spelling Errror'
 
 
 def combine(strlist: List[str]) -> str:
@@ -286,7 +287,9 @@ basicreplacementlist: List[BasicReplacement] = [('as', 'als', pron, infpron, cod
                                                 ('hun', 'zij', grammar, regionalform, casevariant, mp(0) ),
                                                 ('teefee', 'tv', pron, infpron, vzdevoicing, dp),
                                                 ('itte', 'eerst', pron, wrongpron, codared, dp),
-                                                ('allemaal', ' veel', grammar, alpino_unknown_word, '', dp)
+                                                ('allemaal', ' veel', grammar, alpino_unknown_word, '', dp),
+                                                ("'em", "'m", pron, infpron, spellingerror, -dp),
+                                                # ("pas", "past", pron, infpron, codared, -dp) # moved to correrctor
                                                 # ('kijke', 'kijk', pron, infpron, emphasis, dp), # TD05, 32 moved to disambuguationdict
                                                 # ('geel', 'mooi', avoidambiguity, adjnambiguity, dp), #TD05, 24
                                                 # ('Roy', 'Jan', avoidambiguity, pnnambiguity, dp)
@@ -461,7 +464,7 @@ def welnietttp(token: Token, stree: SynTree) -> bool:
 #: **Remark** Currently no distinction is made between singular *count* and singular *mass* nouns: they are both replaced by the same word. This may have to be adapted.
 disambiguation_replacements: List[Tuple[TokenTreePredicate, List[str], str]] = \
     [(dtp, ['huis', 'water', 'paard', 'werk', 'stuur', 'feest', 'snoep', 'geluid',
-                                      'kwartet', 'kruis'], 'gas'),
+                                      'kwartet', 'kruis', 'bad'], 'gas'),
      (dtp, ['toren', 'fiets', 'puzzel', 'boom', 'vis', 'melk', 'zon', 'pot', 'klok',
             'school', 'boer', 'lepel', 'jas', 'tuin', 'fles', 'lucht', 'emmer', 'maan', 'kachel',
             'kwak', 'verf', 'hop', 'kam', 'spiegel', 'klap', 'stal', 'lijm', 'lift', 'kat',

@@ -15,7 +15,8 @@ from sastadev.corrector import (Correction, getcorrections,
                                 mkuttwithskips)
 from sastadev.celexlexicon import celex2dcoi
 from sastadev.lexicon import getwordposinfo,nochildwords
-from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, bpl_none, bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, insertion,
+from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, bpl_none,
+                               bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, bpl_paspast, insertion,
                                EXTRAGRAMMATICAL
                                )
 from sastadev.methods import Method
@@ -357,7 +358,7 @@ def correcttreebank(treebank: Treebank, targets: Targets, correctionparameters: 
             uttid = getxsid(stree)
             uttno = find1(stree, './/metadata/meta[@name="uttno"]/@value')
             # print(uttid)
-            mustbedone = get_mustbedone(stree, targets)
+            mustbedone = get_mustbedone(stree, targets, correctionparameters.method)
             if mustbedone:
                 # to implementf
                 sentence = getsentence(stree)
@@ -913,6 +914,12 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                     newnodelemma = getattval(newnode, 'lemma')
                     contextoldnode.set('lemma', newnodelemma)
                 thetree = transplant_node(newnode, contextoldnode, thetree)
+        elif curbackplacement == bpl_paspast:
+            nodeend = meta.annotationposlist[-1] + 1
+            newnode = myfind(
+                thetree, './/node[@pt and @end="{}"]'.format(nodeend))
+            if newnode is not None:
+                newnode.set('pvagr', 'ev')
         elif curbackplacement == bpl_replacement:
             # showtree(fatstree, 'fatstree')
             if len(meta.annotationposlist) > 1:

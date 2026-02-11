@@ -21,3 +21,5 @@ freerunt	zwemt
 freerunde	zwom
 freerunden	zwommen
 gefreerund	gezwommen
+cakeje	koekje
+cakejes	koekjes

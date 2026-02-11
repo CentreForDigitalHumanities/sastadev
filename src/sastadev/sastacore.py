@@ -109,7 +109,7 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
         for syntree in correctedtreebank:
             uttcount += 1
 
-            mustbedone = get_mustbedone(syntree, targets)
+            mustbedone = get_mustbedone(syntree, targets, scp.themethod)
             if mustbedone:
                 # uttid = getuttid(syntree)
                 # analysedtrees consists of (uttid, syntree) pairs in order

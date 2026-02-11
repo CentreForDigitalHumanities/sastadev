@@ -6,7 +6,7 @@ from sastadev.correctionlabels import repeatedword
 from sastadev.sastatypes import Penalty
 
 bpl_none, bpl_word, bpl_node, bpl_delete, bpl_indeze, bpl_extra_grammatical, bpl_wordlemma, \
-bpl_cond, bpl_replacement, bpl_word_delprec, bpl_node_nolemma = tuple(range(11))
+bpl_cond, bpl_replacement, bpl_word_delprec, bpl_node_nolemma, bpl_paspast = tuple(range(12))
 defaultpenalty = 100
 defaultbackplacement = bpl_none
 

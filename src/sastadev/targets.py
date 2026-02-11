@@ -1,3 +1,9 @@
+from sastadev.CHAT_Annotation import CHAT_unintelligible_speech
+from sastadev.methods import Method, tarsp, stap, asta
+from sastadev.sastatypes import SynTree
+from sastadev.treebankfunctions import find1
+
+
 target_intarget, target_xsid, target_all, target_byrole, target_bysyn, target_stapvu = 0, 1, 2, 3, 4, 5
 intargetxpath = '//meta[@name="intarget"]'
 xsidxpath = '//meta[@name="xsid"]'
@@ -32,7 +38,7 @@ def get_targets(treebank, methodname):
     return result
 
 
-def get_mustbedone(syntree, targets):
+def get_mustbedone(syntree, targets, method: Method):
     if targets == target_bysyn:
         syns = syntree.xpath(synxpath)
         result = syns != []
@@ -50,4 +56,26 @@ def get_mustbedone(syntree, targets):
         result = syns != []
     else:
         result = True
-    return result
+
+    if result:  # the CHAT metadata are not yet here, so reconsider
+        finalresult = include_utterance(syntree, method)
+    else:
+        finalresult = result
+    return finalresult
+
+def include_utterance(syntree: SynTree, method: Method):
+    methodname = method.name
+    if methodname == tarsp:
+        if contains_unintelligible_speech(syntree):
+            return False
+    return True
+
+# unintelligible_speech_xpath = f"""./xmeta[@name="{CHAT_unintelligible_speech}"]"""
+def contains_unintelligible_speech(syntree: SynTree) -> bool:
+    origutt = find1(syntree, './/meta[@name="origutt"]/@value')
+    lc_origutt = origutt.lower()
+    if origutt is not None and ('xx' in lc_origutt or 'xxx' in lc_origutt or '@' in lc_origutt):
+        return True
+    # xxxs = syntree.xpath(unintelligible_speech_xpath) # for the moment we do it in an ad-hoc manner
+    # result = xxxs != []
+    return False

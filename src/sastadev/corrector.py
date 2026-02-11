@@ -31,7 +31,7 @@ from sastadev.lexicon import (alt_pt_ww_n_pairdict, WordInfo, de, definite_deter
                               tswnouns, validnotalpinocompoundword, validword, vuwordslexicon,
                               wordsunknowntoalpinolexicondict)
 from sastadev.macros import expandmacros
-from sastadev.metadata import (Meta, bpl_word_delprec, bpl_indeze, bpl_node, bpl_none, bpl_word,
+from sastadev.metadata import (Meta, bpl_word_delprec, bpl_indeze, bpl_node, bpl_none, bpl_paspast, bpl_word,
                                bpl_wordlemma, defaultbackplacement,
                                defaultpenalty, filled_pause, fstoken, intj,
                                janeenou, longrep, mkinsertmeta, mkSASTAMeta, modifypenalty as mp, repeated,
@@ -1544,8 +1544,27 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                         name=correctionlabels.informalpronunciation, value=valvalue, cat=catval,
                                         backplacement=bpl_word)
 
+     # reduced 'm written as -em attached to the preceding word
+    if token.word.endswith('-em'):
+        newwords = [f"{token.word[:-3]} 'm"]
+        valvalue = 'Wrongly spelled enclitic reduced pronoun'
+        catval = correctionlabels.pronunciation
+        newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                        name=correctionlabels.informalpronunciation, value=valvalue, cat=catval,
+                                        backplacement=bpl_none)
 
-    # clause intial maar must be parsed as conjunction not as an adverb: we replace it by "en" to avoid the ambiguity
+    # some words are wrongly analysed as a non-verb : pas while mostly past is meant
+    paspastlikewords = {'pas': 'past'}
+    if token.word in paspastlikewords:
+        newwords = [paspastlikewords[token.word]]
+        valvalue = 'Coda reduction, final t drop'
+        catval = correctionlabels.pronunciation
+        newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                        name=correctionlabels.informalpronunciation, value=valvalue, cat=catval,
+                                        backplacement=bpl_paspast, penalty=-defaultpenalty)
+
+
+    # clause initial maar must be parsed as conjunction not as an adverb: we replace it by "en" to avoid the ambiguity
     if token.word == 'maar':
         initialmaars = tree.xpath(initialmaarvgxpath) if tree is not None else []
         for initialmaar in initialmaars:
