@@ -49,7 +49,7 @@ def getqueryid(reskeystr: str) -> QId:
 
 class AllResults:
     def __init__(self, uttcount, coreresults, exactresults, postresults, allmatches, filename,
-                 analysedtrees, allutts, annotationinput=False, sasresults=[]):
+                 analysedtrees, allutts, annotationinput=False, sasresults=[], fullsasresults=[]):
         self.uttcount: int = uttcount
         self.coreresults: Dict[ResultsKey, ResultsCounter] = coreresults
         self.exactresults: ExactResultsDict = exactresults
@@ -60,6 +60,7 @@ class AllResults:
         self.allutts: UttWordDict = allutts
         self.annotationinput: bool = annotationinput
         self.sasresults: List[SAS_Result] = sasresults
+        self.fullsasresults: List[SAS_Result] = fullsasresults
 
 
 CoreQueryFunction = Callable[[SynTree], List[SynTree]]

@@ -619,6 +619,22 @@ def sf(number):
         result = number
     return result
 
+def is_interpunction_sequence(wrd: str) -> bool:
+    for c in wrd:
+        if not ispunctuation(c):
+            return False
+    return True
+
+punc_seqs = ['??', '?!?', '...', 'aaa']
+def testpuncs():
+    for punc_seq in punc_seqs:
+        result = is_interpunction_sequence(punc_seq)
+        if result:
+            print(f'YES: {punc_seq}')
+        else:
+            print(f'NO: {punc_seq}')
 
 if __name__ == '__main__':
     test()
+    # testpuncs()
+

@@ -180,10 +180,17 @@ def finaltokenmultiwordexplanation(tree: SynTree) -> Optional[str]:
             prefixwordlist + finalexpl.annotationwordlist + postexplanationwords)
         # print(settings.replacements)
         resultalignment = align_words(utt, expl, auchannsettings)
-        result = str(resultalignment)
+        resultalignmentstr = str(resultalignment)
+
+        # @@add the check for a proper alignment
+        # check for proper alignment  (no words split up into multiple words)
+        alignment_ok = is_proper_alignment(utt, expl, resultalignmentstr)
+        if not alignment_ok:
+            result = None
+        else:
+            result = resultalignmentstr
     else:
         result = None
-        # report an error
 
     return result
 
@@ -358,6 +365,8 @@ def finalexplanation_adapttree(tree: SynTree) -> SynTree:
     # @@TODO: Unfinished@@
     #    alignment = finaltokenmultiwordexplanation(tokensmd,tree)
     alignment = finaltokenmultiwordexplanation(tree)
+
+
     if alignment is None:
         explanationstr = getexplanationfromexplanationtier(tree)
         if explanationstr is not None:

@@ -806,7 +806,7 @@ def getprefixwords2(wlist: List[Nort],
     while tokenctr > 0:
         repctr = tokenctr - 1
         while repctr >= 0 and isnortprefixof(wlist[repctr], wlist[tokenctr]):
-            if cond(wlist[repctr], wlist[tokenctr]) and wlist[repctr].word not in shortrep_exceptions:
+            if cond(wlist[repctr], wlist[tokenctr]) and getword(wlist[repctr]) not in shortrep_exceptions:
                 resultlist.append(wlist[repctr])
                 reppos = getposition(wlist[repctr])
                 tokenpos = getposition(wlist[tokenctr])

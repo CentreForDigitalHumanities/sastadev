@@ -190,14 +190,14 @@ from sastadev.readmethod import itemseppattern, read_method
 from sastadev.reduceresults import exact2results, reduceexactgoldscores
 from sastadev.resultsbyutterance import (byuttheader, exactbyuttdict2table,
                                          exactresultsbyuttheader,
-                                         getexactbyutt, mkscoresbyuttrows,
+                                         getexactbyutt, getsastable, mkscoresbyuttrows,
                                          silverf1col)
 from sastadev.rpf1 import getevalscores, getscores, sumfreq
 from sastadev.SAFreader import (get_golddata, richexact2global,
                                 richscores2scores)
 from sastadev.sample_uttid_tuples import get_samplename_uttids_tuples
 from sastadev.sas_adapt_results import sas_adapt_results
-from sastadev.sas_impact import mksas_impactrows, sas_impact
+from sastadev.sas_impact import mksas_impactrows, sas_impact, maxutt
 from sastadev.sastacore import (SastaCoreParameters, doauchann, dopostqueries,
                                 isxpathquery, sastacore)
 from sastadev.sastatypes import (AltCodeDict, DataSetName, ExactResultsDict,
@@ -1349,6 +1349,7 @@ def main():
     samplesizetupledata = [[comma.join(samplesizetuple[0]), samplesizetuple[1], samplesizetuple[2]]]
     samplesizetupleheader = ['utt ids', '# words', 'cutoff']
     add_worksheet(wb, [samplesizetupleheader], samplesizetupledata, sheetname='SampleSizeTuple', freeze_panes=(1,0))
+
     wb.close()
 
 
@@ -1437,6 +1438,11 @@ def main():
     analysis_column_widths = {'A:AZ': 8.11}
     outworkbook = mkworkbook(sas_outxlsx, [resultsheaderrow], sas_analysis_table, freeze_panes=(4,1),
                              column_widths=analysis_column_widths )
+
+    sastable = getsastable(allresults)
+    sastableheader = ['uttid', 'message', 'suggestions']
+    add_worksheet(outworkbook, [sastableheader], sastable, sheetname='SAS_table', freeze_panes=(1,0))
+
     outworkbook.close()
     writecsv(sas_analysis_table, sas_outputfullname, header=resultsheaderrow)
 

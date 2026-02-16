@@ -18,6 +18,9 @@ silverf1col = 21
 comma = ','
 space = ' '
 
+mluqid = 'A029'
+sszqid = 'A045'
+
 notapplicable = (0.0, 0.0, 0.0)
 
 byuttheader = ['uttid', 'results', 'bronzeref', 'silverref'] + \
@@ -159,7 +162,14 @@ def counter2itemlist(scores: Counter, method: Method) -> List[str]:
     for reskey in scores:
         qid = reskey[0]
         thequery = method.queries[qid]
-        theitem = thequery.item if reskey[0] == reskey[1] else f'{thequery.item}={reskey[1]}'
+        if reskey[0] == mluqid:
+            theitem = 'MLUX'
+        elif reskey[0] == sszqid:
+            theitem = 'SSZX'
+        elif reskey[0] == reskey[1]:
+            theitem = thequery.item
+        else:
+            theitem = f'{thequery.item}={reskey[1]}'
         sublist = scores[reskey] * [theitem]
         resultlist += sublist
     sortedresultlist = sorted(resultlist)
@@ -187,3 +197,12 @@ def table2exactbyuttdict(table: Table) -> dict:
             # report an error
             pass
     return resultdict
+
+def getsastable(allresults: AllResults) -> Table:
+    sastuples = allresults.sasresults
+    table = []
+    for uttid, sasresultlist in sastuples:
+        for sasresult in sasresultlist:
+            newrow = [uttid, sasresult.message, comma.join(sasresult.suggestedcodes)]
+            table.append(newrow)
+    return table

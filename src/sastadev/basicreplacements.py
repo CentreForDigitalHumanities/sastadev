@@ -288,7 +288,8 @@ basicreplacementlist: List[BasicReplacement] = [('as', 'als', pron, infpron, cod
                                                 ('teefee', 'tv', pron, infpron, vzdevoicing, dp),
                                                 ('itte', 'eerst', pron, wrongpron, codared, dp),
                                                 ('allemaal', ' veel', grammar, alpino_unknown_word, '', dp),
-                                                ("'em", "'m", pron, infpron, spellingerror, -dp),
+                                                ("'em", "'m", orth, spellerr, spellingerror, -dp),
+                                                # ("k", "'k'", orth, spellerr, apomiss, -dp ) # Alpino takes care of this
                                                 # ("pas", "past", pron, infpron, codared, -dp) # moved to correrctor
                                                 # ('kijke', 'kijk', pron, infpron, emphasis, dp), # TD05, 32 moved to disambuguationdict
                                                 # ('geel', 'mooi', avoidambiguity, adjnambiguity, dp), #TD05, 24

@@ -57,8 +57,9 @@ def get_mustbedone(syntree, targets, method: Method):
     else:
         result = True
 
-    if result:  # the CHAT metadata are not yet here, so reconsider
-        finalresult = include_utterance(syntree, method)
+    if result:  # the CHAT metadata are not yet here, so adapt and refine
+        finalresult = result
+        # finalresult = include_utterance(syntree, method)
     else:
         finalresult = result
     return finalresult

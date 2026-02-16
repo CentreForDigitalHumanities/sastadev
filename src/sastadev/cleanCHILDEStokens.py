@@ -251,11 +251,11 @@ robustnessrules: List[RobustnessTuple] = [(re.compile(r'\u2026'), '\u2026', '...
                                           (re.compile(r'\[\+ea\]', re.I), '[+ea]', '[+ ea]', 'Missing space'),
                                           (re.compile(r'\[%(?![\s])'), '[%', '[% ', 'Missing space'),
                                           (re.compile(r'\[:(?![:\s])'), '[:', '[: ', 'Missing space'),
-                                          (re.compile('@'), '@', ' xxx ', '@-sign interpreted as xxx'),
-                                          (re.compile('\[\s*VU\s*\]', re.I), '[VU]', '[+ VU]', 'Missing +, possibly missing space'),
-                                          (re.compile('\[\s*EA\s*\]', re.I), '[EA]', '[+ EA]', 'Missing +, possibly missing space'),
-                                          (re.compile('\[\s*exc\s*\]', re.I), '[exc]', '[+ exc]', 'Missing +, possibly missing space'),
-                                          (re.compile('\[\s*G\s*\]', re.I), '[G]', '[+ G]', 'Missing +, possibly missing space'),
+                                          # (re.compile(r'\b@\b'), '@', ' xxx ', 'independent @-sign interpreted as xxx'), # put off does not work for special forms @n
+                                          (re.compile(r'\[\s*VU\s*\]', re.I), '[VU]', '[+ VU]', 'Missing +, possibly missing space'),
+                                          (re.compile(r'\[\s*EA\s*\]', re.I), '[EA]', '[+ EA]', 'Missing +, possibly missing space'),
+                                          (re.compile(r'\[\s*exc\s*\]', re.I), '[exc]', '[+ exc]', 'Missing +, possibly missing space'),
+                                          (re.compile(r'\[\s*G\s*\]', re.I), '[G]', '[+ G]', 'Missing +, possibly missing space'),
                                           (re.compile(r'(?<=\w)\+\.\.\.'), '+...', ' +...', 'Missing space'),
                                           (re.compile(r'\u2018'), '\u2018', "'", "Left Single Quotation Mark (\u2018. Unicode U+2018) replaced by Apostrophe ' (Unicode U+0027)"),
                                           (re.compile(r'\u2019'), '\u2019', "'", "Right Single Quotation Mark (\u2019, Unicode U+2019) replaced by Apostrophe ' (Unicode U+0027)"),
@@ -295,7 +295,7 @@ def smartjoin(strings: List[str]) -> str:
     lstrings = len(strings)
     if lstrings > 0:
         for i in range(lstrings - 1):
-            if ispunctuation(strings[i + 1]):
+            if ispunctuation(strings[i + 1]) and not ispunctuation(strings[i]):
                 result += strings[i]
             else:
                 result += strings[i] + space

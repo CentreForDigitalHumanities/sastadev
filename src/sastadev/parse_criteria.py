@@ -306,12 +306,12 @@ def getbadcatcount(tree: SynTree, mds: List[Meta] = [], method: Method = default
 
 #: this is actually valid for all pts except let
 noun_1_character_xpath = './/node[@pt!="let"  and string-length(@word)=1]'
-
+c1_exceptions = ['u', 'k']
 def get_single_character_noun_nodes(
     tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> List:
     raw_single_character_noun_nodes = tree.xpath(noun_1_character_xpath)
     single_character_noun_nodes = [nd for nd in raw_single_character_noun_nodes if getattval(nd, 'word') not in
-                                       digits]
+                                       digits and getattval(nd, 'word') not in c1_exceptions ]
     return single_character_noun_nodes
 
 def getnoun1c_count(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> int:

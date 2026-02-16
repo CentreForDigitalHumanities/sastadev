@@ -59,6 +59,7 @@ The functions currently in use are stored in the variable *thefunctions*:
 
 """
 import copy
+import re
 from sastadev.allresults import mkresultskey, ResultsKey
 from sastadev.ASTApostfunctions import mluxqid, samplesizeqid
 from sastadev.CHAT_Annotation import CHAT_replacement, CHAT_wordnoncompletion
@@ -86,6 +87,7 @@ from sastadev.correctionlabels import (
     unknownwordsubstitution,
     wrongpronunciation,
 )
+from sastadev.lexicon import informlexicon
 from sastadev.parse_criteria import get_bad_category_nodes, get_multiple_main_clause_nodes, get_unknown_noun, \
     get_double_hyphen_nodes, get_not_known_by_alpino_nodes, get_ambiguous_word_nodes, get_single_character_noun_nodes, \
     get_basic_replacement_nodes, get_subjunctive_nodes, get_de_plus_neuter_nodes, get_adverbial_deze_nodes, \
@@ -113,6 +115,7 @@ from sastadev.sastatypes import (
     UttId,
 )
 from sastadev.semantic_compatibility import semincompatiblecount, get_semantically_incompatible_nodes
+from sastadev.stringfunctions import consonants, is_interpunction_sequence, monosyllabic
 from sastadev.treebankfunctions import ( find1,
     getattval as gav,
     getmeta,
@@ -132,6 +135,8 @@ comma = ","
 
 
 preferably_mod_words =['hierom', 'daarom']
+frequent_infl_suffix_patterns = [fr'[{consonants}]en', fr'[{consonants}]er']
+
 
 mlureskey = mkresultskey(mluxqid)
 samplesizereskey = mkresultskey(samplesizeqid)
@@ -148,6 +153,7 @@ not_known_by_alpino_message = 'Word unknown to the parser'
 single_character_noun_message = 'Single character noun'
 subjunctive_message = 'Subjunctive'
 suspect_obj2_message = 'Likely wrong indirect object'
+suspicious_compound_message = 'unlikely compound'
 unknown_noun_message = "Unknown noun"
 double_hyphen_message = 'Extragrammatical word'
 vcombinationmessage = "Missing V-combination codes"
@@ -472,6 +478,7 @@ def getunknownwordnodes(
                 wn.attrib["word"].lower(), mn, includealpinonouncompound=False
             )
             and not compoundsep in wn.attrib["lemma"]
+            and not is_interpunction_sequence(gav(wn, 'word'))
             and not isrobustname(wn)
             and gav(wn, "pt") != "tsw"
             and not gav(wn, "word").isnumeric()
@@ -559,7 +566,40 @@ def predict_wgnacodes(wgtree, method: Method,  qids=False) -> List[str]:
         result = [method.queries[qid].item for qid in qidresults if qid in method.queries]
     return result
 
-   # @@Continue here@@
+def get_suspicious_compounds(nt: TreeBank, exactresults: ExactResultsDict, method: Method) \
+        -> List[Tuple[SynTree, str, list]]:
+    """
+    identifies nodes that are unknown words and that have been analysed as a compound but
+    that contain as last component a single syllabel word ending in frequet inflectional suffixes such as -en, -er
+    :param nt:
+    :param _:
+    :param method:
+    :return:
+    """
+    rawresults = []
+    for tree in nt:
+        uttid = getxsid(tree)
+        if uttid == "0":
+            continue
+        session = getmeta(tree, "session")
+        junk = 0
+        wordnodes = [wn for wn in tree.xpath('.//node[@pt!="tsw" and @pt!="let"]')]
+        for wordnode in wordnodes:
+            word = gav(wordnode, 'word')
+            lcword = word.lower()
+            lemma = gav(wordnode, 'lemma')
+            pt = gav(wordnode, 'pt')
+            if pt == 'n' and compoundsep in lemma and not informlexicon(lcword):
+                parts = lemma.split(compoundsep)
+                lastpart = parts[-1]
+                if monosyllabic(lastpart):
+                    for suffix_pattern in frequent_infl_suffix_patterns:
+                        if re.search(suffix_pattern, lastpart):
+                            messagefunction = get_message_with_word_function(suspicious_compound_message)
+                            result = (wordnode, messagefunction(wordnode), [])
+                            rawresults.append(result)
+    results = filterbymetadata(rawresults, exactresults, method.name)
+    return results
 
 
 def checkvcombinationcodes(
@@ -910,7 +950,8 @@ criteria: Dict[str, Callable] =\
     "wrong_pos": apply_criterion(get_wrong_pos_word_nodes, get_wrong_pos_word_message_function(wrong_pos_word_message),
                                  lambda x: []),
     "preferably_mod": apply_criterion(get_wrongly_non_mod_nodes, get_message_with_word_function(wrongly_no_mod_message),
-                                      lambda x: [])
+                                      lambda x: []),
+    "unlikely_compound": get_suspicious_compounds
 
    # "Low Confidence": low_avg_confidence  # temporarily put off gives too many unwanted results
 
@@ -918,7 +959,7 @@ criteria: Dict[str, Callable] =\
 
 # for testing
 
-# criteria = {               "Low Confidence": low_avg_confidence
+#criteria = {                  "unlikely_compound": get_suspicious_compounds
 # }
 
 # from Xander:
