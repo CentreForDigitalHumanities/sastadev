@@ -1,2 +1,3 @@
 spelen	n
 ogen	ww
+plassen	n

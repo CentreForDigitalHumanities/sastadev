@@ -179,6 +179,7 @@ def adjacent(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     """
     yieldnodes = getnodeyield(stree)
     for i, n in enumerate(yieldnodes):
+        nword = getattval(n, 'word')
         if yieldnodes[i] == node1:
             prec = yieldnodes[i - 1] if i > 0 else None
             succ = yieldnodes[i + 1] if i < len(yieldnodes) - 1 else None

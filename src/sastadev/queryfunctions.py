@@ -363,3 +363,31 @@ def bx(stree: SynTree) -> List[SynTree]:
 
 
 
+
+rel_as_avn_xpath = """
+.//node[@pt="vnw" and @rel="rhd" and 
+        ../../../node[@cat="np" and @rel="--" and
+                      node[@pt="n" and @rel="hd"] and
+                      node[@cat="rel" and @rel="mod"]] and
+	    ../node[@cat="ssub" and @rel="body" and
+                node[@pt="ww" and @rel="hd"]]
+      ]            """
+
+
+def get_rel_as_avn_nodes(stree: SynTree) -> List[SynTree]:
+    results = []
+    rawnodes = stree.xpath(rel_as_avn_xpath)
+    for rawnode in rawnodes:
+        verbnodes = rawnode.xpath("""../node[@cat="ssub" and @rel="body" ]/node[@pt="ww" and @rel="hd"]""")
+        if verbnodes != []:
+            verbnode = verbnodes[0]
+            if adjacent(rawnode, verbnode, stree):
+                results.append(rawnode)
+    return results
+
+# this one rejected we prefer to transform the relevant structures
+def get_avn(stree: SynTree) -> List[SynTree]:
+    avn_xpath = expandmacros(""".//node[%AVn%]""")
+    results = stree.xpath(avn_xpath)
+    results += get_rel_as_avn_nodes(stree)
+    return results

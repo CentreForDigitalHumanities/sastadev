@@ -1,8 +1,8 @@
 import copy
 from sastadev.conf import settings
-from sastadev.lexicon import compoundsep, lemmalexicon
+from sastadev.lexicon import adj_no_pp_lexicon, compoundsep, lemmalexicon
 from sastadev.macros import expandmacros
-from sastadev.treebankfunctions import find1, getattval, getbeginend, getnodeyield, getyield, \
+from sastadev.treebankfunctions import clausebodycats, find1, getattval, getbeginend, getnodeyield, getyield, \
     immediately_precedes, iswordnode, showtree
 from sastadev.sastatypes import SynTree
 from sastadev.tblex import is_rpronoun
@@ -315,5 +315,82 @@ def transform_ppinap(stree: SynTree) -> SynTree:
                 apnodeparent.append(child)
                 child.set('rel', 'mod')
     return newstree
+
+def get_end(stree: SynTree) -> str:
+    nodeyield = getnodeyield(stree)
+    lastwordnode = nodeyield[-1] if nodeyield != [] else None
+    if lastwordnode is not None:
+        result = gav(lastwordnode, 'end')
+    else:
+        result = '-1'
+    return result
+
+np_rel_avn_xpath = """.//node[@cat="np" and @rel="--" and
+    node[@pt="n" and @rel="hd"] and
+    node[@cat="rel" and @rel="mod" and
+        node[@pt="vnw" and @rel="rhd"] and
+        node[@cat="ssub" and @rel="body" and
+            node[@pt="ww" and @rel="hd"]]]]
+			"""
+
+
+def transform_rel2avn(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    np_nodes = stree.xpath(np_rel_avn_xpath)
+    for np_node in np_nodes:
+        np_parent = np_node.getparent()
+        rel_node = find1(np_node, """./node[@cat="rel" and @rel="mod"]""")
+        np_node.remove(rel_node)
+        du_node = etree.Element('node', {'cat': ' du', 'rel':'--' })
+        np_parent.append(du_node)
+        np_node.set('rel', 'sat')
+        np_node_end = get_end(np_node)
+        np_node.set('end', np_node_end)
+        du_node.append(np_node)
+        rel_node.set('rel', 'nucl')
+        du_node.append(rel_node)
+        du_node.set('begin', gav(np_node, 'begin'))
+        du_node.set('end', gav(rel_node, 'end'))
+    return stree
+
+adj_pp_xpath = """.//node[@cat="ap" and node[@rel="hd" and @pt="adj"] and node[@cat="pp" or (@pt="bw" and starts-with(@frame,"er_adverb"))]]"""
+def transform_adj_pp(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    ap_nodes = stree.xpath(adj_pp_xpath)
+    for ap_node in ap_nodes:
+        ap_hd_node = find1(ap_node, """./node[@rel="hd"]""")
+        if ap_hd_node is not None:
+            hd_lemma = gav(ap_hd_node, 'lemma')
+            if hd_lemma in adj_no_pp_lexicon:
+                ap_parent = ap_node.getparent()
+                ap_parent_cat = gav(ap_parent, 'cat')
+                pp_node = find1(ap_node, """./node[@cat="pp" or (@pt="bw" and starts-with(@frame,"er_adverb")) and @rel="mod"]""")
+                if pp_node is not None:
+                    if ap_parent_cat not in clausebodycats:
+                        ap_begin, ap_end = getbeginend(ap_node)
+                        ap_node_rel = gav(ap_node, 'rel')
+                        new_parent = etree.Element('node',
+                                                   {'cat': 'du', 'rel': ap_node_rel,
+                                                    'begin': ap_begin, 'end': ap_end})
+                        ap_parent.remove(ap_node)
+                        new_parent.append(ap_node)
+                        ap_node.remove(pp_node)
+                        ap_new_begin, ap_new_end = getbeginend(ap_node)
+                        new_parent.append(pp_node)
+                        ap_parent.append(new_parent)
+                        ap_node.set('rel', 'dp')
+                        ap_node.set('begin', ap_new_begin)
+                        ap_node.set('end', ap_new_end)
+                        pp_node.set('rel', 'dp')
+                    else:
+                        new_parent = ap_parent
+                        ap_node.remove(pp_node)
+                        ap_new_begin, ap_new_end = getbeginend(ap_node)
+                        new_parent.append(pp_node)
+                        ap_node.set('begin', ap_new_begin)
+                        ap_node.set('end', ap_new_end)
+    return stree
+
+
 
 
