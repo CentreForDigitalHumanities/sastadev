@@ -1,12 +1,14 @@
 import os
 from sastadev.readcsv import readheadedcsv
+from sastadev.conf import settings
+
 
 inputpath1 = './data/tarspcodes'
 inputpath2 = './data/referencestatistics'
 
 
 tarsp_predictions1filename = 'tarsppredictions1.txt'
-tarsp_predictions1fullname = os.path.join(inputpath1, tarsp_predictions1filename)
+tarsp_predictions1fullname = os.path.join(settings.SD_DIR, inputpath1, tarsp_predictions1filename)
 
 header, data = readheadedcsv(tarsp_predictions1fullname)
 predictiondict = {}
@@ -20,7 +22,7 @@ for i, row in data:
 junk = 0
 
 tarspcodefrqsfilename = 'tarspfrequencies.txt'
-tarspcodefrqsfullname = os.path.join(inputpath2, tarspcodefrqsfilename)
+tarspcodefrqsfullname = os.path.join(settings.SD_DIR, inputpath2, tarspcodefrqsfilename)
 header, data = readheadedcsv(tarspcodefrqsfullname)
 tarspfrequenciesdict = {}
 for i, row in data:
