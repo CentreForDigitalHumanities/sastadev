@@ -328,7 +328,7 @@ def get_end(stree: SynTree) -> str:
 np_rel_avn_xpath = """.//node[@cat="np" and @rel="--" and
     node[@pt="n" and @rel="hd"] and
     node[@cat="rel" and @rel="mod" and
-        node[@pt="vnw" and @rel="rhd"] and
+        node[@pt="vnw" and @rel="rhd" and (@lemma="die" or @lemma="dat")] and
         node[@cat="ssub" and @rel="body" and
             node[@pt="ww" and @rel="hd"]]]]
 			"""
