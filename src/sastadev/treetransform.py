@@ -3,7 +3,7 @@ from sastadev.conf import settings
 from sastadev.lexicon import adj_no_pp_lexicon, compoundsep, lemmalexicon
 from sastadev.macros import expandmacros
 from sastadev.treebankfunctions import clausebodycats, find1, getattval, getbeginend, getnodeyield, getyield, \
-    immediately_precedes, iswordnode, showtree
+    immediately_precedes, iswordnode, showtree, treeinflate
 from sastadev.sastatypes import SynTree
 from sastadev.tblex import is_rpronoun
 from lxml import etree
@@ -390,6 +390,69 @@ def transform_adj_pp(instree: SynTree) -> SynTree:
                         ap_node.set('begin', ap_new_begin)
                         ap_node.set('end', ap_new_end)
     return stree
+
+dp_dp_rel_avn_xpath = """.//node[count(node[@rel="dp"]) > 1 and node[@cat="np" and @rel="dp" and
+    node[@pt="n" and @rel="hd"] and
+    node[@cat="rel" and @rel="mod" and
+        node[@pt="vnw" and @rel="rhd" and (@lemma="die" or @lemma="dat")] and
+        node[@cat="ssub" and @rel="body" and
+            node[@pt="ww" and @rel="hd"]]]]]"""
+
+dp_np_rel_xpath = """./node[@cat="np" and @rel="dp" and
+                            node[@pt="n" and @rel="hd"] and
+                            node[@cat="rel" and @rel="mod"]
+                            ]"""
+
+
+def follows(node1: SynTree, node2: SynTree) -> bool:
+    node2_end = gav(node2, 'end')
+    node1_begin = gav(node1, 'begin')
+    result = int(node1_begin) >= int(node2_end)
+    return result
+
+def transform_dp_dp_rel2avn(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    dp_dp_parents = stree.xpath(dp_dp_rel_avn_xpath)
+    result = instree
+    for dp_dp_parent in dp_dp_parents:
+        dp_np = find1(dp_dp_parent, dp_np_rel_xpath)
+        dp2s = [child for child in dp_dp_parent if child != dp_np and
+                                                  gav(child, 'rel') == 'dp' and
+                                                  follows(child, dp_np)]
+        dp2 = dp2s[0] if dp2s != [] else None
+        relclause = find1(dp_np, """./node[@cat="rel" and @rel="mod"]""")
+        if dp2 is not None and relclause is not None:
+            stree_tokens = getyield(stree)
+            dp_np.remove(relclause)
+            dp_np_tokens = getyield(dp_np)
+            relclause_tokens = getyield(relclause)
+            l_dp_np_tokens = len(dp_np_tokens)
+            todo_tokens = stree_tokens[l_dp_np_tokens:]
+            todo_str = space.join(todo_tokens)
+            new_tree = settings.PARSE_FUNC(todo_str)
+            treeinflate(new_tree, start=l_dp_np_tokens, inc=1)
+            new_smain = find1(new_tree, './node[@cat="top"]/node[@cat="smain" ]')
+            top_node = find1(stree, './node[@cat="top" and @rel="top"]')
+            if new_smain is not None and top_node is not None:
+                for child in top_node:
+                    top_node.remove(child)
+                du_node = etree.Element('node',
+                                        {'cat':"du", 'rel': '--',
+                                               'begin':gav(top_node, 'begin'),
+                                               'end':gav(top_node, 'end')})
+                new_smain.set('rel', 'nucl')
+                dp_np.set('rel', 'sat')
+                dp_np.set('end', str(l_dp_np_tokens))
+                du_node.append(dp_np)
+                du_node.append(new_smain)
+                top_node.append(du_node)
+                result = stree
+            else:
+                result = instree
+        else:
+            result = instree
+    return result
+
 
 
 

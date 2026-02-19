@@ -2103,21 +2103,19 @@ def treeinflate(stree: SynTree, start: int = inflate_start, inc: int = inflate_s
     The function *treeinflate* adapts the input tree *stree* in such a way that:
 
     * for word nodes: the int value of the *begin* attribute  (ib) is changed to str(newib = start + ib  *
-    inc), **code stil has to be adapted to this**
+    inc),
     and the value of the *end* attribute to str(newib + 1)
     * for phrasal nodes: new values for *begin* and *end* are computed by the function *getbeginend*
-    * for other nodes: the same as  for word nodes
+    * for other nodes: for newib the same as  for word nodes, ie is stanged into str(newie) with
+     newie = start + (ie-1) * inc + 1
 
     The parameters of this function are:
 
     * stree: input syntactic structure, which is modified
-    * start: not used yet (see below)) (default value = 10)
-    * inc: increment, by default set to 10 (not used yet, see below)
+    * start: int value of begin of the first word (default value inflate_start = 10)
+    * inc: increment, (default value inflate_step = 10 )
 
-    and it returns *None*.
-
-    **Remark** This should be changed for words so that newib = start + (ib * inc) and
-    newie =  newib + 1
+    and it returns *None*. (it modifies the input tree)
 
     """
     # fatstree = deepcopy(stree)
@@ -2130,7 +2128,9 @@ def treeinflate(stree: SynTree, start: int = inflate_start, inc: int = inflate_s
         if stree.tag == 'node':
             ib = int(getattval(stree, 'begin'))
             ie = int(getattval(stree, 'end'))
-            newib = (ib + 1) * 10
+            # newib = (ib + 1) * 10
+            newib = start + ib * inc
+            newie = start + (ie-1) * inc + 1
             stree.attrib['begin'] = str(newib)
             if iswordnode(stree):
                 stree.attrib['end'] = str(newib + 1)
@@ -2139,8 +2139,11 @@ def treeinflate(stree: SynTree, start: int = inflate_start, inc: int = inflate_s
                 stree.attrib['begin'] = b
                 stree.attrib['end'] = e
             else:
-                stree.attrib['begin'] = str((ib + 1) * 10)
-                stree.attrib['end'] = str((ie * 10) + 1)
+                stree.attrib['begin'] = str(newib)
+                stree.attrib['end'] = str(newie)
+
+
+
 
 
 def deflate(stree: SynTree) -> SynTree:

@@ -39,7 +39,7 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         showtree, simpleshow, subclasscompatible, transplant_node,
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
-from sastadev.treetransform import adaptlemmas, splitpronzelf, transform_adj_pp, transformtagcomma, transformtreeld, transformtreenogeen, \
+from sastadev.treetransform import adaptlemmas, splitpronzelf, transform_adj_pp, transform_dp_dp_rel2avn, transformtagcomma, transformtreeld, transformtreenogeen, \
     transformtreenogde, transform_ppinap, transformhwwwithsvp, transform_rel2avn
 from sastadev.eenbeetje import transform_eenbeetje
 
@@ -602,6 +602,7 @@ def dotreetransformations(fulltree: SynTree) -> SynTree:
     fulltree = transform_ppinap(fulltree)
     fulltree = transform_rel2avn(fulltree)
     fulltree = transform_adj_pp(fulltree)
+    fulltree = transform_dp_dp_rel2avn(fulltree)
     # stree = nognietsplit(stree)  # put off because it should not be done
     return fulltree
 
