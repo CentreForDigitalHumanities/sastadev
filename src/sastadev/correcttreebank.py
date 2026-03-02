@@ -360,6 +360,7 @@ def correcttreebank(treebank: Treebank, targets: Targets, correctionparameters: 
             # print(uttid)
             mustbedone = get_mustbedone(stree, targets, correctionparameters.method)
             if mustbedone:
+                # print(uttid)
                 # to implementf
                 sentence = getsentence(stree)
                 newstree, orandalts = correct_stree(stree, corr, correctionparameters)

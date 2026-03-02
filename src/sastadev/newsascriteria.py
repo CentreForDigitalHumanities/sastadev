@@ -6,6 +6,8 @@ from sastadev.constants import outtreebanksfolder
 from sastadev.lexicon import informlexicon, adj_no_pp_lexicon
 from sastadev.macros import expandmacros
 from sastadev.methods import Method
+from sastadev.sas_filter import filterbymetadata
+from sas_queries import get_message_with_word_function
 from sastadev.sastatypes import ExactResultsDict, SynTree, TreeBank
 from sastadev.stringfunctions import monosyllabic
 from sastadev.treebankfunctions import (clausebodycats, find1, immediately_follows, getattval as gav, getnodeyield,
@@ -55,6 +57,38 @@ space = ' '
 #     ]
 #     results = filterbymetadata(rawresults, exactresults, method.name)
 #     return results
+
+suspicious_participle_message = "participle incorrectly analysed as adjective"
+suspicious_participles_xpath = """.//node[@pt="ww" and @wvorm="vd"  and @pos="adj"]
+"""
+def get_suspicious_participles(nt: TreeBank, exactresults: ExactResultsDict, method: Method
+) -> List[Tuple[SynTree, str, list]]:
+    """
+    identifies nodes that are past participles analysed as adjectives
+    :param nt:
+    :param exacttresults:
+    :param method:
+    :return:
+    """
+
+    mn = method.name
+    rawresults = []
+    for tree in nt:
+        uttid = getxsid(tree)
+        if uttid == "0":
+            continue
+        session = getmeta(tree, "session")
+        junk = 0
+        suspicious_participle_nodes = [wn for wn in tree.xpath(suspicious_participles_xpath)]
+
+    rawresults += [(suspicious_participle_node,
+                    get_message_with_word_function(suspicious_participle_message)(suspicious_participle_node),
+                    [])
+                   for suspicious_participle_node in suspicious_participle_nodes
+                  ]
+    results = filterbymetadata(rawresults, exactresults, method.name)
+    return results
+
 
 rel_as_avn_xpath = """
 .//node[@pt="vnw" and @rel="rhd" and 
@@ -271,6 +305,9 @@ def transform_adj_pp(instree: SynTree) -> SynTree:
                         ap_node.set('begin', ap_new_begin)
                         ap_node.set('end', ap_new_end)
     return stree
+
+
+
 
 streestrings = {}
 streestrings[0] = """

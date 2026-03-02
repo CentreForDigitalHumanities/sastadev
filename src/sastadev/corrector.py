@@ -58,6 +58,7 @@ from sastadev.tokenmd import TokenListMD, TokenMD, mdlist2listmd
 from sastadev.treebankfunctions import (fatparse, getattval, getmeta, getnodeyield, gettokenpos_str, getxsid,
                                         inflate_step, isdefdet, keycheck,
                                         mktoken2nodemap, showtree)
+from sastadev.wrong_ie_dims import get_je_from_wrong_ie_dim
 
 Correction = Tuple[List[Token], List[Meta]]
 MetaCondition = Callable[[Meta], bool]
@@ -1372,6 +1373,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     if token.skip:
         return newtokenmds
 
+    token_is_valid_word = validword(token.word, methodname)
     # ignore interpunction
     if ispunctuation(token.word):
         return newtokenmds
@@ -1393,7 +1395,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                         backplacement=bpl_word)
 
     # deduplicate jaaaaa -> ja; heeeeeel -> heel
-    if not validword(token.word, methodname) and token.word != 'ee':
+    if not token_is_valid_word and token.word != 'ee':
         newwords = dutchdeduplicate(token.word, lambda x: validword(x, methodname), exceptions=chatxxxcodes)
         deduplicated = newwords != []
         newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
@@ -1411,7 +1413,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     # iehie ijhij
     iehiepattern = r'(ie|ij)h\1'
     iehiere = re.compile(iehiepattern)
-    if not validword(token.word, methodname)  and iehiere.search(token.word):
+    if not token_is_valid_word  and iehiere.search(token.word):
         newwords = [iehiere.sub(r'\1', token.word)]
         newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
                                         name=correctionlabels.emphasis, value='Phoneme Duplication', cat=correctionlabels.pronunciation,
@@ -1430,7 +1432,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                             backplacement=bpl, penalty=newpenalty)
 
     # final r realized as w weew, ew
-    if not validword(token.word, methodname)  and token.word.endswith('w') and \
+    if not token_is_valid_word  and token.word.endswith('w') and \
         validword(f'{token.word[:-1]}r', methodname):
         newwords = [f'{token.word[:-1]}r']
         newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
@@ -1438,7 +1440,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                         cat=correctionlabels.pronunciation,
                                         backplacement=bpl_word)
     # aller- misspelled as alle
-    if (not validword(token.word, methodname) and
+    if (not token_is_valid_word and
         token.word.startswith('alle') and not token.word.startswith('aller') and
         (token.word.endswith('st') or token.word.endswith('ste')) and
         validword(f'{token.word[4:]}', methodname)):
@@ -1461,14 +1463,16 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
 
     # wrong past participle emaakt -> gemaakt
-    if not validword(token.word, methodname)  and token.word.startswith('e') and validword(f'g{token.word}', methodname):
+    wrong_past_participle_exceptions = ['eve']
+    if not token_is_valid_word  and token.word.startswith('e') and \
+                token.word not in wrong_past_participle_exceptions and validword(f'g{token.word}', methodname):
         newwords = [f'g{token.word}']
         newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
                                         name=correctionlabels.informalpronunciation, value='Initial g dropped', cat=correctionlabels.pronunciation,
                                         backplacement=bpl_word)
 
     # wrong transcription of 's + e-participle past participle  semaakt -> 's emaakt -> is gemaakt
-    if not validword(token.word, methodname) and token.word.startswith('se') and \
+    if not token_is_valid_word and token.word.startswith('se') and \
             validword(f'g{token.word[1:]}', methodname):
         newwords = [f"is g{token.word[1:]}"]
         newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
@@ -1477,7 +1481,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
 
     # wrong past participle  semaakt -> gemaakt
-    if not validword(token.word, methodname) and token.word.startswith('se') and \
+    if not token_is_valid_word and token.word.startswith('se') and \
             validword(f'g{token.word[1:]}', methodname):
         newwords = [f'g{token.word[1:]}']
         newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
@@ -1731,7 +1735,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
 
     # replace unknown words by similar words from the context --tarsp and stap only, for asta more needs to be doen
-    if not validword(token.word, methodname) and correctionparameters.method.name in {tarsp, stap}:
+    if not token_is_valid_word and correctionparameters.method.name in {tarsp, stap}:
         xsid = getxsid(tree)
         thecontextdict = correctionparameters.contextdict
         if xsid in thecontextdict and token.word in thecontextdict[xsid]:
@@ -1748,7 +1752,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                                 source=f'{SASTA}/{CONTEXT}', backplacement=bpl_word, penalty=penalty)
 
     # find document specific replacements
-    if not validword(token.word, methodname) and \
+    if not token_is_valid_word and \
             token.word in correctionparameters.thissamplecorrections and \
             token.word not in childescorrectionsexceptions:
         cc = correctionparameters.thissamplecorrections[token.word]
@@ -1776,7 +1780,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
     # find correction from all samples processed so far
     if methodname in [tarsp, stap] and \
-        not validword(token.word, methodname) and \
+        not token_is_valid_word and \
         token.word in correctionparameters.allsamplecorrections and \
             token.word not in childescorrectionsexceptions:
         cc = correctionparameters.allsamplecorrections[token.word]
@@ -1811,7 +1815,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     # find childes replacements, preferably with vocabulary from the same age
 
     if correctionparameters.options.dohistory and \
-            methodname in [tarsp, stap] and not validword(token.word, methodname) and \
+            methodname in [tarsp, stap] and not token_is_valid_word and \
             token.word in childescorrections and \
             token.word not in childescorrectionsexceptions:
         cc = childescorrections[token.word]
@@ -1838,7 +1842,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                                     backplacement=bpl_word, penalty=penalty)
 
                 # gaatie
-    if not validword(token.word, methodname):
+    if not token_is_valid_word:
         newwords = gaatie(token.word)
         if newwords != []:
             postviefound = True
@@ -1860,17 +1864,30 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     knowniedimwords = ['bakkie', 'drukkie', 'duppie', 'fikkie', 'gympie', 'koppie', 'kwassie',
                        'moppie', 'punkie', 'saffie',   'stekkie', 'wijfie']
 
-
+    jedimforms = getjeforms(token.word)
     if (not validnotalpinocompoundword(token.word, methodname) or token.word in knowniedimwords) and \
             (token.word.endswith('ie') or token.word.endswith('ies')):
-        newwords = getjeforms(token.word)
+        newwords = jedimforms
         for newword in newwords:
             if validword(newword, methodname):
                 newtokenmds = updatenewtokenmds(newtokenmds, token, [newword], beginmetadata,
-                                                name=correctionlabels.regionalform, value='ieDim', cat=correctionlabels.morphology, backplacement=bpl_word)
+                                                name=correctionlabels.regionalform, value=correctionlabels.iedim,
+                                                cat=correctionlabels.morphology, backplacement=bpl_word)
+
+    if (not validnotalpinocompoundword(token.word, methodname) or token.word in knowniedimwords) and \
+            (token.word.endswith('ie') or token.word.endswith('ies')) and jedimforms == []:
+        improved_word = get_je_from_wrong_ie_dim(token.word)
+        newwords = [improved_word] if improved_word is not None else []
+        for newword in newwords:
+            if validword(newword, methodname):
+                newtokenmds = updatenewtokenmds(newtokenmds, token, [newword], beginmetadata,
+                                                name=correctionlabels.regionalform_error,
+                                                value=correctionlabels.wrong_iedim,
+                                                cat=correctionlabels.morphology, backplacement=bpl_word)
+
 
     # overregularised verb forms: gevalt -> gevallen including  incl  wrong verb forms: gekeekt -> gekeken
-    if not validword(token.word, methodname):
+    if not token_is_valid_word:
         nwms = correctinflection(token.word)
         for nw, metavalue in nwms:
             if validword(nw, methodname):
@@ -1906,7 +1923,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                                 cat=correctionlabels.pronunciation, backplacement=bpl_word)
 
     # e-> e(n)
-    if not validword(token.word, methodname) and token.word not in basicreplacements and token.word not in enexceptions:
+    if not token_is_valid_word and token.word not in basicreplacements and token.word not in enexceptions:
         if endsinschwa(token.word) and not monosyllabic(token.word):
             newword = token.word + 'n'
             if validword(newword, methodname):
@@ -1933,7 +1950,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     aasre = rf'{dupvowel}\1s$'
     vvs = {'aas', 'oos', 'ees', 'uus'}
     # Lauraas -> Laura's; autoos -> auto's
-    if not validword(token.word, methodname) and token.word[-3:] in vvs and validword(token.word[:-2], methodname):
+    if not token_is_valid_word and token.word[-3:] in vvs and validword(token.word[:-2], methodname):
         newword = f"{token.word[:-2]}'s"
         newtokenmds = updatenewtokenmds(newtokenmds, token, [newword], beginmetadata,
                                         name=correctionlabels.spellingcorrection, value='Missing Apostrophe',
@@ -1941,7 +1958,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
 
     # babies -> baby's, babietje(s) -> baby'tje(s)
-    if not validword(token.word, methodname) and isbabyword(token.word) and \
+    if not token_is_valid_word and isbabyword(token.word) and \
             validword(getbabylemma(token.word), methodname):
         newword = correctbaby(token.word)
         newtokenmds = updatenewtokenmds(newtokenmds, token, [newword], beginmetadata,
@@ -1958,7 +1975,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
     # replace unknown part1+V verb by the most frequent part2+verb in CHILDES
     # e.g opbijten -> afbijten
-    if not validword(token.word, methodname):
+    if not token_is_valid_word:
         issvp, thesvp = startswithsvp(token.word)
         part2 = token.word[len(thesvp):]
         if issvp and isaverb(part2):
@@ -1977,9 +1994,9 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
 
     if correctionparameters.options.dospellingcorrection  and \
-             not validword(token.word, methodname) and applyspellingcorrectionisok(token.word) and \
+             not token_is_valid_word and applyspellingcorrectionisok(token.word) and \
             not schwandropfound and not postviefound and not token.word[0].isupper() and not deduplicated and \
-            not(token.word.endswith('ie') or token.word.endswith('ies')) and token.word[-3:] not in vvs:
+            (not(token.word.endswith('ie') or token.word.endswith('ies')) or jedimforms == []) and token.word[-3:] not in vvs:
         if correctionparameters.method.name in {'tarsp', 'stap'}:
             corrtuples = children_correctspelling(token.word, children_correctionsdict, max=5)
             subsource = CHILDRENSPELLINGCORRECTION

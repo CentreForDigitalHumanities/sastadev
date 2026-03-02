@@ -8,6 +8,7 @@ for this purpose.
 
 
 '''
+import json
 import os
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
@@ -33,7 +34,7 @@ chatspecials = ['xxx', 'yyy']
 
 lexicon = celex
 
-
+spelling_min_frq = 50   # this is the frequency assigned to words that did not occur
 
 #Alpino often analyses certain words as tsw though they should be analysed as nouns
 tswnouns = ['baby', 'jongen', 'juf', 'juffrouw', 'mam', 'mama', 'mamma', 'meisje', 'mens', 'meneer', 'mevrouw',
@@ -264,9 +265,9 @@ def known_word(word: str, includealpinonouncompound=True) -> bool:
     :param word:
     :return:
     '''
-    result = informlexicon(word) or isa_namepart(word) or \
+    result = informlexicon(word)  or isa_namepart(word) or \
              chatspecial(word) or word in additionalwordslexicon or \
-             isallersuperlative(word) or issuperadjective(word)
+             word in spellingadditions or isallersuperlative(word) or issuperadjective(word)
     if includealpinonouncompound:
         result = result or isalpinonouncompound(word)
     result = result and word not in nonwordslexicon
@@ -426,6 +427,15 @@ lexiconfoldername = 'data/wordsunknowntoalpino'
 cardinallexiconfilename = 'cardinalnumerals.tsv'
 cardinallexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, cardinallexiconfilename)
 cardinallexicon = geninitializelexicondict(cardinallexiconfullname, 0)
+
+# put off contains too many wrong words, e.g. so
+# lexiconfoldername = 'data/spellingcorrectorlexicon'
+# spellingcorrectorlexiconfilename = 'nl.json'
+# spellingcorrectorlexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, spellingcorrectorlexiconfilename)
+# with open(spellingcorrectorlexiconfullname, 'r', encoding='utf8') as spellingcorrectorlexiconfile:
+#     raw_spellingcorrectorlexicon = json.load(spellingcorrectorlexiconfile)
+#     spellingcorrectorlexicon = {wrd: frq for wrd, frq in raw_spellingcorrectorlexicon.items() if frq > spelling_min_frq}
+#     del raw_spellingcorrectorlexicon   # we do not need it anymore
 
 
 interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'mama', 'okee', 'hé', 'ah', 'oeh', 'au',

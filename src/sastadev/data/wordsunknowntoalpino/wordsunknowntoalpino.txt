@@ -23,3 +23,12 @@ freerunden	zwommen
 gefreerund	gezwommen
 cakeje	koekje
 cakejes	koekjes
+keilen	gooien
+keilt	gooit
+keil	gooi
+keilde	gooide
+keilden	gooiden
+gekeild	gegooid
+gekeilde	gegooide
+keilend	gooiend
+keilende	gooiende
