@@ -52,6 +52,7 @@ from sastadev.treebankfunctions import (
     getyieldstr,
 )
 
+verbose = False
 
 mlureskey = mkresultskey(mluxqid)
 samplesizereskey = mkresultskey(samplesizeqid)
@@ -155,9 +156,10 @@ def filterbymetadata(
         replacements = wn.xpath(mdxpath)
         exact_results = exact_results_dict[uttid] if uttid in exact_results_dict else []
         if exact_results == []:
-            print(
-                f'{session}: Empty exactresults: {getattval(wn, "word")} in {uttid}: {getyieldstr(fulltree)}'
-            )
+            if verbose:
+                print(
+                    f'{session}: Empty exactresults: {getattval(wn, "word")} in {uttid}: {getyieldstr(fulltree)}'
+                )
         isASTAX = (
             wnisanASTAX(wn, fulltree, exact_results) if method_name == asta else False
         )
@@ -183,9 +185,10 @@ def filterbymetadata2(
         wnbegin = getattval(wn, "begin")
         exact_results = exact_results_dict[uttid] if uttid in exact_results_dict else []
         if exact_results == []:
-            print(
-                f'{session}: Empty exactresults: {getattval(wn, "word")} in {uttid}: {getyieldstr(fulltree)}'
-            )
+            if verbose:
+                print(
+                    f'{session}: Empty exactresults: {getattval(wn, "word")} in {uttid}: {getyieldstr(fulltree)}'
+                )
         isASTAX = (
             wnisanASTAX(wn, fulltree, exact_results) if method_name == asta else False
         )

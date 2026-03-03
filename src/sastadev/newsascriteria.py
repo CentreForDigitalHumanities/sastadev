@@ -58,36 +58,6 @@ space = ' '
 #     results = filterbymetadata(rawresults, exactresults, method.name)
 #     return results
 
-suspicious_participle_message = "participle incorrectly analysed as adjective"
-suspicious_participles_xpath = """.//node[@pt="ww" and @wvorm="vd"  and @pos="adj"]
-"""
-def get_suspicious_participles(nt: TreeBank, exactresults: ExactResultsDict, method: Method
-) -> List[Tuple[SynTree, str, list]]:
-    """
-    identifies nodes that are past participles analysed as adjectives
-    :param nt:
-    :param exacttresults:
-    :param method:
-    :return:
-    """
-
-    mn = method.name
-    rawresults = []
-    for tree in nt:
-        uttid = getxsid(tree)
-        if uttid == "0":
-            continue
-        session = getmeta(tree, "session")
-        junk = 0
-        suspicious_participle_nodes = [wn for wn in tree.xpath(suspicious_participles_xpath)]
-
-    rawresults += [(suspicious_participle_node,
-                    get_message_with_word_function(suspicious_participle_message)(suspicious_participle_node),
-                    [])
-                   for suspicious_participle_node in suspicious_participle_nodes
-                  ]
-    results = filterbymetadata(rawresults, exactresults, method.name)
-    return results
 
 
 rel_as_avn_xpath = """
@@ -215,6 +185,23 @@ def transform_dp_dp_rel2avn(instree: SynTree) -> SynTree:
         else:
             result = instree
     return result
+
+wrong_sep_wws = ['aan_gaan', 'uit_zijn']
+sep_ww_xpath = f""".//node[@pt="ww" and contains(@lemma,'_' )]"""
+def transform_sep_ww(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    sep_wws = stree.xpath(sep_ww_xpath)
+    for sep_ww in sep_wws:
+        sep_ww_lemma = gav(sep_ww, 'lemma')
+        if  sep_ww_lemma in wrong_sep_wws:
+            particle_node = find1(sep_ww, '../node[@pt and @rel="svp"]')
+            if particle_node is not None:
+                sep_pos = sep_ww_lemma.index('_')
+                newlemma = sep_ww_lemma[sep_pos + 1:]
+                sep_ww.set('lemma', newlemma)
+                particle_node.set('rel', 'ld')
+    return stree
+
 
 inflate_start = 10
 inflate_step = 10
@@ -397,7 +384,30 @@ def test2():
         fullnewtree.write(outtreefile, encoding="UTF8", xml_declaration=False,
                            pretty_print=True)
 
+def test3():
+    datasetname = 'auristrain'
+    samplename= 'TD27'
+    inputpath = os.path.join(settings.DATAROOT, datasetname, outtreebanksfolder, 'trees', f'{samplename}_corrected')
+    inputfilename = f'{samplename}_corrected_033.xml'   # 31 AND 33
+    inputfullname = os.path.join(inputpath, inputfilename)
+    fulltree = etree.parse(inputfullname)
+    tree = fulltree.getroot()
+    # avn_nodes = get_avn(tree)
+    # for node in avn_nodes:
+    #     print(node.attrib['word'], node.attrib['begin'])
+    # newtree = transform_rel2avn(tree)
+    # newtree = transform_adj_pp(tree)
+    # newtree = transform_dp_dp_rel2avn(tree)
+    newtree = transform_sep_ww(tree)
+    showtree(newtree)
+    outtreefile = 'transformed_tree.xml'
+    fullnewtree = etree.ElementTree(newtree)
+    fullnewtree.write(outtreefile, encoding="UTF8", xml_declaration=False,
+                       pretty_print=True)
+
+
 
 if __name__ == '__main__':
     # test1()
-    test2()
+    # test2()
+    test3()

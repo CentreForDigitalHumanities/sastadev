@@ -11,6 +11,8 @@ from sastadev.resultsbyutterance import getresultsbyutt, getscoresbyutt2
 from sastadev.rpf1 import getevalscores, sumfreq
 from sastadev.sastatypes import ResultsDict, UttId
 
+verbose = False
+
 # maximum nuber of utterances to be reviewed
 maxutt = 15
 n = maxutt
@@ -62,7 +64,8 @@ def getcomparisonscores(resultsbyutt, refbyutt) -> dict:
         if uttid in refbyutt:
             ref = refbyutt[uttid]
         else:
-            settings.LOGGER.error(f'Utterance {uttid} in results but not in reference')
+            if verbose:
+                settings.LOGGER.error(f'Utterance {uttid} in results but not in reference')
             ref = Counter()
         improvedresults = copy.deepcopy(resultsbyutt)
         improvedresults[uttid] = ref
@@ -73,7 +76,8 @@ def getcomparisonscores(resultsbyutt, refbyutt) -> dict:
 
     for uttid in refbyutt:
         if uttid not in resultsbyutt:
-            settings.LOGGER.error(f'Utterance {uttid} in reference but not in results')
+            if verbose:
+                settings.LOGGER.error(f'Utterance {uttid} in reference but not in results')
             ref = refbyutt[uttid]
             improvedresults = copy.deepcopy(resultsbyutt)
             improvedresults[uttid] = ref
@@ -100,11 +104,13 @@ def getscoresallutts(results: CodesByUtt, reference: CodesByUtt) -> Tuple[float,
             totaltoomuch += sumfreq(toomuch)
             totaltoofew += sumfreq(toofew)
         else:
-            settings.LOGGER.error(f'Utterance {uttid} in results but not in reference')
+            if verbose:
+                settings.LOGGER.error(f'Utterance {uttid} in results but not in reference')
             totaltoomuch += sumfreq(results[uttid])
     for uttid in reference:
         if uttid not in results:
-            settings.LOGGER.error(f'Utterance {uttid} in reference but not in results')
+            if verbose:
+                settings.LOGGER.error(f'Utterance {uttid} in reference but not in results')
             totaltoofew += sumfreq(reference[uttid])
     resultscount = totaltoomuch + totalok
     referencecount = totaltoofew + totalok

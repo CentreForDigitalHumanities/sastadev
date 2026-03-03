@@ -184,6 +184,8 @@ date_no_mod_message = "Date expression headed by word is not a modifier"
 sem_incompatibility_message = "Semantic incompatibility found"
 wrong_pos_word_message = "Wrong part of speech for this word"
 wrongly_no_mod_message = "This word is probably incorrectly not analysed as a modifier"
+suspicious_participle_message = "participle incorrectly analysed as adjective"
+
 
 wordreplacementtypes = [
     alpinoimprovement,
@@ -448,6 +450,37 @@ def get_wrongly_non_mod_nodes(nt: TreeBank, exactresults: ExactResultsDict, meth
             if rel in ['pc'] and lemma in preferably_mod_words:
                 results.append(wordnode)
     return results
+
+suspicious_participles_xpath = """.//node[@pt="ww" and @wvorm="vd"  and @pos="adj"]
+"""
+def get_suspicious_participles(nt: TreeBank, exactresults: ExactResultsDict, method: Method
+) -> List[Tuple[SynTree, str, list]]:
+    """
+    identifies nodes that are past participles analysed as adjectives
+    :param nt:
+    :param exactresults:
+    :param method:
+    :return:
+    """
+
+    mn = method.name
+    rawresults = []
+    for tree in nt:
+        uttid = getxsid(tree)
+        if uttid == "0":
+            continue
+        session = getmeta(tree, "session")
+        junk = 0
+        suspicious_participle_nodes = [wn for wn in tree.xpath(suspicious_participles_xpath)]
+
+    rawresults += [(suspicious_participle_node,
+                    get_message_with_word_function(suspicious_participle_message)(suspicious_participle_node),
+                    [])
+                   for suspicious_participle_node in suspicious_participle_nodes
+                  ]
+    results = rawresults    # no filtering by filterbymetadata(rawresults, exactresults, method.name)
+    return results
+
 
 
 def getunknownwordnodes(
@@ -951,7 +984,8 @@ criteria: Dict[str, Callable] =\
                                  lambda x: []),
     "preferably_mod": apply_criterion(get_wrongly_non_mod_nodes, get_message_with_word_function(wrongly_no_mod_message),
                                       lambda x: []),
-    "unlikely_compound": get_suspicious_compounds
+    "unlikely_compound": get_suspicious_compounds,
+    "suspicious participle": get_suspicious_participles
 
    # "Low Confidence": low_avg_confidence  # temporarily put off gives too many unwanted results
 
@@ -959,8 +993,9 @@ criteria: Dict[str, Callable] =\
 
 # for testing
 
-#criteria = {                  "unlikely_compound": get_suspicious_compounds
-# }
+# criteria = {                      "suspicious participle": get_suspicious_participles
+#
+#  }
 
 # from Xander:
 # {

@@ -8,7 +8,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from sastadev.alpino import getdehetwordinfo
 from sastadev.basicreplacements import (basicexpansions, basicreplacementpairs, basicreplacements, ervzvariantsdict,
-                                        getdisambiguationdict, is_er_pronoun)
+                                        getdisambiguationdict, is_er_pronoun, Rvzlist)
 from sastadev.CHAT_Annotation import CHAT_retracing
 from sastadev.childesspellingcorrector import (children_correctionsdict, children_correctspelling,  allfrqdict)
 from sastadev import correctionlabels
@@ -46,6 +46,7 @@ from sastadev.sasta_explanation import explanationasreplacement
 from sastadev.sastatoken import mktokenlist, Token, tokenlist2stringlist
 from sastadev.sastatypes import (BackPlacement, MethodName, Nort, Penalty,
                                  Position, SynTree, UttId)
+from sastadev.schwa_vz import get_er_vz
 from sastadev.smallclauses import smallclauses
 from sastadev.spellingerrors import getbabylemma, isbabyword, correctbaby
 from sastadev.stringfunctions import (chatxxxcodes, consonants, dutchdeduplicate,
@@ -1605,6 +1606,16 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                         cat=correctionlabels.lexicon,
                                         backplacement=bpl_word, penalty=5)
 
+
+    # vz if preceded by phonologial fragment schwa is replaced by er+vz
+    if token.word in Rvzlist:
+        ervzs = get_er_vz(token, tree)
+        for ervz in ervzs:
+            newtokenmds = updatenewtokenmds(newtokenmds, token, [ervz], beginmetadata,
+                                            name=correctionlabels.wrongpronunciation, value=correctionlabels.rafterschwadrop,
+                                            cat=correctionlabels.pronunciation,
+                                            subcat=correctionlabels.codareduction,
+                                            backplacement=bpl_word, penalty=-defaultpenalty)
 
 
     # e or schwa -> een de het dat, deletio; en rejected, dat(vg) only after a verb

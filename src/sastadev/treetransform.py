@@ -455,5 +455,20 @@ def transform_dp_dp_rel2avn(instree: SynTree) -> SynTree:
 
 
 
+wrong_sep_wws = ['uit_zijn']  # removed 'aan_gaan'
+sep_ww_xpath = f""".//node[@pt="ww" and contains(@lemma,'_' )]"""
+def transform_sep_ww(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    sep_wws = stree.xpath(sep_ww_xpath)
+    for sep_ww in sep_wws:
+        sep_ww_lemma = gav(sep_ww, 'lemma')
+        if  sep_ww_lemma in wrong_sep_wws:
+            particle_node = find1(sep_ww, '../node[@pt and @rel="svp"]')
+            if particle_node is not None:
+                sep_pos = sep_ww_lemma.index('_')
+                newlemma = sep_ww_lemma[sep_pos + 1:]
+                sep_ww.set('lemma', newlemma)
+                particle_node.set('rel', 'ld')
+    return stree
 
 

@@ -17,6 +17,7 @@ CHAT_retracing = 'Retracing'
 CHAT_wordnoncompletion = 'Noncompletion of a Word'
 CHAT_unintelligible_speech = 'Unintelligible Speech'
 CHAT_phonological_coding = 'Phonological Coding'
+CHAT_phonological_fragment = 'Phonological Fragment'
 CHAT_untranscribed_material = 'Untranscribed Material'
 
 monadic = 1
@@ -903,9 +904,9 @@ annotations = [
     # these must be applied after [/], [//], [///] etc
     CHAT_Annotation('Untranscribed Material', '6.4:42', '8.4:47', CHAT_SimpleRegex(r'[wW][wW][wW]', eps, False),
                     simplemetafunction(epsf)),
-    CHAT_Annotation('Phonological Fragment', '6.4:42', '8.4:48',
+    CHAT_Annotation(CHAT_phonological_fragment, '6.4:42', '8.4:48',
                     CHAT_SimpleRegex(r'&' + simplewordpat, eps, False), simplemetafunction(identity)),
-    CHAT_Annotation('Phonological Fragment', 'None', '8.4:48; https://talkbank.org/manuals/Clin-CLAN.pdf '
+    CHAT_Annotation(CHAT_phonological_fragment, 'None', '8.4:48; https://talkbank.org/manuals/Clin-CLAN.pdf '
                                                      'states &+ for phonological fragments(p. 18)',
                     CHAT_SimpleRegex(r'&\+' + simplewordpat, eps, False), simplemetafunction(identity)),
     CHAT_Annotation('Filler', 'None', '8.4:48',
