@@ -478,7 +478,12 @@ def get_suspicious_participles(nt: TreeBank, exactresults: ExactResultsDict, met
                     [])
                    for suspicious_participle_node in suspicious_participle_nodes
                   ]
-    results = rawresults    # no filtering by filterbymetadata(rawresults, exactresults, method.name)
+    # exclude geboren for asta
+    if mn == asta:
+        results = [(n,m,s) for n,m, s in rawresults if gav(n, 'lemma') != 'geboren']
+    else:
+        results = rawresults
+    # no filtering by filterbymetadata(rawresults, exactresults, method.name)
     return results
 
 

@@ -174,6 +174,16 @@ def nognietsplit(stree: SynTree) -> SynTree:
     return newstree
 
 
+gaan_predc_xpath = """.//node[@rel='predc' and ../node[@rel="hd" and @lemma="gaan"]]"""
+def transform_gaan_predc(instree:SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    predcs = stree.xpath(gaan_predc_xpath)
+    for predc in predcs:
+        predc.set('rel', 'mod')
+    return stree
+
+
+
 def adaptlemmas(stree: SynTree) -> SynTree:
     newlemmafound = False
     newstree = copy.deepcopy(stree)

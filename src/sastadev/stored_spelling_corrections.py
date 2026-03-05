@@ -1,9 +1,9 @@
 import os
 import sqlite3
 from sastadev.conf import settings
-from sastadev.childesspellingcorrector import children_correctspelling
+# from sastadev.childesspellingcorrector import children_correctspelling
 
-
+drop_table = """DROP TABLE IF EXISTS spellingcorrections"""
 create_table = """
 CREATE TABLE IF NOT EXISTS spellingcorrections (
     wrong_word text PRIMARY KEY, 
@@ -17,7 +17,7 @@ INSERT INTO spellingcorrections (wrong_word, corrected_words) VALUES(?,?)"""
 retrieval_statement = """
 SELECT * FROM spellingcorrections"""
 
-sql_storage_statements = [create_table]
+sql_storage_statements = [drop_table, create_table]
 
 def read_stored_spelling_corrections(filename) -> dict:
     result_dict = {}
@@ -34,6 +34,7 @@ def read_stored_spelling_corrections(filename) -> dict:
     return result_dict
 
 def store_spelling_corrections(corrections:dict, filename):
+    ''' we delete the original table and then create a new table that likely contains more rows'''
     try:
         with sqlite3.connect(filename) as conn:
             cursor = conn.cursor()
@@ -41,7 +42,7 @@ def store_spelling_corrections(corrections:dict, filename):
                 cursor.execute(statement)
 
             for wrong_word, corrected_words  in corrections.items():
-                cursor.execute(insert_row, (wrong_word, corrected_words))
+                cursor.execute(insert_row, (wrong_word, str(corrected_words)))
 
             # commit the changes
             conn.commit()
@@ -50,37 +51,37 @@ def store_spelling_corrections(corrections:dict, filename):
 
 
 
-def tryme():
-    wrong_word_list1 = ['ziekonhuis', 'peelkaal', 'pobreren']
-    wrong_word_list2 = ['diretceur', 'peelkaal', 'grages', 'zunige', 'ziekanhuis']
-
-    filename = 'test_stored_corrections.db'
-    store_path = os.path.join(settings.SD_DIR, 'data', 'stored_spelling_corrections')
-    if not os.path.exists(store_path):
-        os.makedirs(store_path)
-    fullname = os.path.join(store_path, filename)
-
-    # read the stored corrections
-    stored_spelling_correction_dict = read_stored_spelling_corrections(fullname)
-
-    new_spelling_correction_dict = {}
-    for wrong_word_list in [wrong_word_list1, wrong_word_list2]:
-        for wrong_word in wrong_word_list:
-            corrections = children_correctspelling(wrong_word, stored_spelling_correction_dict, max=5)
-            if wrong_word not in stored_spelling_correction_dict:
-                new_spelling_correction_dict[wrong_word] = str(corrections)
-
-
-
-    store_spelling_corrections(new_spelling_correction_dict, fullname)
-
-
-    newdict = read_stored_spelling_corrections(fullname)
-    junk = 0
-    pass
-
-if __name__ == '__main__':
-    tryme()
+# def tryme():
+#     wrong_word_list1 = ['ziekonhuis', 'peelkaal', 'pobreren']
+#     wrong_word_list2 = ['diretceur', 'peelkaal', 'grages', 'zunige', 'ziekanhuis']
+#
+#     filename = 'test_stored_corrections.db'
+#     store_path = os.path.join(settings.SD_DIR, 'data', 'stored_spelling_corrections')
+#     if not os.path.exists(store_path):
+#         os.makedirs(store_path)
+#     fullname = os.path.join(store_path, filename)
+#
+#     # read the stored corrections
+#     stored_spelling_correction_dict = read_stored_spelling_corrections(fullname)
+#
+#     new_spelling_correction_dict = {}
+#     for wrong_word_list in [wrong_word_list1, wrong_word_list2]:
+#         for wrong_word in wrong_word_list:
+#             corrections = children_correctspelling(wrong_word, stored_spelling_correction_dict, max=5)
+#             if wrong_word not in stored_spelling_correction_dict:
+#                 new_spelling_correction_dict[wrong_word] = str(corrections)
+#
+#
+#
+#     store_spelling_corrections(new_spelling_correction_dict, fullname)
+#
+#
+#     newdict = read_stored_spelling_corrections(fullname)
+#     junk = 0
+#     pass
+#
+# if __name__ == '__main__':
+#     tryme()
 
 
 

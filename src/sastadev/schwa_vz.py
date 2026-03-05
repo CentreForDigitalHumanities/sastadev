@@ -4,7 +4,7 @@ from sastadev.cleanCHILDEStokens import cleantext
 from sastadev.sastatypes import SynTree
 from sastadev.sastatoken import Token
 from sastadev.stringfunctions import schwa
-from sastadev.treebankfunctions import getorigutt
+from sastadev.treebankfunctions import getorigutt, getsentence
 from typing import List
 
 
@@ -20,6 +20,8 @@ def get_er_vz(token: Token, tree: SynTree) -> List[str]:
 
     # we first must get the original utterance
     origutt = getorigutt(tree)
+    if origutt is None:
+        origutt = getsentence(tree)
 
     # we must clean it to get the chat metadata
     cleanedtokens, chatmetadata = cleantext(origutt, tokenoutput=True, repkeep=False)

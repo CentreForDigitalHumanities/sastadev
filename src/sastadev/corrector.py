@@ -10,7 +10,8 @@ from sastadev.alpino import getdehetwordinfo
 from sastadev.basicreplacements import (basicexpansions, basicreplacementpairs, basicreplacements, ervzvariantsdict,
                                         getdisambiguationdict, is_er_pronoun, Rvzlist)
 from sastadev.CHAT_Annotation import CHAT_retracing
-from sastadev.childesspellingcorrector import (children_correctionsdict, children_correctspelling,  allfrqdict)
+from sastadev.childesspellingcorrector import (adult_correctionsdict, children_correctionsdict,
+                                               children_correctspelling,  allfrqdict)
 from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
 from sastadev.cleanCHILDEStokens import cleantokens
@@ -2009,13 +2010,13 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
             not schwandropfound and not postviefound and not token.word[0].isupper() and not deduplicated and \
             (not(token.word.endswith('ie') or token.word.endswith('ies')) or jedimforms == []) and token.word[-3:] not in vvs:
         if correctionparameters.method.name in {'tarsp', 'stap'}:
-            corrtuples = children_correctspelling(token.word, children_correctionsdict, max=5)
+            corrtuples = children_correctspelling(token.word, correctionparameters.children_correctionsdict, max=5)
             subsource = CHILDRENSPELLINGCORRECTION
         elif correctionparameters.method.name in {'asta'}:
             corrtuples = []
             subsource = ADULTSPELLINGCORRECTION
             # put off because it causes a lot of errors: the X-words should all have been removed
-            # corrtuples = adult_correctspelling(token.word, adult_correctionsdict, max=5)
+            # corrtuples = adult_correctspelling(token.word, correctionparameters.adult_correctionsdict, max=5)
         else:
             corrtuples = []
         for corr, penalty in corrtuples:

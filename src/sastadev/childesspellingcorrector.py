@@ -7,7 +7,7 @@ from spellchecker import SpellChecker
 from sastadev.conf import settings
 from sastadev.lexicon import spellingadditions
 from sastadev.readcsv import readcsv
-# from sastadev.stored_spelling_corrections import read_stored_spelling_corrections, store_spelling_corrections
+from sastadev.stored_spelling_corrections import read_stored_spelling_corrections, store_spelling_corrections
 
 comma = ','
 hyphen = '-'
@@ -115,6 +115,7 @@ def children_correctspelling(word: str, correctionsdict, max = None, threshold=o
 
 
     # store the result in the dictionary; write dictionary to file
+    correctionsdict[word] = result
 
     return result
 
@@ -162,20 +163,20 @@ def tryme():
 trgfrqdict, othfrqdict, allfrqdict = getchildesfrq()
 
 # read the stored corrections for children into a dictionary
-children_correctionsfilename = 'children_storedcorrections.txt'
+children_correctionsfilename = 'children_storedcorrections.db'
 correctionspath = os.path.join(settings.SD_DIR, 'data/stored_spelling_corrections')
 children_correctionsfullname = os.path.join(correctionspath, children_correctionsfilename)
-children_correctionsdict = getstoredcorrections(
-    children_correctionsfullname) if os.path.isfile(children_correctionsfullname) else {}
-# children_correctionsdict = read_stored_spelling_corrections(children_correctionsfullname)
+# children_correctionsdict = getstoredcorrections(
+#     children_correctionsfullname) if os.path.isfile(children_correctionsfullname) else {}
+children_correctionsdict = read_stored_spelling_corrections(children_correctionsfullname)
 
 # read the stored corrections for adults into a dictionary
-adult_correctionsfilename = 'adult_storedcorrections.txt'
+adult_correctionsfilename = 'adult_storedcorrections.db'
 correctionspath = os.path.join(settings.SD_DIR, 'data/stored_spelling_corrections')
 adult_correctionsfullname = os.path.join(correctionspath, adult_correctionsfilename)
-adult_correctionsdict = getstoredcorrections(
-    adult_correctionsfullname) if os.path.isfile(adult_correctionsfullname) else {}
-# adult_correctionsdict = read_stored_spelling_corrections(adult_correctionsfullname)
+# adult_correctionsdict = getstoredcorrections(
+#     adult_correctionsfullname) if os.path.isfile(adult_correctionsfullname) else {}
+adult_correctionsdict = read_stored_spelling_corrections(adult_correctionsfullname)
 
 
 if __name__ == '__main__':

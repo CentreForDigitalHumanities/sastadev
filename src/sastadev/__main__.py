@@ -153,6 +153,8 @@ from sastadev import compounds
 from sastadev.allresults import (AllResults, mkresultskey, scores2counts,
                                  showreskey)
 import sastadev.alpinoparsing
+from sastadev.childesspellingcorrector import (children_correctionsdict, children_correctionsfullname,
+                                               adult_correctionsdict, adult_correctionsfullname)
 from sastadev.conf import settings
 from sastadev.constants import (analysissuffix, bronzefolder, bronzesuffix,
                                 byuttscoressuffix, checksuffix,
@@ -206,6 +208,7 @@ from sastadev.sastatypes import (AltCodeDict, DataSetName, ExactResultsDict,
                                  ResultsCounter, ResultsKey, SynTree, TreeBank,
                                  UttId)
 from sastadev.SRFreader import read_referencefile
+from sastadev.stored_spelling_corrections import store_spelling_corrections
 from sastadev.stringfunctions import  sf
 from sastadev.targets import get_mustbedone, get_targets, target_all
 from sastadev.treebank2trees import treebank2trees
@@ -1252,9 +1255,13 @@ def main():
         contextdict = getcontextdict(treebank2, lambda x: True)
 
         correctionparameters = CorrectionParameters(themethod, options, mergedsamplecorrections,
-                                                    thissamplecorrections, treebank2, contextdict)
+                                                    thissamplecorrections, treebank2, contextdict,
+                                                    children_correctionsdict, adult_correctionsdict)
 
         treebank, errordict, allorandalts = correcttreebank(treebank2, targets,  correctionparameters, corr=corr)
+
+    # store the spelling corrections
+    store_spelling_corrections(correctionparameters.children_correctionsdict, children_correctionsfullname)
 
     allresults, samplesizetuple = sastacore(
         origtreebank, treebank, annotatedfileresults, scp)
