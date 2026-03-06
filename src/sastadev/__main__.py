@@ -1262,6 +1262,8 @@ def main():
 
     # store the spelling corrections
     store_spelling_corrections(correctionparameters.children_correctionsdict, children_correctionsfullname)
+    store_spelling_corrections(correctionparameters.adult_correctionsdict, adult_correctionsfullname)
+
 
     allresults, samplesizetuple = sastacore(
         origtreebank, treebank, annotatedfileresults, scp)
