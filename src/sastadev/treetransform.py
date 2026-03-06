@@ -465,7 +465,7 @@ def transform_dp_dp_rel2avn(instree: SynTree) -> SynTree:
 
 
 
-wrong_sep_wws = ['uit_zijn']  # removed 'aan_gaan'
+wrong_sep_wws = ['uit_zijn', 'af_moeten']  # removed 'aan_gaan'
 sep_ww_xpath = f""".//node[@pt="ww" and contains(@lemma,'_' )]"""
 def transform_sep_ww(instree: SynTree) -> SynTree:
     stree = copy.deepcopy(instree)

@@ -462,7 +462,7 @@ def get_suspicious_participles(nt: TreeBank, exactresults: ExactResultsDict, met
     :param method:
     :return:
     """
-
+    # breakpoint()
     mn = method.name
     rawresults = []
     for tree in nt:
@@ -473,11 +473,11 @@ def get_suspicious_participles(nt: TreeBank, exactresults: ExactResultsDict, met
         junk = 0
         suspicious_participle_nodes = [wn for wn in tree.xpath(suspicious_participles_xpath)]
 
-    rawresults += [(suspicious_participle_node,
-                    get_message_with_word_function(suspicious_participle_message)(suspicious_participle_node),
-                    [])
-                   for suspicious_participle_node in suspicious_participle_nodes
-                  ]
+        rawresults += [(suspicious_participle_node,
+                        get_message_with_word_function(suspicious_participle_message)(suspicious_participle_node),
+                        [])
+                       for suspicious_participle_node in suspicious_participle_nodes
+                      ]
     # exclude geboren for asta
     if mn == asta:
         results = [(n,m,s) for n,m, s in rawresults if gav(n, 'lemma') != 'geboren']
