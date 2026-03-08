@@ -62,7 +62,7 @@ def explanationasreplacement(tokensmd: TokenListMD, tree: SynTree) -> Optional[T
     xtokens, xmetalist = gettokensplusxmeta(tree)
     explanations = [xm for xm in xmetalist if xm.name == 'Explanation']
     newtokens = copy.deepcopy(xtokens)
-    newmetadata = origmetadata # + xmetalist  # leaving xmetalist out alone does not avoid unnecessary duplications
+    newmetadata = copy.deepcopy(origmetadata) # + xmetalist  # leaving xmetalist out alone does not avoid unnecessary duplications
     for explanation in explanations:
         newwordlist = explanation.annotationwordlist
         oldwordlist = explanation.annotatedwordlist

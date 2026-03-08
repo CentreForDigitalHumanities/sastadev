@@ -6,6 +6,7 @@ from lxml import etree
 
 from sastadev.adapt_pt import adapt_pt
 from sastadev.basicreplacements import ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
+from sastadev.CHAT_correct import correct_dis_dit
 from sastadev.cleanCHILDEStokens import cleantext, bare_angled_brackets
 from sastadev.conf import settings
 from sastadev.displaytree import printtree
@@ -40,7 +41,7 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
 from sastadev.treetransform import adaptlemmas, splitpronzelf, transform_adj_pp, transform_dp_dp_rel2avn, transformtagcomma, transformtreeld, transformtreenogeen, \
-    transformtreenogde, transform_ppinap, transformhwwwithsvp, transform_rel2avn, transform_sep_ww, transform_gaan_predc
+    transformtreenogde, transform_ppinap, transformhwwwithsvp, transform_rel2avn, transform_sep_ww, transform_gaan_predc, transform_er_az
 from sastadev.eenbeetje import transform_eenbeetje
 
 ampersand = '&'
@@ -556,10 +557,10 @@ def getuitloopnodes(nodes: List[SynTree], metadata:List[Meta]) -> List[SynTree]:
     return sortedresults
 
 def getomittedwordbegins(metalist: List[Meta]) -> List[Position]:
-    from sastadev.CHAT_Annotation import omittedword
+    from sastadev.CHAT_Annotation import CHAT_omittedword
     results = []
     for meta in metalist:
-        if meta.name == omittedword:
+        if meta.name == CHAT_omittedword:
             results += meta.annotatedposlist
     return results
 
@@ -605,6 +606,7 @@ def dotreetransformations(fulltree: SynTree) -> SynTree:
     fulltree = transform_adj_pp(fulltree)
     fulltree = transform_dp_dp_rel2avn(fulltree)
     fulltree = transform_sep_ww(fulltree)
+    fulltree = transform_er_az(fulltree)
     # fulltree = transform_gaan_predc(fulltree) put off because it should be covered already in STAP at least
     # stree = nognietsplit(stree)  # put off because it should not be done
     return fulltree
@@ -761,12 +763,18 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     # clean in the tokenized manner
 
     cleanutttokens, chatmetadata = cleantext(origutt, False, tokenoutput=True)
+    # improve wrong CHAT annotations
+    newutt, correction_metadata = correct_dis_dit(origutt, chatmetadata)
+    cleanutttokens, chatmetadata = cleantext(newutt, False, tokenoutput=True)
+
     # if not cleantextdone(origmetadata):  # otherwise we get double metadata for cleantext maar werkt niet goed
     #    allmetadata += chatmetadata
-    allmetadata += chatmetadata
+    allmetadata += chatmetadata + [meta for meta in correction_metadata if meta not in chatmetadata]
     # cleanutttokens = sasta_tokenize(cleanutt)
     cleanuttwordlist = [t.word for t in cleanutttokens]
     cleanutt = space.join(cleanuttwordlist)
+
+
 
     # get corrections, given the inflated stree
     # Step 6
@@ -954,6 +962,9 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                     newnodeparent = newnode.getparent()
                     newnodeparent.remove(newnode)
                     newnodeparent.append(substnode)
+                    # adapt the sentence here
+                    thetree = adaptsentence(thetree)
+
             # showtree(thetree, 'thetree after smart replace')
 
         elif curbackplacement in [bpl_word, bpl_wordlemma]:

@@ -1623,7 +1623,7 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     nexttoken = tokens[tokenctr+1] if tokenctr < len(tokens) - 1 else None
     prevtoken = tokens[tokenctr - 1] if tokenctr > 0 else None
     if token.word in ['e', schwa]:
-        if isnounsg(nexttoken) and nexttoken.word not in e2een_excluded_nouns:
+        if isnounsg(nexttoken) and nexttoken.word not in e2een_excluded_nouns and nexttoken.word not in Rvzlist:
             newwords = ['een']
             newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
                                             name=correctionlabels.wrongpronunciation, value=correctionlabels.finalndrop,
@@ -1641,9 +1641,9 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                             backplacement=bpl_word, penalty=mp(40))
 
 
-        if ((hasgender(nexttoken, het) or isdimsg(nexttoken) )and isnounsg(nexttoken)) or \
+        if (((hasgender(nexttoken, het) or isdimsg(nexttoken) )and isnounsg(nexttoken)) or \
             (prevtoken is not None and prevtoken.word == 'aan' and isinfinitive(nexttoken)) or \
-            canbenonnoun(nexttoken):
+            canbenonnoun(nexttoken)) and nexttoken.word not in Rvzlist:
             newwords = ['het']
             newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
                                             name=correctionlabels.wrongpronunciation,
@@ -1665,15 +1665,15 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
         #                                     subcat=correctionlabels.onsetandcodadrop,
         #                                     backplacement=bpl_word, penalty=mp(90))
 
-
-        if hasgender(nexttoken, het) and isnounsg(nexttoken):
-            newwords = ['het']
-            newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
-                                            name=correctionlabels.wrongpronunciation,
-                                            value=correctionlabels.onsetandcodadrop,
-                                            cat=correctionlabels.pronunciation,
-                                            subcat=correctionlabels.onsetandcodadrop,
-                                            backplacement=bpl_word, penalty=mp(50))
+        # next is superfluous, I think
+        # if hasgender(nexttoken, het) and isnounsg(nexttoken):
+        #     newwords = ['het']
+        #     newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+        #                                     name=correctionlabels.wrongpronunciation,
+        #                                     value=correctionlabels.onsetandcodadrop,
+        #                                     cat=correctionlabels.pronunciation,
+        #                                     subcat=correctionlabels.onsetandcodadrop,
+        #                                     backplacement=bpl_word, penalty=mp(50))
 
 
         # if True:
@@ -1685,7 +1685,17 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
         #                                     subcat=correctionlabels.codareduction,
         #                                     backplacement=bpl_word, penalty=mp(60))
 
-        if True:
+
+        if nexttoken.word in Rvzlist:
+            newwords = ['er']
+            newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                            name=correctionlabels.wrongpronunciation,
+                                            value=correctionlabels.codareduction,
+                                            cat=correctionlabels.pronunciation,
+                                            subcat=correctionlabels.codareduction,
+                                            backplacement=bpl_word, penalty=mp(30))
+
+        if nexttoken.word not in Rvzlist:
             newwords = ['']
             newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
                                             name=correctionlabels.unknownword,

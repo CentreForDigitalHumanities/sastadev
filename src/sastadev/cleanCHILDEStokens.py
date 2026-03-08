@@ -31,6 +31,10 @@ bstate, ostate, oostate, costate, ccstate = 0, 1, 2, 3, 4
 
 bare_angled_brackets = 'Bare Angled Brackets'
 
+tokenisation = 'tokenisation'
+cleanedtokenisation = 'cleanedtokenisation'
+cleanedtokenpositions = 'cleanedtokenpositions'
+
 #this should be identical to the checkpattern of cleanCHILDESMD
 # #checkpattern = re.compile(r'[][\(\)&%@/=><_0^~↓↑↑↓⇗↗→↘⇘∞≈≋≡∙⌈⌉⌊⌋∆∇⁎⁇°◉▁▔☺∬Ϋ123456789·\u22A5\u00B7\u0001\u2260\u21AB]')
 # checkpattern = re.compile(r'[][\(\)&%@/=><_0^~↓↑↑↓⇗↗→↘⇘∞≈≋≡∙⌈⌉⌊⌋∆∇⁎⁇°◉▁▔☺∬Ϋ·\u22A5\u00B7\u0001\u2260\u21AB]')
@@ -175,11 +179,11 @@ def cleantext(utt: str, repkeep: bool, tokenoutput: bool = False, verbose=False)
     resultwordlist = [t.word for t in newtokens]
     resultstring = smartjoin(resultwordlist)
     resultposlist = [t.pos for t in newtokens]
-    newmeta1 = Meta('tokenisation', inwordlist, atype='list', source='CHAT/Tokenisation', backplacement=bpl_none,
+    newmeta1 = Meta(tokenisation, inwordlist, atype='list', source='CHAT/Tokenisation', backplacement=bpl_none,
                     penalty=0)
-    newmeta2 = Meta('cleanedtokenisation', resultwordlist, atype='list', source='CHAT/Tokenisation',
+    newmeta2 = Meta(cleanedtokenisation, resultwordlist, atype='list', source='CHAT/Tokenisation',
                     backplacement=bpl_none, penalty=0)
-    newmeta3 = Meta('cleanedtokenpositions', resultposlist, annotationposlist=resultposlist, atype='list',
+    newmeta3 = Meta(cleanedtokenpositions, resultposlist, annotationposlist=resultposlist, atype='list',
                     source='CHAT/Tokenisation', backplacement=bpl_none, penalty=0)
     #newmeta4 = Meta('cleantext',  'done')
     metadata += [newmeta1, newmeta2, newmeta3]

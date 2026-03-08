@@ -482,3 +482,23 @@ def transform_sep_ww(instree: SynTree) -> SynTree:
     return stree
 
 
+erazxpath = """.//node[@lemma="er" and ../node[@pt="vz" and @vztype="fin"]]"""
+az_xpath = """.//node[@pt="vz" and @vztype="fin"]"""
+def transform_er_az(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    er_az_nodes = stree.xpath(erazxpath)
+    az_nodes = stree.xpath(az_xpath)
+    for er_az_node in er_az_nodes:
+        for az_node in az_nodes:
+            if immediately_precedes(er_az_node, az_node, stree):
+                er_az_parent = er_az_node.getparent()
+                er_az_parent.remove(er_az_node)
+                er_az_parent.remove(az_node)
+                pp_node = etree.Element('node', {'cat': 'pp', 'rel': 'mod',
+                                                 'begin': gav(er_az_node, 'begin'),'end': gav(az_node, 'end')})
+                er_az_node.set('rel', 'obj1')
+                pp_node.append(er_az_node)
+                az_node.set('rel', 'hd')
+                pp_node.append(az_node)
+                er_az_parent.append(pp_node)
+    return stree

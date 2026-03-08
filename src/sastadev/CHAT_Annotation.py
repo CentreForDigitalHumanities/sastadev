@@ -10,15 +10,17 @@ CHAT = 'CHAT'
 
 CHAT_errormarking = 'Error Marking'
 CHAT_explanation = 'Explanation'
+CHAT_omittedword = 'Omitted Word'
 CHAT_reformulation = 'Reformulation'
 CHAT_repetition = 'Repetition'
 CHAT_replacement = 'Replacement'
 CHAT_retracing = 'Retracing'
-CHAT_wordnoncompletion = 'Noncompletion of a Word'
-CHAT_unintelligible_speech = 'Unintelligible Speech'
+CHAT_specialform = 'Special Form'
 CHAT_phonological_coding = 'Phonological Coding'
 CHAT_phonological_fragment = 'Phonological Fragment'
 CHAT_untranscribed_material = 'Untranscribed Material'
+CHAT_unintelligible_speech = 'Unintelligible Speech'
+CHAT_wordnoncompletion = 'Noncompletion of a Word'
 
 monadic = 1
 dyadic = 2
@@ -33,8 +35,6 @@ scope_close = '>'
 emptyreplacement = eps
 anybutrb = r'[^\]]*'
 
-omittedword = 'Omitted Word'
-specialform = 'Special Form'
 
 real_word_replacement_pattern_open = r'\[::'
 replacement_pattern_open = r'\[:\s'
@@ -707,7 +707,7 @@ annotations = [
     # here additional things could be done
     CHAT_Annotation('Overlap Precedes', '8.4:71-72', '10.3:75',
                     CHAT_SimpleScopedRegex(r'\[\<[0-9]?\]', keep, True, monadic), simplescopedmetafunction),
-    CHAT_Annotation(specialform, '6.3:37', '8.3:43-44', CHAT_SimpleRegex(specialformpat, getsfword, False),
+    CHAT_Annotation(CHAT_specialform, '6.3:37', '8.3:43-44', CHAT_SimpleRegex(specialformpat, getsfword, False),
                     simplemetafunction(getsfvalue)),
     CHAT_Annotation(CHAT_unintelligible_speech, '6.4:41', '8.4:47', CHAT_SimpleRegex(r'[xX][xX][xX]', keep, False),
                     simplemetafunction(epsf)),
@@ -717,7 +717,7 @@ annotations = [
                     CHAT_NoncompletionRegex(r'\(([\w]+)\)', r'\1', r''), noncompletionmetafunction),
     # CHAT_Annotation(CHAT_wordnoncompletion, '6.5:43', '8.5:48',
     #                 CHAT_NoncompletionRegex(r'(.*)\((\w*)\)(.*)', r'\1\2\3', r'\1\3'), noncompletionmetafunction),
-    CHAT_Annotation(omittedword, '6.5:43', '8.5:48-49',
+    CHAT_Annotation(CHAT_omittedword, '6.5:43', '8.5:48-49',
                     CHAT_SimpleRegex(r"0[\w:']+", dropzero, False), simple_bpldel_metafunction(dropzero)),
     CHAT_Annotation('Satellite at End', '7.4:58', '9.2:59-60',
                     CHAT_SimpleRegex(r'\s„\s', eps, False), simplemetafunction(identity)),
