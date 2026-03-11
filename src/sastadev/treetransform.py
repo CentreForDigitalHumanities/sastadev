@@ -120,6 +120,8 @@ def transformtagcomma(stree: SynTree) -> SynTree:
                 incr = 2 if thenodeyield[0].attrib['begin'] == '0' else 20
                 sv1top = increasebeginends(sv1top, incr)
                 sv1node = find1(sv1top, sv1xpath)
+                if sv1node is None:
+                    return stree
                 otherpuncs = sv1top.xpath(notsv1xpath)
                 topattrib = {'cat': 'top', 'id': getattval(topnode, 'id'), 'begin': getattval(topnode, 'begin'),
                              'end': getattval(topnode, 'end')}
