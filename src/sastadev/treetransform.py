@@ -107,6 +107,8 @@ def transformtagcomma(stree: SynTree) -> SynTree:
     if match is not None:
         topnode = match.getparent()
         thetag = find1(newtree, tagxpath)
+        if thetag is None:
+            return stree
         thetagcomma = find1(newtree, tagcommaxpath)
         thenodeyield = getnodeyield(newtree)
         if isfiniteverbnode(thenodeyield[2]):
@@ -117,9 +119,13 @@ def transformtagcomma(stree: SynTree) -> SynTree:
                 showtree(sv1parse, 'sv1parse')
             if sv1parse is not None:
                 sv1top = find1(sv1parse, './/node[@cat="top"]')
+                if sv1top is None:
+                    return stree
                 incr = 2 if thenodeyield[0].attrib['begin'] == '0' else 20
                 sv1top = increasebeginends(sv1top, incr)
                 sv1node = find1(sv1top, sv1xpath)
+                if sv1node is None:
+                    return stree
                 otherpuncs = sv1top.xpath(notsv1xpath)
                 topattrib = {'cat': 'top', 'id': getattval(topnode, 'id'), 'begin': getattval(topnode, 'begin'),
                              'end': getattval(topnode, 'end')}
@@ -162,6 +168,8 @@ def nognietsplit(stree: SynTree) -> SynTree:
     for nognietnode in nognietnodes:
         nog = find1(nognietnode, """./node[@lemma="nog"]""")
         niet = find1(nognietnode, """./node[@lemma="niet"]""")
+        if nog is None or niet is None:
+            return stree
         nognietnodeparent = nognietnode.getparent()
         nognietnode.remove(nog)
         nognietnode.remove(niet)
@@ -350,6 +358,8 @@ def transform_rel2avn(instree: SynTree) -> SynTree:
     for np_node in np_nodes:
         np_parent = np_node.getparent()
         rel_node = find1(np_node, """./node[@cat="rel" and @rel="mod"]""")
+        if rel_node is None:
+            return instree
         np_node.remove(rel_node)
         du_node = etree.Element('node', {'cat': ' du', 'rel':'--' })
         np_parent.append(du_node)
@@ -426,6 +436,8 @@ def transform_dp_dp_rel2avn(instree: SynTree) -> SynTree:
     result = instree
     for dp_dp_parent in dp_dp_parents:
         dp_np = find1(dp_dp_parent, dp_np_rel_xpath)
+        if dp_np is None:
+            return instree
         dp2s = [child for child in dp_dp_parent if child != dp_np and
                                                   gav(child, 'rel') == 'dp' and
                                                   follows(child, dp_np)]
