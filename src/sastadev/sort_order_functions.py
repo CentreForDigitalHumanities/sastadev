@@ -70,7 +70,7 @@ def get_cause_count_dict(causes_dict) -> dict:
     for key in causes_dict:
         count = len(causes_dict[key])
         ds_name, sample, xsid = key
-        result_dict[(ds_name, sample)].update({xsid: count})
+        result_dict[sample].update({xsid: count})
     return result_dict
 
 
@@ -91,7 +91,7 @@ def get_utt_criterion_scores(sentences: Table, method_name: MethodName) -> Tuple
         #     settings.LOGGER.warning(str(causes_list))
         #     settings.LOGGER.warning(str(causes_scores))
         the_score = get_the_score(causes_scores)
-        result_dict[(ds_name, sample)].update({uttid:the_score})
+        result_dict[sample].update({uttid:the_score})
 
     cause_count_dict = get_cause_count_dict(causes_dict)
     return result_dict, cause_count_dict
@@ -106,8 +106,8 @@ def get_the_score(causes_scores:List[Tuple[float, float]]) -> Tuple[float, float
 def sortutterances(foundutts: dict, sod_pars: SortOrderDictParameters) -> dict:
     # @@ here we must see what the keys of the dictionaries is: sample, or (ds_name, sample): it is inconsistent now
     sortedfoundutts = defaultdict(list)
-    for sample in sod_pars.foundutts:
-        origlist = sod_pars.foundutts[sample]
+    for sample in foundutts:
+        origlist = foundutts[sample]
         sl = sod_pars.sentlengths[sample]
         rwc = sod_pars.realwordscountdict[sample]
         cc = sod_pars.codecountdict[sample]
@@ -117,7 +117,7 @@ def sortutterances(foundutts: dict, sod_pars: SortOrderDictParameters) -> dict:
         sortedfoundutts[sample] = sortedlist
     return sortedfoundutts
 
-def sortorderfunction1_rwc_cc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score):
+def sortorderfunction_rwc_cc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score, cause_count):
     """
     The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
     relevant.
@@ -133,7 +133,7 @@ def sortorderfunction1_rwc_cc_rwc_sl(realwordcount, sentlength, codecount, utt_c
     return resulttuple
 
 
-def sortorderfunction_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score):
+def sortorderfunction_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score, cause_count):
     """
     The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
     relevant.
@@ -148,7 +148,7 @@ def sortorderfunction_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, utt_cr
     resulttuple = (cc_rwc, realwordcount, sentlength)
     return resulttuple
 
-def sortorderfunction_neg_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score):
+def sortorderfunction_neg_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score, cause_count):
     """
     The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
     relevant.
@@ -162,6 +162,48 @@ def sortorderfunction_neg_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, ut
     cc_rwc = codecount / realwordcount if realwordcount != 0 else 0
     resulttuple = (-cc_rwc, realwordcount, sentlength)
     return resulttuple
+
+def sortorderfunction_causec_neg_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score, cause_count):
+    """
+    We first select by the number of criteria (causecount) , then:
+    The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
+    relevant.
+    This function sorts on (-codecount / realwordcount, realwordcount, sentlength)
+
+    :param realwordcount:
+    :param sentlength:
+    :param codecount:
+    :return:
+    """
+    cc_rwc = codecount / realwordcount if realwordcount != 0 else 0
+    resulttuple = (-cause_count, -cc_rwc, realwordcount, sentlength)
+    return resulttuple
+
+def sortorderfunction_utt_nothc_neg_cc_rwc_rwc_sl(realwordcount, sentlength, codecount, utt_criterion_score, cause_count):
+    """
+    We first select by the number of criteria (causecount) , then:
+    The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
+    relevant.
+    This function sorts on (-codecount / realwordcount, realwordcount, sentlength)
+
+    :param realwordcount:
+    :param sentlength:
+    :param codecount:
+    :return:
+    """
+    utt_conf, utt_nothc = utt_criterion_score
+    cc_rwc = codecount / realwordcount if realwordcount != 0 else 0
+    resulttuple = (utt_nothc, -cc_rwc, realwordcount, sentlength)
+    return resulttuple
+
+
+sortorderfunctions_dict = {
+    'sortorderfunction_rwc_cc_rwc_sl': sortorderfunction_rwc_cc_rwc_sl,
+    'sortorderfunction_cc_rwc_rwc_sl': sortorderfunction_cc_rwc_rwc_sl,
+    'sortorderfunction_neg_cc_rwc_rwc_sl': sortorderfunction_neg_cc_rwc_rwc_sl,
+    'sortorderfunction_causec_neg_cc_rwc_rwc_sl': sortorderfunction_causec_neg_cc_rwc_rwc_sl,
+    'sortorderfunction_utt_nothc_neg_cc_rwc_rwc_sl': sortorderfunction_utt_nothc_neg_cc_rwc_rwc_sl
+                           }
 
 
 
