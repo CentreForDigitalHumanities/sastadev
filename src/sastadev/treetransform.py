@@ -107,7 +107,11 @@ def transformtagcomma(stree: SynTree) -> SynTree:
     if match is not None:
         topnode = match.getparent()
         thetag = find1(newtree, tagxpath)
+        if thetag is None:
+            return stree
         thetagcomma = find1(newtree, tagcommaxpath)
+        if thetagcomma is None:
+            return stree
         thenodeyield = getnodeyield(newtree)
         if isfiniteverbnode(thenodeyield[2]):
             theyield = getyield(newtree)
@@ -117,6 +121,8 @@ def transformtagcomma(stree: SynTree) -> SynTree:
                 showtree(sv1parse, 'sv1parse')
             if sv1parse is not None:
                 sv1top = find1(sv1parse, './/node[@cat="top"]')
+                if sv1top is None:
+                    return stree
                 incr = 2 if thenodeyield[0].attrib['begin'] == '0' else 20
                 sv1top = increasebeginends(sv1top, incr)
                 sv1node = find1(sv1top, sv1xpath)
@@ -164,6 +170,8 @@ def nognietsplit(stree: SynTree) -> SynTree:
     for nognietnode in nognietnodes:
         nog = find1(nognietnode, """./node[@lemma="nog"]""")
         niet = find1(nognietnode, """./node[@lemma="niet"]""")
+        if nog is None or niet is None:
+            return stree
         nognietnodeparent = nognietnode.getparent()
         nognietnode.remove(nog)
         nognietnode.remove(niet)
