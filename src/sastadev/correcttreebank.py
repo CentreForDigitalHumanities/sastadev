@@ -574,6 +574,10 @@ def bare_angled_brackets_replace_tree(stree: SynTree) -> SynTree:
     :return: possibly modified syntactic structure
     """
     origutt = getorigutt(stree)
+    if origutt is None:
+        origutt = getsentence(stree)
+    if origutt is None:
+        return(stree)
     cleanutt, chatmetadata = cleantext(origutt, False, tokenoutput=False)
     if any([meta.name == bare_angled_brackets for meta in chatmetadata]):
         newstree = settings.PARSE_FUNC(cleanutt)
