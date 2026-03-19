@@ -111,9 +111,11 @@ def sortutterances(foundutts: dict, sod_pars: SortOrderDictParameters) -> dict:
         sl = sod_pars.sentlengths[sample]
         rwc = sod_pars.realwordscountdict[sample]
         cc = sod_pars.codecountdict[sample]
+        ucs = sod_pars.utt_criterion_scores[sample]
+        cause_counts = sod_pars.cause_count_dict[sample]
         sortedlist = sorted(origlist, key=lambda x:
                         sod_pars.sortorderfunction(rwc[x], sl[x], cc[x],
-                                        sod_pars.utt_criterion_scores[x], sod_pars.cause_count_dict[x]), reverse=True)
+                                        ucs[x], cause_counts[x]), reverse=True)
         sortedfoundutts[sample] = sortedlist
     return sortedfoundutts
 

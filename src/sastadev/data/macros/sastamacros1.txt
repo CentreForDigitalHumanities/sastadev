@@ -970,3 +970,13 @@ verbal_VU = """(%dankje_VU% or %Tarsp_kijkVU%)"""
 zelfst_wat = """(@lemma="wat" and @vwtype= "onbep" and @rel!="det" and not(@rel="hd" and parent::node[@rel="det"]))"""
 
 
+Tarsp_een = """(node[(@lemma="een" or @lemma="'n") and @pt="lid"] and node[(@pt="n" or (@pt="adj" and @positie="nom")) and @rel="hd"] and count(node)=2)"""
+
+Tarsp_ov2 = """(not(%Tarsp_Kop%) and 
+				not(%Tarsp_OndB%) and 
+				not(%Tarsp_OndVC%) and 
+				not(%Tarsp_vcw%) and 
+				not(%Tarsp_een%) and
+				count(node[%realnode%]) = 2 and
+				%onlythesearerealwords%
+				)""" 
