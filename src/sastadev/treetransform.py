@@ -110,6 +110,8 @@ def transformtagcomma(stree: SynTree) -> SynTree:
         if thetag is None:
             return stree
         thetagcomma = find1(newtree, tagcommaxpath)
+        if thetagcomma is None:
+            return stree
         thenodeyield = getnodeyield(newtree)
         if isfiniteverbnode(thenodeyield[2]):
             theyield = getyield(newtree)

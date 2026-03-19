@@ -98,8 +98,10 @@ def mkscoresbyuttrows(allresults: AllResults, bronzerefscores: ResultsDict, silv
     resultsuttids = {uttid for uttid in resultsbyutt}
     bronzeuttids = {uttid for uttid in bronzebyutt}
     silveruttids = {uttid for uttid in silverbyutt}
-    alluttids = resultsuttids.union(bronzeuttids.union(silveruttids))
-    alluttidlist = list(alluttids)
+    # alluttids = resultsuttids.union(bronzeuttids.union(silveruttids))
+    # alluttidlist = list
+    alluttids = [uttid for uttid in allresults.allutts]
+    alluttidlist = alluttids
     sortedalluttidlist = sorted(alluttidlist, key=lambda x: smartsortkey(str(x)))
     bronze_intersections = {uttid: bronzebyutt[uttid] & resultsbyutt[uttid] for uttid in alluttids}
     bronze_ref_minus_inter = {uttid: bronzebyutt[uttid] - bronze_intersections[uttid] for uttid in alluttids}

@@ -51,8 +51,11 @@ def sample_sas(treebank: TreeBank, exactresults: ExactResultsDict, select_criter
                                     parsedas, message, suggestedcodes, realwordcount, codecount)
                     metaresults.append((match, meta))
 
-    # sort the metaresults
-    sorted_metaresults = sort_sas_metalist(metaresults)
+        # here compute the utt_crterion_score and the cause _count for each utterance / tree
+
+    # sort the metaresults  # temporaririly put off
+    sorted_metaresults = metaresults
+    # sorted_metaresults = sort_sas_metalist(metaresults)
 
     # create a sorted list of uttids without duplicates
     uttidlist = getuniqueuttids(sorted_metaresults)

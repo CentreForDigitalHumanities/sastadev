@@ -115,6 +115,7 @@ from sastadev.sastatypes import (
     UttId,
 )
 from sastadev.semantic_compatibility import semincompatiblecount, get_semantically_incompatible_nodes
+from sastadev.sort_order_functions import sortorderfunction_neg_cc_rwc_rwc_sl
 from sastadev.stringfunctions import consonants, is_interpunction_sequence, monosyllabic
 from sastadev.treebankfunctions import ( find1,
     getattval as gav,
@@ -750,36 +751,6 @@ def checkcodesprecise(
 
 
 
-def sortorderfunction1(realwordcount, sentlength, codecount):
-    """
-    The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
-    relevant.
-    This function sorts on (realwordcount / codecount, realwordcount, sentlength)
-
-    :param realwordcount:
-    :param sentlength:
-    :param codecount:
-    :return:
-    """
-    rwc_cc = realwordcount / codecount if codecount != 0 else realwordcount + 1
-    resulttuple = (rwc_cc, realwordcount, sentlength)
-    return resulttuple
-
-
-def sortorderfunction2(realwordcount, sentlength, codecount):
-    """
-    The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
-    relevant.
-    This function sorts on (codecount / realwordcount, realwordcount, sentlength)
-
-    :param realwordcount:
-    :param sentlength:
-    :param codecount:
-    :return:
-    """
-    cc_rwc = codecount / realwordcount if realwordcount != 0 else 0
-    resulttuple = (cc_rwc, realwordcount, sentlength)
-    return resulttuple
 
 def get_unknown_noun_message(node: SynTree) -> str:
     wrd = gav(node, 'word')
@@ -803,20 +774,6 @@ def get_wrong_pos_word_message_function(message:str) -> Callable:
 def get_sem_mismatch_message_function(message:str) -> Callable:
     return lambda node: f'{message}: {getposcat(node)} {getyieldstr(node)} as {gav(node, "rel")} to {gav(get_governor_of(node), 'word')}'
 
-def sortorderfunction3(realwordcount, sentlength, codecount):
-    """
-    The assumption is that the proportion between *codecount* and *realwordcount*, *realwordcount* and *sentlength* are
-    relevant.
-    This function sorts on (-codecount / realwordcount, realwordcount, sentlength)
-
-    :param realwordcount:
-    :param sentlength:
-    :param codecount:
-    :return:
-    """
-    cc_rwc = codecount / realwordcount if realwordcount != 0 else 0
-    resulttuple = (-cc_rwc, realwordcount, sentlength)
-    return resulttuple
 
 def get_message_function(message: str) -> Callable:
     return lambda m: f'{message}: {getyieldstr(m)}'
@@ -869,7 +826,7 @@ gaan_obj1_queryf = q2f(gaan_obj1_query, get_message_function(gaan_obj1_query_mes
 
 
 #: The variable *sortorderfunction* specifies the function that orders the selected utterances
-sortorderfunction = sortorderfunction3
+sortorderfunction = sortorderfunction_neg_cc_rwc_rwc_sl
 
 unexpanded_wrong_ld_query = """//node[@rel="ld" and 
                                       not(%Rpronoun%) and 

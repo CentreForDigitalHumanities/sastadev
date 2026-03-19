@@ -391,3 +391,14 @@ def get_avn(stree: SynTree) -> List[SynTree]:
     results = stree.xpath(avn_xpath)
     results += get_rel_as_avn_nodes(stree)
     return results
+
+ov2_xpath = expandmacros(".//node[%Tarsp_ov2%]")
+def ov2(stree: SynTree) -> List[SynTree]:
+    """
+    many more cases must be excluded, e.g. w(x), bv zn. die/dezezn etc, allow only two real words
+    """
+    bx_results = bx(stree)
+    if bx_results != []:
+        return []
+    results = stree.xpath(ov2_xpath)
+    return results
