@@ -98,6 +98,7 @@ ynquery = """@cat="sv1" and
             (@rel="--" or @rel="dp" or %nofollowinghenucl%) and
             not(%topcontainsperiodmark%) and 
 			not(%topcontainsexclamationmark%) and 
+			%topcontainsquestionmark% and
             node[@rel="hd" and @pt="ww" and @pvtijd !="conj" and (@stype="ynquestion" or %topcontainsquestionmark% ) ] and
             (node[@rel="su"] or %topcontainsquestionmark%)    and
             (not(%impmodfound%) or %topcontainsquestionmark% )			 

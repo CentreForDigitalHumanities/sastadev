@@ -972,11 +972,71 @@ zelfst_wat = """(@lemma="wat" and @vwtype= "onbep" and @rel!="det" and not(@rel=
 
 Tarsp_een = """(node[(@lemma="een" or @lemma="'n") and @pt="lid"] and node[(@pt="n" or (@pt="adj" and @positie="nom")) and @rel="hd"] and count(node)=2)"""
 
-Tarsp_ov2 = """(not(%Tarsp_Kop%) and 
+Tarsp_ov2 = """(@cat!="top" and 
+                count(.//node[%realwordnode%]) = 2 and
+				count(node[%realwordnode%]) = 2 and
+				%onlythesearerealwords% and
+				not(%Tarsp_Kop%) and 
 				not(%Tarsp_OndB%) and 
 				not(%Tarsp_OndVC%) and 
+				not(%Tarsp_OndW%) and
 				not(%Tarsp_vcw%) and 
 				not(%Tarsp_een%) and
-				count(node[%realnode%]) = 2 and
-				%onlythesearerealwords%
+				not(%BvZn%) and 
+				not(node[%Tarsp_Hwwi%]) and
+				not(node[%Tarsp_Hwwvd%]) and 
+				not(%Tarsp_VzN%) and
+				not(%Tarsp_Vz_B%) and
+				not(%Xneg%) and
+				not(%Tarsp_die_deze_Zn%) and
+				not(%Tarsp_dit_dat_Zn%) and
+				not(%Tarsp_de%) and
+				not(%Tarsp_geen_X%) and
+				not(%Tarsp_het_Zn%) and 
+				not(%Tarsp_ZnZn%) and
+				not(%bbvb%) and
+				not(%BezZn%) and 
+				not(%Tarsp_VrXY%) and
+				not(node[%Tarsp_VrXY%]) and
+				not(%Tarsp_OndWVC%) and 
+				not(%Tarsp_Ov3%) and
+				not(@cat="inf" and @rel="vc") and
+				not(%vrwondplus%) and
+				not(%Tarsp_Hwwvd%) and 
+				not(%Tarsp_only_W%) and
+				@cat != "conj" and
+				@cat!= "du" and
+				not(node[%Tarsp_en%]) and
+				not(parent::node[@cat="whq"])
 				)""" 
+				
+Tarsp_die_deze_Zn = """(@cat="np" and 
+                          node[(@pt="n" or %substantivised_nphead%) and @rel="hd"] and node[@pt="vnw" and @vwtype="aanw" and @rel="det" and (@lemma="die" or @lemma="deze")] and 
+                          count(node)=2)"""
+						  
+Tarsp_de = """(@cat="np" and node[@rel="det" and @lemma="de"] and count(node)=2)"""
+
+Tarsp_dit_dat_Zn = """(@cat="np" and 
+                         node[(@pt="n" or %substantivised_nphead%)  and @rel="hd"] and node[@pt="vnw" and @vwtype="aanw" and @rel="det" and (@lemma="dit" or @lemma="dat")] and 
+						 count(node)=2)"""
+						 
+Tarsp_geen_X = """(@cat="np" and
+                      node[@pt="vnw" and @rel="det" and @lemma="geen"] and
+                      node[@pt="n" and @rel="hd"])"""
+					  
+Tarsp_het_Zn = """(@cat="np" and
+                      node[@pt="lid" and @rel="det" and @lemma="het"] and
+                      node[@rel="hd" and @pt="n"] and 
+					  count(node)=2)"""
+					  
+Tarsp_Vz_B = """(node[@rel="hd" and @pt="vz"] and 
+                 node[@rel="obj1" and 
+                      ( (@pt="vz" or @pt="bw") or 
+                       (%Rpronoun% and @begin>=../node[@rel="hd"]/@end)) ])"""
+					   
+Tarsp_ZnZn = """((node[@pt="n" and @rel="hd" and @ntype!="eigen"] and node[@pt="n" and not(@rel="hd") ] and count(node) = 2) or
+       (@cat="du" and count(node[@rel="dp" and @pt="n"]) = 2))"""
+	   
+Tarsp_only_W = """(@pt="ww" and not(%verbal_VU%) and %thisistheonlyrealword%)"""
+
+Tarsp_en = """(@pt="vg" and @lemma="en" and @rel="dlink")"""

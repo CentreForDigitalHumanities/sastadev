@@ -398,7 +398,8 @@ def ov2(stree: SynTree) -> List[SynTree]:
     many more cases must be excluded, e.g. w(x), bv zn. die/dezezn etc, allow only two real words
     """
     bx_results = bx(stree)
-    if bx_results != []:
+    wx_results = wx(stree)
+    if bx_results != [] or wx_results != []:
         return []
     results = stree.xpath(ov2_xpath)
     return results
