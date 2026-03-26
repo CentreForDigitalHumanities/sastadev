@@ -128,7 +128,6 @@ Tarsp_OndVC = """((%coreondvc% or %dpdpondvc%)  and count(node) = 2 and %onlythe
 
 Tarsp_smain_OndB = """(@cat="smain" and node[@rel="su"] and node[@rel="mod"] and count(node) =2 and %onlythesearerealwords%) """
 
-beetje = """(@word="beetje")"""
 
 adj_n_svp = """node[@rel="svp" and (@pt="adj" or @pt="n")]"""
 

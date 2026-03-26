@@ -215,12 +215,15 @@ locmodalverb = """ (@lemma="kunnen" or @lemma="moeten" or @lemma="hoeven" or @le
 
 adjoradv = """(@pt="bw" or @pt="adj" or (@pt="vnw" and (@pos="adj" or @pos="adv")))"""
 
+beetje = """(@pt="n" and @lemma="beet" and @graad="dim")"""
+
 adjadv = """
 (@pt='adj' and (@lemma='wel'))
 """
 
 
-bbvb = """((@cat="ap" or @cat="advp" or @cat="np") and (node[@rel="mod" and %adjoradv%] and
+bbvb = """((@cat="ap" or @cat="advp" or @cat="np") and (node[@rel="mod" and 
+           (%adjoradv% or %beetje%)] and
        node[@rel="hd"  and %adjoradv% and not(@positie="nom")] and not(%Tarsp_BBX%))     
    )"""
 

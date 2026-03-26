@@ -1,6 +1,7 @@
 import copy
 from lxml import etree
 import os
+from sastadev.celexlexicon import getinflforms, pos2posnum
 from sastadev.conf import settings
 from sastadev.constants import outtreebanksfolder
 from sastadev.lexicon import informlexicon, adj_no_pp_lexicon
@@ -406,8 +407,35 @@ def test3():
                        pretty_print=True)
 
 
+def get_plural(node: SynTree) -> List[str]:
+    word = gav(node, 'word')
+    lemma = gav(node, 'lemma')
+    pt = gav(node, 'pt')
+    dim = gav(node, 'graad') == 'dim'
+    if pt != 'n':
+        return []
+    ncode = pos2posnum[pt]
+    if dim:
+        newwords = getinflforms(lemma, ncode, 'dm')
+    else:
+        newwords = getinflforms(lemma, ncode, 'm')
+    return newwords
+
+get_plural_test_list = [('beer', 'beer', 'basis'), ('beer', 'beertje', 'dim')]
+def test4():
+    for lemma, word, degree in get_plural_test_list:
+        thenode = etree.Element('node', {'lemma': lemma, 'word': word, 'graad': degree, 'pt': 'n'})
+        newwords = get_plural(thenode)
+        print(f'{word}: {str(newwords)}')
+
+def requires_plural_tw(node: SynTree) -> bool:
+    lemma = gav(node, 'lemma')
+    pt = gav(node, 'pt')
+    result = pt == 'tw' and lemma != 'één'
+    return result
 
 if __name__ == '__main__':
     # test1()
     # test2()
-    test3()
+    # test3()
+    test4()

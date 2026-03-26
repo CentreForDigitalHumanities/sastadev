@@ -9,6 +9,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 from sastadev.alpino import getdehetwordinfo
 from sastadev.basicreplacements import (basicexpansions, basicreplacementpairs, basicreplacements, ervzvariantsdict,
                                         getdisambiguationdict, is_er_pronoun, Rvzlist)
+from sastadev.celexlexicon import getinflforms, pos2posnum
 from sastadev.CHAT_Annotation import CHAT_retracing
 from sastadev.childesspellingcorrector import (adult_correctionsdict, children_correctionsdict,
                                                children_correctspelling,  allfrqdict)
@@ -72,6 +73,8 @@ basepenalties = {ADULTSPELLINGCORRECTION: 600, ALLSAMPLECORRECTIONS: 400, BASICR
 tarsp = 'tarsp'
 stap = 'stap'
 asta = 'asta'
+
+gav = getattval
 
 hyphen = '-'
 errormsgsep = '&'
@@ -1369,6 +1372,8 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
     newtokenmds: List[TokenMD] = []
     tokennodes = getnodeyield(tree)
 
+    prevtokennode = tokennodes[tokenctr - 1] if tokenctr > 0 else None
+
     schwandropfound = False
     postviefound = False
     deduplicated = False
@@ -1608,7 +1613,22 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                         backplacement=bpl_word, penalty=5)
 
 
-    # vz if preceded by phonologial fragment schwa is replaced by er+vz
+    if getattval(thetokennode, 'pt') == 'n' and \
+            getattval(thetokennode, 'getal') == 'ev' and \
+            token.word == gav(thetokennode, 'word') and \
+            prevtokennode is not None and \
+            requires_plural_tw(prevtokennode):
+        candwords = get_plural(thetokennode)
+        if candwords != []:
+            newwords = [candwords[0]]
+            newtokenmds = updatenewtokenmds(newtokenmds, token, newwords, beginmetadata,
+                                            name=correctionlabels.number_error,
+                                            value=correctionlabels.sg_not_pl,
+                                            cat=correctionlabels.syntax,
+                                            backplacement=bpl_node, penalty=defaultpenalty)
+
+
+    # vz if preceded by phonological fragment schwa is replaced by er+vz
     if token.word in Rvzlist:
         ervzs = get_er_vz(token, tree)
         for ervz in ervzs:
@@ -2387,4 +2407,24 @@ def altmkchatutt(intokens: List[str], outtoken: str) -> List[str]:
         newtoken = intoken if intoken == outtoken else replacement(
             intoken, outtoken)
         result.append(newtoken)
+    return result
+
+def get_plural(node: SynTree) -> List[str]:
+    word = gav(node, 'word')
+    lemma = gav(node, 'lemma')
+    pt = gav(node, 'pt')
+    dim = gav(node, 'graad') == 'dim'
+    if pt != 'n':
+        return []
+    ncode = pos2posnum[pt]
+    if dim:
+        newwords = getinflforms(lemma, ncode, 'dm')
+    else:
+        newwords = getinflforms(lemma, ncode, 'm')
+    return newwords
+
+def requires_plural_tw(node: SynTree) -> bool:
+    lemma = gav(node, 'lemma')
+    pt = gav(node, 'pt')
+    result = pt == 'tw' and lemma != 'één'
     return result

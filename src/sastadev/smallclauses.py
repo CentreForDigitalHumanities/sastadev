@@ -366,6 +366,12 @@ def containsvzhetinf(nodes: List[SynTree]) -> bool:
             return True
     return False
 
+def isbeetje(node: SynTree) -> bool:
+    lemma = getattval(node, 'lemma')
+    graad = getattval(node, 'graad')
+    result = lemma == 'beet' and graad == 'dim'
+    return result
+
 
 def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     '''
@@ -483,7 +489,7 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             else:
                 settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                       f'tokens={str(reducedtokens)}; No insertion done')
-        elif (aanwvnw(first) or knownnoun(first)) and adj(second):
+        elif (aanwvnw(first) or knownnoun(first)) and adj(second) and not isbeetje(first):
             bgfirst = bg(first)
             if bgfirst in themap:
                 fpos = themap[bg(first)].pos
