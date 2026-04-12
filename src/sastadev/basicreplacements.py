@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from sastadev.correctionlabels import casevariant, regionalform, grammar
 from sastadev.deregularise import correctinflection
@@ -100,6 +100,21 @@ def is_pronominal_adverb(raw_wrd: str) -> bool:
     result = result1 or result2
     return result
 
+def get_pronadv_head_lemma(raw_wrd: str) -> Optional[str]:
+    wrd = raw_wrd.lower()
+    if is_er_pronoun(wrd):
+        raw_lemma = wrd[2:]
+    elif wrd[:4] in ['daar', 'hier', 'waar'] and wrd[4:] in Rvzlist:
+        raw_lemma = wrd[4:]
+    else:
+        return None
+    if raw_lemma == 'mee':
+        lemma = 'met'
+    elif raw_lemma == 'toe':
+        lemma = 'tot'
+    else:
+        lemma = raw_lemma
+    return lemma
 
 
 #: The constant *ervzvariants* contains a list of 6-tuples (type *BasicReplacement*)
@@ -115,6 +130,7 @@ ervzvariants: List[BasicReplacement] = \
     [("e'" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
     [("d'" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
     [("dr" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
+    [("de" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
     [("e" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist]
 
 ervzvariantsdict = {tpl[0]: tpl for tpl in ervzvariants }
@@ -367,6 +383,8 @@ basicexpansionlist: List[BasicExpansion] = \
      ('das', ['dat', 'is'], pron, infpron, contract, dp),
      ("di's", ['dit', 'is'], pron, infpron, contract, dp),
      ("da's", ['dat', 'is'], pron, infpron, contract, dp),
+     ("hij's", ['hij', 'is'], pron, infpron, contract, dp),
+     ("zij's", ['zij', 'is'], pron, infpron, contract, dp),
      ('tis', ['dit', 'is'], pron, infpron, contract, dp),
      ('waas', ['waar', 'is'], pron, infpron, contract, dp),
      ('is-t-ie', ['is', 'ie'], pron, infpron, t_ie, dp),

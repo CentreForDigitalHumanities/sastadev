@@ -103,7 +103,8 @@ hwwprtverb = """
 	@lemma = "vol_lopen" or
 	@lemma = "weg_lopen" or
 	@lemma = "vast_zitten" or
-	@lemma = "terug_komen"
+	@lemma = "terug_komen" or 
+	@lemma = "aan_gaan"
 )
 """
  
@@ -313,7 +314,7 @@ hwwwithsvp = """(contains(@lemma,"_kunnen") or
                  contains(@lemma,"_zijn") 
 				) """
 
-hwwwithsvpexception = """(@lemma="terug_komen" or @lemma="vast_zitten" or @lemma="weg_gaan" or @lemma="aan_hebben" or @lemma="op_hebben" or @lemma="open_doen" or @lemma="aan_staan" or @lemma="weg_doen")""" 
+hwwwithsvpexception = """(@lemma="terug_komen" or @lemma="vast_zitten" or @lemma="weg_gaan" or @lemma="aan_hebben" or @lemma="op_hebben" or @lemma="open_doen" or @lemma="aan_staan" or @lemma="weg_doen" or @lemma="aan_gaan")""" 
 wwwithsvpexception = """(@lemma="af_slaan" or @lemma="in_gooien")"""
 
 complement = """((@rel="obj1" or @rel="obj2") or 

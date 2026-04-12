@@ -25,6 +25,7 @@ tarsp_wvzexceptions: Set[StrPair] = {('hebben', 'van'),  # hebben can occur with
                                      ('lukken', 'in'), \
                                      ('passen', 'bij'), \
                                      ('vallen', 'vanaf'),
+                                     ('zien', 'in'),    # ik zag er allemaal boekjes in
                                      # next list derived from CHILDES via Paqu
                                      # query: https://paqu.let.rug.nl:8068/?db=childesdutch&word=&rel=pc&hword=&postag=vz&hpostag=ww&meta=&sn=10
                                      # and manual filtering see file Tarsp_wrongpcs.txt in the lassy folder
@@ -40,6 +41,7 @@ tarsp_wvzexceptions: Set[StrPair] = {('hebben', 'van'),  # hebben can occur with
                                      ('eten', 'van'),
                                      ('gaan', 'aan'),
                                      ('gaan', 'om'),
+                                     ('gaan', 'op'),
                                      ('gaan', 'overheen'),
                                      ('gaan', 'tussendoor'),
                                      ('gaan', 'voor'),

@@ -109,6 +109,14 @@ def ispunctuation(wrd: str) -> bool:
     result = wrd in punctuationchars
     return result
 
+def skipjoin(strings: List[str], sep: str=' ') -> str:
+    """
+    joins the strings into a single string with separator sep but ignores empty strings
+    """
+    cleanstrings = [string for string in strings if string != '']
+    result = sep.join(cleanstrings)
+    return result
+
 def alt(strlist: Sequence[str], grouped: bool = True) -> str:
     '''
     The function alt takes as input a string or a list of strings and joins them into  a string separated by |.

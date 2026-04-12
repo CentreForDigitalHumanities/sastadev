@@ -102,9 +102,17 @@ new_STAP_BB_t = """ ((
    %adjBBt% or
    %ppnpBBt% or
    %geledenBBt% or
-   %temporal_mwu%
+   %temporal_mwu% 
    ) and %STAP_geen_BB%)
 """ 
+
+temp_cp = """(@cat="cp" and node[@rel="cmp" and %temp_vg%])"""
+
+temp_vg = """
+@lemma="voor" or @lemma="voordat" or @lemma="eer" or @lemma="eerdat" or @lemma="aleer" or @lemma="vooraleer" or @lemma="alvorens" or @lemma="tot" or @lemma="totdat" or
+@lemma="terwijl" or @lemma="zolang" or @lemma="zodra" or @lemma="sinds" or @lemma="sedert" or @lemma="toen" or @lemma="nu" or @lemma="als" or @lemma="wanneer" or
+@lemma="nadat" or @lemma="na" or @lemma="zodra" or @lemma="toen"
+"""
    
 temp = """ ((%tempadv% or %templemma%) and not(%excludedlemma%))
 """
@@ -127,7 +135,7 @@ BB = """ ((@rel="mod" or @rel="dp" or @rel="--" or @rel="nucl" or @rel="whd") an
 tempadv = """ (@frame="tmp_adverb" or  @frame="wh_tmp_adverb" or @frame="adjective(both(tmpadv))" or @special="tmp"  )
 """
 
-templemma = """ (@lemma="soms"  or @lemma="altijd" or @lemma="eerst" or @lemma="steeds" or @lemma="eerder" or @lemma="nou" or @lemma="vaak" or %Rna%)
+templemma = """ (@lemma="soms"  or @lemma="altijd" or @lemma="eerst" or @lemma="steeds" or @lemma="eerder" or @lemma="nou" or @lemma="vaak" or %Rna% or @lemma="ineens" or @lemma="plotseling")
 """
 
 advpBBt = """ (@cat="advp" and %BB% and node[@rel="hd" and %temp% ])
@@ -137,7 +145,7 @@ advpBBt = """ (@cat="advp" and %BB% and node[@rel="hd" and %temp% ])
 npBBt = """ (@cat="np" and %BB% and node[@rel="hd" and %tempnoun%])
 """
 
-tempnoun = """ (@special="tmp" or starts-with(@frame, "tmp_noun") or starts-with(@frame, "tmp_np") or %tempnounlemma% or %monthname% or %dayname%)
+tempnoun = """ ((@special="tmp" or starts-with(@frame, "tmp_noun") or starts-with(@frame, "tmp_np") or %tempnounlemma% or %monthname% or %dayname%) and @lemma!="weg")
 """
 
 tempnounlemma = """ @lemma="ontbijt" or @lemma="kerst_diner" or @lemma="lunch" 
@@ -181,8 +189,8 @@ new_STAP_BB_p = """
   %loc_ppBB% or
   %locadvBB%  or
   %locadvpBB% or
-  %predclocadj% or
-  %predclocap% or
+  %clausal_locadj% or
+  %clausal_locap% or
   %svp_bw% or
   %loc_vzBB% or
   %mod_Rpronoun%
@@ -269,11 +277,27 @@ loc_vz = """ ( @lemma="in" or
 locadj = """ (@pt = "adj" and (@lemma="hoog" or @lemma="laag" or @lemma="diep"))
 """"			 
 
-predclocadj = """ (@rel="predc" and %locadj%)
+clausal_adj_rel = """(@rel="predc" or @rel="dp" or @rel="--" or 
+					   (@rel="mod" and 
+					    parent::node[@cat!="np" and @cat!="ap" and @cat!="advp"]))"""
+
+clausal_locadj = """(%clausal_basic_locadj% or
+                     %clausal_cnj_locadj%)"""
+					 
+clausal_basic_locadj = """ (%locadj% and 
+                      %clausal_adj_rel%)
 """
 
-predclocap = """ (@cat="ap" and node[@rel="hd" and %locadj% ])
+clausal_cnj_locadj = """(%locadj% and @rel="cnj" and parent::node[@cat="conj" and %clausal_adj_rel% and not(node[@rel="crd"])])""" 
+
+clausal_conj_locadj = """(@cat="conj" and %clausal_adj_rel% and 
+                           node[@rel="crd"] and 
+						   node[@rel="cnj" and (%locadj% or %locap%)])"""
+
+clausal_locap = """ (%locap% and %clausal_adj_rel%)
 """
+
+locap = """(@cat="ap" and node[@rel="hd" and %locadj% ])"""
 
 pp_ercompl = """ (@cat="pp" and %BB% and node[@rel="obj1" and (@frame="er_loc_adverb" or @frame="er_wh_loc_adverb") ] )
 """
@@ -384,3 +408,27 @@ possdetp = """(@rel="det" and @cat="detp" and node[@pt="n" and @rel="mod"] and n
 mwpbijvbep = """(@rel="mwp" and @pt="tw" and not(%monthname%) and ../node[%monthname%])""" 
 
 relzvnw3 = """(@pt="vnw" and @vwtype="betr" and @rel="rhd" and parent::node[@cat="rel" and @rel="--"])"""
+
+basic_os = """((@cat="cp" and node[@cat="ssub"] and @rel!="dp" and @rel!="--" and @rel!="nucl")
+    or @cat="whrel"
+    or @cat="whsub"
+    or (@cat= "rel" and @rel!="--") 
+    or (node[@cat="ssub" and @rel!="body"]
+        and @rel!="body" 
+        and @rel!="cnj" 
+        and @rel!="tag" 
+        and @rel!="nucl")
+)"""
+
+robust_os_als_dan = """(@cat="cp" and node[@cat="ssub"] and @end <= ..//node[@pt="bw" and @lemma="dan"]/@begin)"""
+
+robust_os_other = """(@cat="cp"  and node[@cat="ssub"] and 
+                      ancestor::node[@cat="top" and 
+					               (node[@rel="--" and @pt="ww" and @wvorm="pv"] or
+								    node[@rel="--" and @pt="bw" and @lemma="dan"])])"""
+									
+robust_os_cp_smain = """(@cat="cp" and node[@cat="ssub"] and ../node[@cat="smain"])"""
+
+robust_os = """(%robust_os_als_dan% or %robust_os_other% or %robust_os_cp_smain%)"""
+
+STAP_OS = """(%basic_os% or %robust_os%)"""

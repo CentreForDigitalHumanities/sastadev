@@ -1,9 +1,11 @@
 import copy
+from sastadev.basicreplacements import get_pronadv_head_lemma
 from sastadev.conf import settings
+from sastadev.generatemacros import tarsp_wvzexceptions
 from sastadev.lexicon import adj_no_pp_lexicon, compoundsep, lemmalexicon
 from sastadev.macros import expandmacros
 from sastadev.treebankfunctions import clausebodycats, find1, getattval, getbeginend, getnodeyield, getyield, \
-    immediately_precedes, iswordnode, showtree, treeinflate
+    immediately_precedes, iswordnode, showtree, treeinflate, getposcat
 from sastadev.sastatypes import SynTree
 from sastadev.tblex import is_rpronoun
 from lxml import etree
@@ -516,3 +518,35 @@ def transform_er_az(instree: SynTree) -> SynTree:
                 pp_node.append(az_node)
                 er_az_parent.append(pp_node)
     return stree
+
+def transform_w_vz(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    verbs = stree.xpath('.//node[@pt="ww"]')
+    for verb in verbs:
+        verb_lemma = gav(verb, 'lemma')
+        pc = find1(verb, '../node[@rel="pc"]')
+        if pc is not None:
+            pc_vz_lemma = get_pc_head_lemma(pc)
+            if (verb_lemma,pc_vz_lemma) in tarsp_wvzexceptions:
+                pc.set('rel', 'ld')
+    return stree
+
+def get_pc_head_lemma(pc: SynTree) -> str:
+    pc_poscat = getposcat(pc)
+    if pc_poscat == 'pp':
+        pc_vz = find1(pc, './node[@rel="hd" and @pt="vz"]')
+        if pc_vz is not None:
+            result = gav(pc_vz, 'lemma')
+        else:
+            result = ''
+    elif pc_poscat == 'bw':
+        pc_lemma = gav(pc, 'lemma')
+        result = get_pronadv_head_lemma(pc_lemma)
+        if result is None:
+            result = ''
+    else:
+        result = ''
+    return result
+
+
+

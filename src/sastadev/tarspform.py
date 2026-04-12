@@ -141,7 +141,8 @@ def mktarspform(allresults, _, in_memory=False):
     textwrapcolumns = [2, 5, 8, 11, 14, 17, 20, 23]  # CFILORUX
     for col in textwrapcolumns:
         worksheet.set_column(col, col, None, textwrap)
-    boldbottomrows = [12, 20, 28, 39, 44, 53, 56]
+    rawboldbottomrows = [12, 20, 28, 39, 44, 53, 56]
+    boldbottomrows = [i-1 for i in rawboldbottomrows]
     for row in boldbottomrows:
         worksheet.set_row(row, row, boldbottom)
 
@@ -161,3 +162,4 @@ def mktarspform(allresults, _, in_memory=False):
 # initialisation
 basefilename = os.path.join(settings.SD_DIR, 'data', 'form_templates', 'TARSP Form Current.xlsx')
 basesheet = readbaseform(basefilename)
+junk = 0

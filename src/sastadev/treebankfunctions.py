@@ -206,6 +206,39 @@ def immediately_precedes(node1: SynTree, node2: SynTree, stree: SynTree) -> bool
     :return: True if *node1* immediately precedes *node2* in *stree*, False otherwise
 
     The function *immediately_precedes* determines whether *node1* immediately precedes *node1* in syntactic structure *stree*,
+    and it works correctly in inflated syntactic structures. The two nodes can be nodes for words or for word groups
+    """
+
+    yield1 = getnodeyield(node1)
+    yield2 = getnodeyield(node2)
+    result = w_immediately_precedes(yield1[-1], yield2[0], stree)
+    return result
+
+def immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
+    """
+    :param node1:
+    :param node2:
+    :param stree: syntactic structure containing *node1* and *node2*
+    :return: True if *node1* immediately follows *node2* in *stree*, False otherwise
+
+    The function *immediately_follows* determines whether *node1* immediately follows *node1* in syntactic structure *stree*,
+    and it works correctly in inflated syntactic structures. The two nodes can be nodes for words or for word groups.
+    """
+
+    yield1 = getnodeyield(node1)
+    yield2 = getnodeyield(node2)
+    result = w_immediately_follows(yield1[0], yield2[-1], stree)
+    return result
+
+
+def w_immediately_precedes(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
+    """
+    :param node1:
+    :param node2:
+    :param stree: syntactic structure containing *node1* and *node2*
+    :return: True if *node1* immediately precedes *node2* in *stree*, False otherwise
+
+    The function *immediately_precedes* determines whether *node1* immediately precedes *node1* in syntactic structure *stree*,
     and it works correctly in inflated syntactic structures. The two nodes must be nodes for words.
     """
     yieldnodes = getnodeyield(stree)
@@ -217,7 +250,7 @@ def immediately_precedes(node1: SynTree, node2: SynTree, stree: SynTree) -> bool
     return False
 
 
-def immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
+def w_immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     """
     :param node1:
     :param node2:
@@ -227,7 +260,7 @@ def immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     The function *immediately_follows* determines whether *node1* immediately follows *node1* in syntactic structure *stree*,
     and it works correctly in inflated syntactic structures. The two nodes must be nodes for words.
     """
-    return immediately_precedes(node2, node1, stree)
+    return w_immediately_precedes(node2, node1, stree)
 
 def is_neut_sg(node: SynTree) -> bool:
     result = getattval(node, 'pt') == 'n' and getattval(node, 'getal') == 'ev' and \

@@ -36,12 +36,14 @@ which uses the constsnt *correctionfilename*
 import csv
 import os
 import re
+from sastadev.stringfunctions import skipjoin
 from typing import Dict, List, Optional, Tuple, cast
 
 from sastadev.conf import settings
 
 tab = '\t'
 plussym = '+'
+hyphen = '-'
 
 # maybe also add a variant with e- as prefix instead of ge-, and also without ge-
 
@@ -53,13 +55,15 @@ sege = 'prefix ge pronounced as se'
 wrongovergen = 'Wrong Overgeneralisation'
 wrongen = 'Wrong -en suffix'
 nolabel = 'Correct'
+dupge = 'Duplicate ge prefix'
 
 chat_errors = {
     'Overgeneralisation': 'm',
     'Lacking ge prefix': 'm',
     'Prefix ge without onset': 'm',
     'Wrong Overgeneralisation': 'm',
-    'Wrong -en suffix': 'm'
+    'Wrong -en suffix': 'm',
+    'Duplicate ge prefix': 'm'
 }
 
 metaarr = {}
@@ -186,6 +190,8 @@ vccvre = re.compile(vccvpattern)
 tkofschip = ['t', 'k', 'o', 'f', 's', 'ch', 'p', 'sh', 'sj']
 irrplussuffix = 'Irregular form plus regular suffix'
 
+
+detremadict = {tremavowel:vowel for tremavowel, vowel in zip(tremavowels, nodiavowels)}
 
 def addtrema(vowel):
     ind = nodiavowels.find(vowel)
@@ -443,6 +449,24 @@ def makewrongpastpart(stem, stemFS, takesge, prefix='ge'):
     return result, metalabel
 
 
+def remove_ge(wrd: str) -> str:
+    """
+    removes initial ge if present, adapts the first character following (-, tremavowel) if needed
+    if no initial ge is present it returns the input string
+    """
+    if len(wrd) <= 2:
+        return wrd
+    elif wrd[:2] == 'ge':
+        if wrd[2] == hyphen:
+            return wrd[3:]
+        elif wrd[2] in tremavowels:
+            result = detremadict[wrd[2]] + wrd[3:]
+            return result
+        else:
+            return wrd[2:]
+    else:
+        return wrd
+
 def getcorrections(thestr: str, correction: Dict[str, Tuple[str, str]]) -> List[Tuple[str, str]]:
     '''
 
@@ -459,20 +483,28 @@ def getcorrections(thestr: str, correction: Dict[str, Tuple[str, str]]) -> List[
       *vervallen*).
 
     '''
+    gemeta = ''
     results = []
     if thestr in correction:
         result = correction[thestr]
         results.append(result)
     else:
         sepresults = desep(thestr, correction)
+        if sepresults == []:
+            nogestr = remove_ge(thestr)
+            if nogestr != thestr:
+                sepresults = desep(nogestr, correction)
+                gemeta = dupge
+        else:
+            gemeta = ''
         for (sep, pref, base) in sepresults:
             if pref + base in correction:
                 basestr, meta = correction[pref + base]
-                result = sep + basestr, meta  # voor bijv. uitgeloopt
+                result = sep + basestr, skipjoin([meta, gemeta])  # voor bijv. uitgeloopt
                 results.append(result)
             elif base in correction:    # voor bijv uitverloofd,
                 basestr, meta = correction[base]
-                result = sep + pref + basestr, meta
+                result = sep + pref + basestr, skipjoin([meta, gemeta])
                 results.append(result)
             else:
                 geroot = 'ge' + base
@@ -484,6 +516,8 @@ def getcorrections(thestr: str, correction: Dict[str, Tuple[str, str]]) -> List[
                     result = thestr, nolabel
                     results.append(result)
     results = [(wstr.strip(), meta) for wstr, meta in results]
+    if results == [] and gemeta == dupge:
+        results =[(nogestr, gemeta)]
     return results
 
 
