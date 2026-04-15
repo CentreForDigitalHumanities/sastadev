@@ -531,7 +531,7 @@ ASTA_kopww = """ (( %ASTA_basickopww% or %ASTA_geboren_kopww% ) and
                    not(%ASTA_XXX%) 
                  )"""
 
-ASTA_basickopww = """ (@pt="ww" and @rel="hd" and @lemma!="uit_zien" and @lemma!="heten" and @lemma!="gaan" and @lemma!="zitten" and (contains(@frame, "copula") or not(@stype="topic_drop")) and parent::node[node[@rel="predc"] and not(node[@rel="obj1"]) ] )""" 
+ASTA_basickopww = """ (@pt="ww" and @rel="hd" and @lemma!="uit_zien" and @lemma!="heten" and @lemma!="gaan" and @lemma!="zitten" and (contains(@frame, "copula") or not(@stype="topic_drop")) and parent::node[node[@rel="predc"] and not(node[@rel="obj1" or @rel="pobj1"]) ] )""" 
 
 ASTA_geboren_kopww = """
 
@@ -1044,3 +1044,5 @@ Tarsp_ZnZn = """((node[@pt="n" and @rel="hd" and @ntype!="eigen"] and node[@pt="
 Tarsp_only_W = """(@pt="ww" and not(%verbal_VU%) and %thisistheonlyrealword%)"""
 
 Tarsp_en = """(@pt="vg" and @lemma="en" and @rel="dlink")"""
+
+Tarsp_Long_niet = """(@lemma="niet" and ancestor::node[@cat="top" and count(.//node[@word and @pt!="tsw" and @pt!="let"]) >= 3] and not(.//node[%Xneg%]))"""

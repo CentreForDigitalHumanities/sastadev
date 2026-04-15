@@ -642,6 +642,21 @@ def testpuncs():
         else:
             print(f'NO: {punc_seq}')
 
+
+small_roman_numbers = {1: 'i', 2: 'ii', 3: 'iii', 4:'iv', 5:'v', 6: 'vi', 7: 'vii', 8: 'viii', 9: 'ix', 10: 'x'}
+
+def show_roman(i: int, upper_case=True) -> str:
+    if i in small_roman_numbers:
+        baseresult = small_roman_numbers[i]
+    else:
+        baseresult = str(i)
+    if upper_case:
+        result = baseresult.upper()
+    else:
+        result = baseresult
+    return result
+
+
 if __name__ == '__main__':
     test()
     # testpuncs()

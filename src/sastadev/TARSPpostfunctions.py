@@ -5,15 +5,40 @@ The module TARSPpostfunctions defines functions for the TARSP post part of the m
 from collections import Counter
 from typing import Dict, List
 
-from sastadev.allresults import AllResults
+from sastadev.allresults import AllResults, mkresultskey
 from sastadev.conf import settings
-from sastadev.query import core_process
+from sastadev.query import core_process, query_inform
 from sastadev.sastatypes import QId, QueryDict, Stage, SynTree
+from sastadev.stringfunctions import show_roman
 from sastadev.treebankfunctions import getmeta
+from typing import Tuple
 
-OndVC = 'T071'
-OndWVC = 'T076'
-OndWBVC = 'T075'
+RefinedStage = Tuple[int, bool]
+
+BWOndBB = mkresultskey('T029')
+BX = mkresultskey('T030')
+Into = mkresultskey('T048')
+OndB = mkresultskey('T064')
+OndVC = mkresultskey('T071')
+OndWB = mkresultskey('T073')
+OndWBB = mkresultskey('T074')
+OndWVC = mkresultskey('T076')
+OndWBVC = mkresultskey('T075')
+VCWOndBB = mkresultskey('T100')
+OndWVCVCX = mkresultskey('T077')
+VCW = mkresultskey('T099')
+Xneg = mkresultskey('T140')
+LongXneg = mkresultskey('T167')
+WOndX = mkresultskey('T129')
+VrXY = mkresultskey('T111')
+WOnd4 = mkresultskey('T130')
+WOnd5plus = mkresultskey('T131')
+Vr5plus = mkresultskey('T113')
+
+
+long_B_measures = [BWOndBB, OndWB, OndWBB, OndWBVC, VCWOndBB]
+long_VC_measures = [OndWVC, OndWBVC, VCWOndBB, OndWVCVCX]
+vraagzin_measures = [WOndX, VrXY, WOnd4, WOnd5plus, Vr5plus]
 
 #: The variable (constant) *vuqueryids* contains a list of Query identifiers for
 #: queries for fixed expressions (V.U.).
@@ -85,7 +110,8 @@ def gtotaal(allresults: AllResults, _: SynTree) -> int:
     '''
     Atotaal = 0
     vutotaal = allresults.postresults['T151']
-    Gtotaal = allresults.uttcount - Atotaal - vutotaal
+    raw_gtotaal  =len(allresults.allutts)
+    Gtotaal = raw_gtotaal - Atotaal - vutotaal
     return Gtotaal
 
 
@@ -117,8 +143,9 @@ def getuttcountsbystage(queriesbystage: Dict[Stage, List[QId]], allresults: AllR
     for stage in queriesbystage:
         uttcounts[stage] = 0
         for qid in queriesbystage[stage]:
-            if qid in allresults.coreresults:
-                uttcounts[stage] += countutts(allresults.coreresults[qid])
+            reskey = mkresultskey(qid)
+            if reskey in allresults.coreresults:
+                uttcounts[stage] += countutts(allresults.coreresults[reskey])
     return uttcounts
 
 
@@ -132,13 +159,17 @@ def getstage(uttcounts: Dict[Stage, int], allresults: AllResults) -> Stage:
 
     .. autodata:: sastadev.TARSPpostfunctions::gofase_minthreshold
 
+    Utterances from higher levels can be counted in.
     From the remaining candidates the highest stage value is selected.
     '''
     cands = []
     gtotaal = allresults.postresults['T152']
     for el in uttcounts:
         if gtotaal != 0:
-            if uttcounts[el] / gtotaal >= gofase_minthreshold:
+            # include utterances from the higher stages
+            higher_stages_uttcount = sum([uttcounts[stage] for stage in uttcounts if stage > el])
+            all_utt_count = uttcounts[el] + higher_stages_uttcount
+            if all_utt_count / gtotaal >= gofase_minthreshold:
                 cands.append(el)
         else:
             settings.LOGGER.error('gtotaal has value 0')
@@ -149,7 +180,7 @@ def getstage(uttcounts: Dict[Stage, int], allresults: AllResults) -> Stage:
     return result
 
 
-def gofase(allresults: AllResults, thequeries: QueryDict) -> Stage:
+def gofase(allresults: AllResults, thequeries: QueryDict) -> str:
     '''
     The function *gofase* computes the stage given the results in the parameter
     *allresults* and the queries in the parameter *thequeries*.
@@ -169,14 +200,46 @@ def gofase(allresults: AllResults, thequeries: QueryDict) -> Stage:
 
     .. autofunction:: sastadev.TARSPpostfunctions::getstage
 
-    and then it returns the obtained *stage*.
+    It then uses the obtained stage to obtain the refined_stage by means of the function *get-refined_stage*:
+
+    .. autofunction:: sastadev.TARSPpostfunctions::get_refined_stage
+
+    It turns the obtained value of type RefinedStage into a string using the function *show_refined_stage*:
+
+    .. autofunction:: sastadev.TARSPpostfunctions::show_refined_stage
+
+    and then it returns the obtained string.
     '''
     result = 0
     queriesbystage: Dict[Stage, List[QId]] = getqueriesbystage(thequeries)
     uttcounts: Dict[Stage, int] = getuttcountsbystage(queriesbystage, allresults)
-    result: Stage = getstage(uttcounts, allresults)
+    stage: Stage = getstage(uttcounts, allresults)
+
+    refined_stage = get_refined_stage(stage, allresults, thequeries)
+
+    result = show_refined_stage(refined_stage)
 
     return result
+
+def show_refined_stage(refined_stage: RefinedStage) -> str:
+    stage, refinement = refined_stage
+    refinement_string = '+' if refinement else ''
+    result = f'{show_roman(stage)}{refinement_string}'
+    return result
+
+
+def get_refined_stage(stage: Stage, allresults: AllResults, allqueries: QueryDict) -> RefinedStage:
+    ""
+
+
+    thereskeys = [mkresultskey(qid) for qid in allqueries if allqueries[qid].fase == stage and allqueries[qid].process == core_process
+               and allqueries[qid].stars != 'star2' and query_inform(allqueries[qid]) and qid != LongXneg[0] and
+                  allqueries[qid].subcat.lower() not in tarsp_clausetypes]
+    scored_reskeys = [reskey for reskey in thereskeys if reskey in allresults.coreresults and  len(allresults.coreresults[reskey]) > 0]
+    refined = len(scored_reskeys) / len(thereskeys) > 0.5
+    return stage, refined
+
+
 
 
 def genpfi(stage: Stage, allresults: AllResults, allqueries: QueryDict) -> int:
@@ -191,18 +254,31 @@ def genpfi(stage: Stage, allresults: AllResults, allqueries: QueryDict) -> int:
     Special measures for *Xneg*, *OndB*, *VCW* and *BX* still have to be implemented.
     The description in Schlichting (p. 23) is not specific enough.
     '''
-    theqids = [qid for qid in allqueries if allqueries[qid].fase == stage and allqueries[qid].process == core_process
-               and allqueries[qid].stars != 'star2']
+    thereskeys = [mkresultskey(qid) for qid in allqueries if allqueries[qid].fase == stage and allqueries[qid].process == core_process
+               and allqueries[qid].stars != 'star2' and query_inform(allqueries[qid]) and qid != LongXneg[0]]
     coreresults = allresults.coreresults
-    scoredqids = [qid for qid in theqids if qid in coreresults and len(coreresults[qid]) > 0]
-    # OndVC
-    if OndWVC in theqids or OndWBVC in scoredqids:
-        scoredqids.append(OndVC)
+    scored_reskeys = [reskey for reskey in thereskeys if reskey in coreresults and len(coreresults[reskey]) > 0]
+    # OndVC, VCW
+    if any([lvcm in coreresults and len(coreresults[lvcm]) > 0 for lvcm in long_VC_measures] ):
+       if stage == 2 and OndVC not in scored_reskeys:
+           scored_reskeys.append(OndVC)
+       if stage == 2 and VCW not in scored_reskeys:
+           scored_reskeys.append(VCW)
     # XNeg
-    # OndB
-    # VCW
-    # BX
-    result = len(scoredqids)
+    if LongXneg in coreresults and len(coreresults[LongXneg]) > 0:
+        if stage == 3 and Xneg not in scored_reskeys:
+            scored_reskeys.append(Xneg)
+    # OndB, BX
+    if any([lbm in coreresults and len(coreresults[lbm]) > 0 for lbm in long_B_measures ]):
+        if stage == 2 and OndB not in scored_reskeys:
+            scored_reskeys.append(OndB)
+        if stage == 2 and BX not in scored_reskeys:
+            scored_reskeys.append(BX)
+    # Into
+    if any([vrm in coreresults and len(coreresults[vrm]) > 0 for vrm in vraagzin_measures]):
+        if stage == 2 and Into not in scored_reskeys:
+            scored_reskeys.append(Into)
+    result = len(scored_reskeys)
     return result
 
 

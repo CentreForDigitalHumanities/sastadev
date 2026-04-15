@@ -40,7 +40,7 @@ class Query:
         self.fase = fase        # stage that this query belongs to (relevant for Tarsp only
         self.query = query      # the actual query, a Xpath expression, possibly with macros, or the name of a python
                                 # function
-        self.inform = inform    # does the query apear in the form ('profielkaart', profile chart) associated with the
+        self.inform = inform    # does the query appear in the form ('profielkaart', profile chart) associated with the
         # method
         self.screening = screening # is the query part of the Tarsp screening procedure
         self.process = getprocess(process)  # pre, core or post. pre queries are applied before core queries,
