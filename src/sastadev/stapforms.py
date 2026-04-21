@@ -10,6 +10,7 @@ from sastadev.conf import settings
 from sastadev.forms import getformfilename
 
 scoresheetname = 'STAP 1 - 5'
+extrasheetname = 'extra'
 maxutt = 50
 zerocount = 0
 basexl = os.path.join(settings.SD_DIR, 'data', 'form_templates', 'STAP Excel VUmc 2018.xlsx')
@@ -98,6 +99,45 @@ def makestapform(allresults, _, basexl=basexl, in_memory=False):
                 ws[cellkey] = el
         else:
             settings.LOGGER.error('Unexpected utterance id encountered: {}'.format(uttid))
+
+    # add the communicative and noncommunicative word counts to the form, restrict it to max 50
+    found_utt_count = len(allresults.commwordcounts)
+    if  found_utt_count != 50:
+        settings.LOGGER.warning(f'{found_utt_count} utterances encountered. Results unreliable')
+    if found_utt_count > 50:
+        settings.LOGGER.warning(f'Utterances limited to 50. Results unreliable')
+
+    uttidcol = 'A'
+    countcol = 'C'
+    startrow = 4
+    currentrow = startrow
+    for (uttid, count) in allresults.commwordcounts[:50]:
+        uttidcellkey = uttidcol + str(currentrow)
+        countcellkey = countcol + str(currentrow)
+        ws[uttidcellkey] = uttid
+        ws[countcellkey] = count
+        currentrow += 1
+
+    countcol = 'B'
+    startrow = 4
+    currentrow = startrow
+    for (uttid, count) in allresults.noncommwordcounts[:50]:
+        countcellkey = countcol + str(currentrow)
+        ws[countcellkey] = count
+        currentrow += 1
+
+    # find the 5 longest utterances
+    sorted_commwordcounts = sorted(allresults.commwordcounts, key=lambda x: x[1], reverse=True)
+    top5 = sorted_commwordcounts[:5]
+
+    wsextra = wb[extrasheetname]
+    colids = ['D', 'E', 'F', 'G', 'H']
+    for i, el in enumerate(top5):
+        col = colids[i]
+        cellkey = f'{col}11'
+        wsextra[cellkey] = el[1]
+
+
 
     # save the workbook
     wb.save(target)

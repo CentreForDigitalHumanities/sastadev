@@ -8,10 +8,10 @@ gymmende	trainende
 gymmenden	trainenden
 gymde	trainde
 gymden	trainden
-smarties	toffees
-Smarties	toffees
-smartie	toffee
-Smartie	toffee
+smarties	bonbons
+Smarties	bonbons
+smartie	bonbon
+Smartie	bonbon
 freerunnen	zwemmen
 freerunnend	zwemmend
 freerunnende	zwemmende

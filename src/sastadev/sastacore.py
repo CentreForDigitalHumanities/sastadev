@@ -3,9 +3,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from lxml import etree
 
+from sastadev.comm_ncomm import get_noncomm_word_count, get_tb_noncomm_word_count
 from sastadev.allresults import (AllResults, ExactResultsDict, getexactbyutt, MatchesDict,
                                  ResultsKey, mkresultskey)
 from sastadev.ASTApostfunctions import getastamaxsamplesizeuttidsandcutoff
+from sastadev.comm_ncomm import get_tb_comm_word_count, get_tb_noncomm_word_count
 from sastadev.conf import settings
 from sastadev.external_functions import str2functionmap
 from sastadev.grammarerrors import find_grammar_errors_in_allresults
@@ -161,10 +163,17 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
 
     coreresults = exact2results(exactresults)
 
+
     postresults: Dict[ResultsKey, Any] = {}
     allresults = AllResults(uttcount, coreresults, exactresults, postresults, allmatches, infilename,
                             analysedtrees,
                             allutts, annotationinput)
+
+    commwordcounts: List[Tuple[UttId, int]] = get_tb_comm_word_count(correctedtreebank)
+    noncommwordcounts: List[Tuple[UttId, int]] = get_tb_noncomm_word_count(correctedtreebank)
+
+    allresults.commwordcounts = commwordcounts
+    allresults.noncommwordcounts = noncommwordcounts
 
     samplesizefunction = getsamplesizefunction(methodname)
     samplesizetuple: SampleSizeTuple = samplesizefunction(allresults)
@@ -177,11 +186,16 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
     # we assume the reduction must be done before the postqueries
     allresults = reduceallresults(allresults, samplesizetuple, methodname)
 
+
+
     dopostqueries(allresults, postquerylist, themethod.queries)
+
+
 
     dopostqueries(allresults, formquerylist, themethod.queries)
 
     allresults = find_grammar_errors_in_allresults(allresults)
+
 
     xmlfilename = ''
     datasetname = ''

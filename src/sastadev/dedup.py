@@ -476,7 +476,7 @@ def isnortduplicate(tlist1: List[Nort], tlist2: List[Nort]) -> bool:
             nlcword1 = normalisestring(lcword1)
             nlcword2 = normalisestring(lcword2)
             result = result and ((nlcword1 == nlcword2)
-                                 or nlcword2.startswith(nlcword1))
+                                 or (nlcword1 not in shortrep_exceptions and nlcword2.startswith(nlcword1)))
     return result
 
 

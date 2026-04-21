@@ -28,6 +28,7 @@ from sastadev.compounds import getcompounds
 from sastadev.dedup import correct, mlux, onvolledig, samplesize
 from sastadev.imperatives import bbx, wond4, wond5plus, wondx, wx, wxy, wxyz, wxyz5
 from sastadev.methods import allok, astalemmafilter
+from sastadev.missing_det import get_missing_det
 from sastadev.queryfunctions import (bx, VzN, get_avn, hequery, into, ov2, stam, tarsp_mvzn, tarsp_verkl,
                                      vobij, voslashbij, vudivers, xneg_neg,
                                      xneg_x)
@@ -68,17 +69,17 @@ def oldgetfname(f: Callable) -> str:
 
 
 # Initialisation
-thetarspfunctions = [bx, bbx, get_avn, getcompounds, hequery, into, ov2, sziplus6, xenx, vr5plus, wx, wxy, wxyz, wxyz5, wondx, wond4, wond5plus,
+thetarspfunctions = [bx, bbx, get_avn, get_missing_det, getcompounds, hequery, into, ov2, sziplus6, xenx, vr5plus, wx, wxy, wxyz, wxyz5, wondx, wond4, wond5plus,
                      tarsp_screening, vutotaal, gofase, gtotaal, pf2, pf3, pf4, pf5, pf6, pf7, pf, xneg_x, xneg_neg,
                      mktarspform, stam, tarsp_mvzn, tarsp_verkl, VzN, vobij, voslashbij, vudivers]
 
-thestapfunctions = [BB_totaal, GLVU, GL5LVU, makestapform]
+thestapfunctions = [BB_totaal, get_missing_det, GLVU, GL5LVU, makestapform]
 
 theastafunctions = [samplesize, mlux, neologisme, onvolledig, correct, wordcountperutt, countwordsandcutoff,
                     astaform, KMcount, finietheidsindex, getnounlemmas, getlexlemmas, getalllemmas, asta_noun,
                     asta_bijzin, asta_lex, asta_delpv, asta_xxx, allok, sempar, phonpar,
                     astalemmafilter, asta_lemma,
-                    astalemmafunction]
+                    astalemmafunction, get_missing_det]
 
 thefunctions = thetarspfunctions + thestapfunctions + theastafunctions
 

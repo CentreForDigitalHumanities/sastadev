@@ -434,6 +434,59 @@ def requires_plural_tw(node: SynTree) -> bool:
     result = pt == 'tw' and lemma != 'één'
     return result
 
+
+def keeropkeer(node: SynTree) -> bool:
+    top = find1(node, 'ancestor::alpino_ds')
+    if top is None:
+        return False
+    node_lemma = gav(node, 'lemma')
+    wordnodelist = getnodeyield(top)
+    for ctr, n in enumerate(wordnodelist):
+        prevn = wordnodelist[ctr - 1] if ctr >0 else None
+        prevprevn = wordnodelist[ctr - 2] if ctr > 1 else None
+        nextn = wordnodelist[ctr + 1]  if ctr < len(wordnodelist) - 1 else None
+        nextnextn = wordnodelist[ctr + 2] if ctr < len(wordnodelist) - 2 else None
+        if n == node:
+            prevn_pt = gav(prevn, 'pt')
+            prevprevn_lemma = gav(prevprevn, 'lemma')
+            result1 = prevn_pt == 'vz' and prevprevn_lemma == node_lemma
+            if result1:
+                return result1
+            nextn_pt = gav(nextn, 'pt')
+            nextnextn_lemma = gav(nextnextn, 'lemma')
+            result2 = nextn_pt == 'vz' and nextnextn_lemma == node_lemma
+            if result2:
+                return result2
+    return False
+
+def really_no_det(node: SynTree) -> bool:
+    top = find1(node, 'ancestor::alpino_ds')
+    if top is None:
+        return False
+    wordnodelist = getnodeyield(top)
+    for ctr, wordnode in wordnodelist:
+        prevn = wordnodelist[ctr - 1] if ctr > 0 else None
+        if wordnode == node:
+            prevn_pt = gav(prevn, 'pt')
+            if prevn_pt in ['lw', 'tw']:
+                return False
+    return True
+
+volgend_vorig_nouns = ['jaar', 'maand', 'week', 'seizoen', 'semester']
+
+def volgend_vorig(node: SynTree) -> bool:
+    node_lemma = gav(node, 'lemma')
+    if node_lemma not in volgend_vorig_nouns:
+        return False
+    mods = node.xpath('../node[@rel="mod" and (@lemma="vorig" or (@lemma="volgen" and @wtype = "od")) ]')
+    if mods == []:
+        return False
+    return True
+
+
+
+
+
 if __name__ == '__main__':
     # test1()
     # test2()

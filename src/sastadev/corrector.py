@@ -1,5 +1,9 @@
 """
 to be added
+
+
+maybe: //node[@pt="n" and @ntype="eigen" and @naamval!="gen" and contains(@frame, "PER") and @end=../node[@pt="n" and @ntype="soort"]/@begin]
+name + noun -> genitive name + noun
 """
 
 import copy
@@ -1940,10 +1944,10 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
 
     # wrong verb forms: gekeekt -> gekeken: done!
 
-    # me ze (grote/oudere/ kleine) moeder /vader/zusje/ broer -> mijn me is done by Alpino, here we do ze
+    # me ze (grote/oudere/ kleine) moeder /vader/zusje/ broer -> mijn me is not always done by Alpino, so we do both
     # next xpath does not work because it must be preceded by a . !!
     # zexpathmodel = """//node[@word="ze" and @begin={begin} and (@rel="--"  or (@rel="obj1" and parent::node[@cat="pp"])) and @end = ancestor::node[@cat="top"]/descendant::node[@pt="n"]/@begin]"""
-    if token.word == 'ze' or token.word == 'su':
+    if token.word == 'ze' or token.word == 'su' or token.word == 'me':
         # find the node that corresponds to this token in the tree
         # zexpath = zexpathmodel.format(begin=str(tokenctr))
         # zenode = find1(tree, zexpath)
@@ -1959,10 +1963,11 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
             nexttokeninfo = getwordinfo(nexttoken.word)
             nexttokenpts = {pt for (pt, _, _, _) in nexttokeninfo}
             if (zerel == '--' or zerel == 'mwp' or (zerel == 'obj1' and zeparentcat == 'pp')) and 'n' in nexttokenpts:
-                newword = "z'n"
+                newword = "z'n" if token.word in ['ze', 'su'] else "m'n"
                 newtokenmds = updatenewtokenmds(newtokenmds, token, [newword], beginmetadata,
                                                 name=correctionlabels.pronunciationvariant, value='N-less informal possessive pronoun',
-                                                cat=correctionlabels.pronunciation, backplacement=bpl_word)
+                                                cat=correctionlabels.pronunciation, backplacement=bpl_word,
+                                                penalty=-defaultpenalty)
 
     # e-> e(n)
     if not token_is_valid_word and token.word not in basicreplacements and token.word not in enexceptions:
@@ -2326,7 +2331,8 @@ def correctPdit(tokensmd: TokenListMD, tree: SynTree, uttid: UttId) -> List[Toke
             continue
         tokenlemma = getattval(tokennode, 'lemma')
         if not token.skip and prevtoken is not None and not prevtoken.skip and tokenlemma in {'dit', 'dat', 'deze',
-                                                                                              'die'}:
+                                                                                              'die'} and \
+                not any([mt for mt in metadata if mt.value == 'deheterror' and mt.annotationposlist == [token.pos]]):
             tokenrel = getattval(tokennode, 'rel')
             tokenpt = getattval(tokennode, 'pt')
             prevtokennode = tokennodes[nonskiptokenctr - 1] if tokenctr > 0 else None

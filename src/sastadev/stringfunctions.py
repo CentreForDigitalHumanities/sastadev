@@ -12,6 +12,8 @@ comma = ','
 underscore = '_'
 schwa = 'ə'
 
+compoundsep = underscore
+
 punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actually use unicode categories
 
 # for selecting nonempty tokens from a csvstring ; comma between single quotes is allowed
