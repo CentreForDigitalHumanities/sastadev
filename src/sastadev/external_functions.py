@@ -36,7 +36,7 @@ from sastadev.stapforms import makestapform
 from sastadev.STAPpostfunctions import GL5LVU, GLVU, BB_totaal
 from sastadev.Sziplus import sziplus6, vr5plus
 from sastadev.tarspform import mktarspform
-from sastadev.TARSPpostfunctions import (gofase, gtotaal, pf, pf2, pf3, pf4,
+from sastadev.TARSPpostfunctions import (gofase, gtotaal, mk_toelichting, pf, pf2, pf3, pf4,
                                          pf5, pf6, pf7, vutotaal)
 from sastadev.TARSPscreening import tarsp_screening
 from sastadev.xenx import xenx
@@ -70,7 +70,7 @@ def oldgetfname(f: Callable) -> str:
 
 # Initialisation
 thetarspfunctions = [bx, bbx, get_avn, get_missing_det, getcompounds, hequery, into, ov2, sziplus6, xenx, vr5plus, wx, wxy, wxyz, wxyz5, wondx, wond4, wond5plus,
-                     tarsp_screening, vutotaal, gofase, gtotaal, pf2, pf3, pf4, pf5, pf6, pf7, pf, xneg_x, xneg_neg,
+                     tarsp_screening, vutotaal, gofase, gtotaal, mk_toelichting, pf2, pf3, pf4, pf5, pf6, pf7, pf, xneg_x, xneg_neg,
                      mktarspform, stam, tarsp_mvzn, tarsp_verkl, VzN, vobij, voslashbij, vudivers]
 
 thestapfunctions = [BB_totaal, get_missing_det, GLVU, GL5LVU, makestapform]

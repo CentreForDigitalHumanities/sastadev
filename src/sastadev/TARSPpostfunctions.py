@@ -5,18 +5,25 @@ The module TARSPpostfunctions defines functions for the TARSP post part of the m
 from collections import Counter
 from typing import Dict, List
 
-from sastadev.allresults import AllResults, mkresultskey
+from sastadev.allresults import AllResults, mkresultskey, ResultsKey
 from sastadev.conf import settings
+from sastadev.filefunctions import getbasename
+from sastadev.forms import get_toelichting_filename
 from sastadev.query import core_process, query_inform
+from sastadev.rpf1 import sumfreq
 from sastadev.sastatypes import QId, QueryDict, Stage, SynTree
-from sastadev.stringfunctions import show_roman
+from sastadev.stringfunctions import show_roman, conj, disj
+from sastadev.toelichting import PFReportData, StageReportData
 from sastadev.treebankfunctions import getmeta
 from typing import Tuple
 
 RefinedStage = Tuple[int, bool]
 
+commaspace = ', '
+
 BWOndBB = mkresultskey('T029')
 BX = mkresultskey('T030')
+he = mkresultskey('T039')
 Into = mkresultskey('T048')
 OndB = mkresultskey('T064')
 OndVC = mkresultskey('T071')
@@ -35,10 +42,15 @@ WOnd4 = mkresultskey('T130')
 WOnd5plus = mkresultskey('T131')
 Vr5plus = mkresultskey('T113')
 
+gtotaal_qid = 'T152'
+pf_qid = 'T162'
 
 long_B_measures = [BWOndBB, OndWB, OndWBB, OndWBVC, VCWOndBB]
 long_VC_measures = [OndWVC, OndWBVC, VCWOndBB, OndWVCVCX]
-vraagzin_measures = [WOndX, VrXY, WOnd4, WOnd5plus, Vr5plus]
+vraagzin_measures = [he, WOndX, VrXY, WOnd4, WOnd5plus, Vr5plus]
+addable_taalmaten = [OndB, OndVC, Into, Xneg ]
+
+addable_dict = {OndB: long_B_measures, OndVC: long_VC_measures, Into: vraagzin_measures, Xneg: [LongXneg]}
 
 #: The variable (constant) *vuqueryids* contains a list of Query identifiers for
 #: queries for fixed expressions (V.U.).
@@ -52,6 +64,12 @@ excludedqids = ['T039', 'T048', 'T049', 'T052']   # TARSP p. 21: hè, Into, Inve
 #: The variable (constant) *gofase_minthreshold* contains the value of the minimum
 #: percentage of analysis units that must have been scored to be included in G.O. Fase.
 gofase_minthreshold = 0.05  # 5% p21 Tarsp 2005
+
+def mk_measure_str(measure_list: List[ResultsKey], thequeries: QueryDict, coord=conj) -> str:
+    qids = [meas[0] for meas in measure_list]
+    items = [thequeries[qid].item for qid in qids if qid in thequeries]
+    result = coord(items)
+    return result
 
 
 def getqueriesbystage(queries: QueryDict) -> Dict[Stage, List[QId]]:
@@ -163,7 +181,7 @@ def getstage(uttcounts: Dict[Stage, int], allresults: AllResults) -> Stage:
     From the remaining candidates the highest stage value is selected.
     '''
     cands = []
-    gtotaal = allresults.postresults['T152']
+    gtotaal = allresults.postresults[gtotaal_qid]
     for el in uttcounts:
         if gtotaal != 0:
             # include utterances from the higher stages
@@ -210,16 +228,59 @@ def gofase(allresults: AllResults, thequeries: QueryDict) -> str:
 
     and then it returns the obtained string.
     '''
-    result = 0
-    queriesbystage: Dict[Stage, List[QId]] = getqueriesbystage(thequeries)
-    uttcounts: Dict[Stage, int] = getuttcountsbystage(queriesbystage, allresults)
-    stage: Stage = getstage(uttcounts, allresults)
 
-    refined_stage = get_refined_stage(stage, allresults, thequeries)
+    stage_report_data = gofaseplus(allresults, thequeries)
+    refined_stage = stage_report_data.stage, stage_report_data.stage_refinement
 
     result = show_refined_stage(refined_stage)
 
     return result
+
+def gofaseplus(allresults: AllResults, thequeries: QueryDict) -> StageReportData:
+    '''
+    The function *gofase* computes the stage given the results in the parameter
+    *allresults* and the queries in the parameter *thequeries*.
+
+    It first obtains *queriesbystage*, a dictionary of Stage, List[QId] items, via the
+    function  *getqueriesbystage* applied to *thequeries*:
+
+    .. autofunction:: sastadev.TARSPpostfunctions::getqueriesbystage
+
+    Next, it obtains *uttcounts*,  a dictionary of Stage, int items by applying the
+    function  *getuttcountsbystage* to *queriesbystage* and *allresults*:
+
+    .. autofunction:: sastadev.TARSPpostfunctions::getuttcountsbystage
+
+    Finally, it obtains the stage by applying the function *getstage* to *uttcounts*
+    and *allresults*:
+
+    .. autofunction:: sastadev.TARSPpostfunctions::getstage
+
+    It then uses the obtained stage to obtain the refined_stage by means of the function *get-refined_stage*:
+
+    .. autofunction:: sastadev.TARSPpostfunctions::get_refined_stage
+
+    It turns the obtained value of type RefinedStage into a string using the function *show_refined_stage*:
+
+    .. autofunction:: sastadev.TARSPpostfunctions::show_refined_stage
+
+    and then it returns the obtained string.
+    '''
+    queriesbystage: Dict[Stage, List[QId]] = getqueriesbystage(thequeries)
+    scored_utt_counts: Dict[Stage, int] = getuttcountsbystage(queriesbystage, allresults)
+    utt_count = allresults.postresults[gtotaal_qid]
+    stage: Stage = getstage(scored_utt_counts, allresults)
+    non_clause_reskeys = get_non_clause_reskeys(stage, thequeries)
+    scored_non_clause_reskeys = [reskey for reskey in non_clause_reskeys
+                                 if reskey in allresults.coreresults and  len(allresults.coreresults[reskey]) > 0]
+
+    refined_stage = get_refined_stage(stage, scored_non_clause_reskeys, non_clause_reskeys)
+
+    result = StageReportData(utt_count=utt_count, stage=stage, stage_refinement=refined_stage[1], clause_measure_count=scored_utt_counts,
+                             non_clause_reskeys=non_clause_reskeys, scored_non_clause_reskeys=scored_non_clause_reskeys)
+
+    return result
+
 
 def show_refined_stage(refined_stage: RefinedStage) -> str:
     stage, refinement = refined_stage
@@ -228,14 +289,15 @@ def show_refined_stage(refined_stage: RefinedStage) -> str:
     return result
 
 
-def get_refined_stage(stage: Stage, allresults: AllResults, allqueries: QueryDict) -> RefinedStage:
-    ""
-
-
-    thereskeys = [mkresultskey(qid) for qid in allqueries if allqueries[qid].fase == stage and allqueries[qid].process == core_process
-               and allqueries[qid].stars != 'star2' and query_inform(allqueries[qid]) and qid != LongXneg[0] and
+def get_non_clause_reskeys(stage: Stage,  allqueries: QueryDict) -> list:
+    thereskeys = [mkresultskey(qid) for qid in allqueries if
+                  allqueries[qid].fase == stage and allqueries[qid].process == core_process
+                  and allqueries[qid].stars != 'star2' and query_inform(allqueries[qid]) and qid != LongXneg[0] and
                   allqueries[qid].subcat.lower() not in tarsp_clausetypes]
-    scored_reskeys = [reskey for reskey in thereskeys if reskey in allresults.coreresults and  len(allresults.coreresults[reskey]) > 0]
+    return thereskeys
+
+
+def get_refined_stage(stage: Stage, scored_reskeys, thereskeys) -> RefinedStage:
     refined = len(scored_reskeys) / len(thereskeys) > 0.5
     return stage, refined
 
@@ -244,6 +306,7 @@ def get_refined_stage(stage: Stage, allresults: AllResults, allqueries: QueryDic
 
 def genpfi(stage: Stage, allresults: AllResults, allqueries: QueryDict) -> int:
     '''
+    Obsolete. Not used anymore
     The function *genpfi* computes the *Profielscore* (PF) for the stage given by the
     parameter *stage* on the basis of *allresults* and the query dictionary *allqueries*.
     It selects the queries of the given stage that are core queries and that are not
@@ -282,65 +345,138 @@ def genpfi(stage: Stage, allresults: AllResults, allqueries: QueryDict) -> int:
     return result
 
 
+def genpfiplus(stage: Stage, allresults: AllResults, allqueries: QueryDict) -> PFReportData:
+    '''
+    The function *genpfiplus* computes a PFReportData object for the stage given by the
+    parameter *stage* on the basis of *allresults* and the query dictionary *allqueries*.
+    It selects the queries of the given stage that are core queries and that are not
+    *star2* queries.
+
+    From these, it only selects the ones for which the number of results is larger than 0. It stores the
+    results in the *scored_measures* field of the PFReportData object.
+
+    It computes added measures (potentially for *Xneg*, *OndVC*, *OndB*, *VCW* and *BX*) and stores them
+    in the added_measures field of the PFReportData object.
+    This is based on Schlichting (2005/2017, p. 23), but is more specific  than described there.
+    '''
+    thereskeys = [mkresultskey(qid) for qid in allqueries if allqueries[qid].fase == stage and allqueries[qid].process == core_process
+               and allqueries[qid].stars != 'star2' and query_inform(allqueries[qid]) and qid != LongXneg[0]]
+    coreresults = allresults.coreresults
+    scored_reskeys = [reskey for reskey in thereskeys if reskey in coreresults and len(coreresults[reskey]) > 0]
+    additional_reskeys = {}
+    # OndVC, VCW
+    if any([lvcm in coreresults and len(coreresults[lvcm]) > 0 for lvcm in long_VC_measures] ):
+       if stage == 2 and OndVC not in scored_reskeys:
+           additional_reskeys[OndVC] = long_VC_measures
+       if stage == 2 and VCW not in scored_reskeys:
+           additional_reskeys[OndVC] = long_VC_measures
+    # XNeg
+    if LongXneg in coreresults and len(coreresults[LongXneg]) > 0:
+        if stage == 3 and Xneg not in scored_reskeys:
+            additional_reskeys[Xneg] = [LongXneg]
+    # OndB, BX
+    if any([lbm in coreresults and len(coreresults[lbm]) > 0 for lbm in long_B_measures ]):
+        if stage == 2 and OndB not in scored_reskeys:
+            additional_reskeys[OndB] = long_B_measures
+        if stage == 2 and BX not in scored_reskeys:
+            additional_reskeys[BX] = long_B_measures
+    # Into
+    if any([vrm in coreresults and len(coreresults[vrm]) > 0 for vrm in vraagzin_measures]):
+        if stage == 2 and Into not in scored_reskeys:
+            additional_reskeys[Into] = vraagzin_measures
+    result = PFReportData(stage=stage, scored_measures=scored_reskeys, added_measures=additional_reskeys)
+    return result
+
+
+
 def pf2(allresults: AllResults, allqueries: QueryDict) -> int:
     '''
-    The function *pf2* uses the function *genpfi* to compute the 'Profielscore' for Stage II
+    The function *pf2* uses the function *genpfiplus* to compute the 'Profielscore' for Stage II
     '''
-    return genpfi(2, allresults, allqueries)
+
+    pf2_report_data = genpfiplus(2, allresults, allqueries)
+    result = len(pf2_report_data.scored_measures)
+    return result
 
 
 def pf3(allresults: AllResults, allqueries: QueryDict) -> int:
     '''
-    The function *pf3* uses the function *genpfi* to compute the 'Profielscore' for Stage III
+    The function *pf3* uses the function *genpfiplus* to compute the 'Profielscore' for Stage III
     '''
-    return genpfi(3, allresults, allqueries)
+    pf3_report_data = genpfiplus(3, allresults, allqueries)
+    result = len(pf3_report_data.scored_measures)
+    return result
+
+
 
 
 def pf4(allresults: AllResults, allqueries: QueryDict) -> int:
     '''
-    The function *pf4* uses the function *genpfi* to compute the 'Profielscore' for Stage IV
+    The function *pf4* uses the function *genpfiplus* to compute the 'Profielscore' for Stage IV
     '''
-    return genpfi(4, allresults, allqueries)
+    pf4_report_data = genpfiplus(4, allresults, allqueries)
+    result = len(pf4_report_data.scored_measures)
+    return result
 
 
 def pf5(allresults: AllResults, allqueries: QueryDict):
     '''
-    The function *pf5* uses the function *genpfi* to compute the 'Profielscore' for Stage V
+    The function *pf5* uses the function *genpfiplus* to compute the 'Profielscore' for Stage V
     '''
-    return genpfi(5, allresults, allqueries)
+    pf5_report_data = genpfiplus(5, allresults, allqueries)
+    result = len(pf5_report_data.scored_measures)
+    return result
 
 
 def pf6(allresults: AllResults, allqueries: QueryDict) -> int:
     '''
-    The function *pf6* uses the function *genpfi* to compute the 'Profielscore' for Stage VI
+    The function *pf6* uses the function *genpfiplus* to compute the 'Profielscore' for Stage VI
     '''
-    return genpfi(6, allresults, allqueries)
+    pf6_report_data = genpfiplus(6, allresults, allqueries)
+    result = len(pf6_report_data.scored_measures)
+    return result
 
 
 def pf7(allresults: AllResults, allqueries: QueryDict) -> int:
     '''
-    The function *pf7* uses the function *genpfi* to compute the 'Profielscore' for Stage VII
+    The function *pf7* uses the function *genpfiplus* to compute the 'Profielscore' for Stage VII
     '''
-    return genpfi(7, allresults, allqueries)
+    pf7_report_data = genpfiplus(7, allresults, allqueries)
+    result = len(pf7_report_data.scored_measures)
+    return result
+
+def pfplus(allresults: AllResults, allqueries: QueryDict) -> List[PFReportData]:
+    '''
+    The function *pfplus* computes a list of PFReportData objects for each stage from stage 2 through stage 7.
+    It does so by applying the function *genpfiplus* for each stage.
+
+    .. autofunction:: sastadev.TARSPpostfunctions::genpfiplus
+
+    '''
+    pfi_result_list = [genpfiplus(stg, allresults, allqueries) for stg in range(2,8)]
+    return pfi_result_list
 
 
 
 
 def pf(allresults: AllResults, allqueries: QueryDict) -> int:
     '''
-    The function *pf* computes the *'Profielscore'* for the whole sample (*PF*) by
-    summing the  'Profielscore's per stage as computed by *pf2* through *pf7*.
+    The function *pf* computes the *'Profielscore'* for the whole sample (*PF*).
 
-    The *'Profielscore's* per stage are computed by *pf2* through *pf7*, each of which
-    uses the function *genpfi*:
+    It first uses the function *pfplus* to generate a list of *PFReportData*,
+    containing one PFReportData object for each stage.
 
-    .. autofunction:: sastadev.TARSPpostfunctions::genpfi
+    .. autofunction:: sastadev.TARSPpostfunctions::pfplus
+
+    It then sums the number of scored measures of each stage, and it sums the number of added measures of each stage.
+    It then returns the total number of scored and added measures
+
 
     '''
-    postresults = allresults.postresults
-    pfkeys = ['T154', 'T155', 'T158', 'T159', 'T160', 'T161']
-    safepostresults = [postresults[key] if key in postresults else 0 for key in pfkeys]
-    result = sum(safepostresults)
+    pfi_result_list = pfplus(allresults, allqueries)
+    core_score = sum([len(prd.scored_measures) for prd in pfi_result_list])
+    additional_score = sum([len(prd.added_measures) for prd in pfi_result_list])
+    result = core_score + additional_score
     return result
 
 
@@ -362,3 +498,180 @@ def getchildage(allresults: AllResults, allqueries: QueryDict) -> str:
     '''
     result = ''
     return result
+
+non_clause_measures_str = "Woordgroepen, Verbindingswoorden, Voornaamwoorden en Woordstructuren"
+#def mk_stage_report(stage_report_data: StageReportData) -> List[str]:
+def mk_stage_report(allresults: AllResults, thequeries: QueryDict) -> List[str]:
+    stage_report_data = gofaseplus(allresults, thequeries)
+    report = ["Fase", ""]
+    utt_count = stage_report_data.utt_count
+    stage = stage_report_data.stage
+    stagecount = stage_report_data.clause_measure_count[stage]
+    refinement = stage_report_data.stage_refinement
+    refined_stage = stage, refinement
+    fullstage = show_refined_stage(refined_stage)
+    proportion = stagecount / utt_count
+    pct = proportion * 100
+    gofase_minthreshold_pct = gofase_minthreshold * 100
+    newpar = f"De vastgestelde fase inclusief verfijning is {fullstage}."
+    report.append(newpar)
+    if proportion >= gofase_minthreshold:
+        newpars = [f"Fase {stage} is de hoogste fase waarin  {gofase_minthreshold_pct:.2f}% of meer van de uitingen gevonden zijn bij de Zinsconstructies.",
+                   f"Er zijn in deze fase namelijk {stagecount} uitingen gevonden in {utt_count} uitingen ({pct:.2f}%, en dat is groter dan of gelijk aan {gofase_minthreshold_pct:.2f}%)."
+                   ]
+        report.extend(newpars)
+    else:
+        higher_stages = [stg for stg in stage_report_data.clause_measure_count if stg > stage]
+        higher_stages_clause_counts = {stg: stage_report_data.clause_measure_count[stg] for stg in higher_stages if stg in stage_report_data.clause_measure_count}
+        higher_stages_clause_counts_str = conj([f'{stg}: {val}' for stg, val  in higher_stages_clause_counts.items()])
+        higher_stages_clause_sum = sum([stage_report_data.clause_measure_count[stg] for stg in higher_stages])
+        total_clause_count = stagecount + higher_stages_clause_sum
+        total_proportion = total_clause_count / utt_count
+        total_pct = total_proportion * 100
+        iszijn = 'is' if stagecount == 1 else 'zijn'
+        uitingorpl = 'uiting' if stagecount == 1 else 'uitingen'
+        newpars = [f"Weliswaar {iszijn} er in fase {stage} slechts {stagecount} {uitingorpl} gevonden in {utt_count} uiting{'' if utt_count == 1 else 'en'} bij de Zinsconstructies ({pct:.2f}%), ",
+                   f"maar de zinsmaten van de hogere fases ({higher_stages_clause_counts_str}) mogen meegerekend worden (samen: {higher_stages_clause_sum}).",
+                   f"Daarmee komt het totaal op {total_clause_count} in {utt_count} uiting{'' if utt_count == 1 else 'en'} ({total_pct:.2f}%, en dat is groter dan of gelijk aan {gofase_minthreshold_pct:.2f}%). ",]
+        report.extend(newpars)
+
+    # refinement
+    refinement_proportion = len(stage_report_data.scored_non_clause_reskeys) / len(stage_report_data.non_clause_reskeys)
+    lscored = len(stage_report_data.scored_non_clause_reskeys)
+    lnonclause = len(stage_report_data.non_clause_reskeys)
+    newpars = [f"Er is in fase {stage} gescoord voor {lscored} taal{'maat' if lscored == 1 else 'maten'} van de {non_clause_measures_str}, " +
+               f"op een totaal van  {lnonclause} van dergelijke taalmaten."]
+    if refinement_proportion > 0.5:
+        newpars.append(f'Dat is meer dan de helft en daarom is een + voor verfijning van de fase toegekend.')
+    else:
+        newpars.append(f'Dat is niet meer dan de helft en daarom is er geen + voor verfijning toegekend.')
+    report.extend(newpars)
+
+    return report
+
+def mk_tarsp_p_report(pf_report_data_list, uttcount, allresults) -> List[str]:
+    tuples = []
+    for prd in pf_report_data_list:
+        scores = [sumfreq(allresults.coreresults[reskey]) for reskey in prd.scored_measures]
+        sum_score = sum(scores)
+        newtuple = (prd.stage, sum_score)
+        tuples.append(newtuple)
+    tarsp_p_abs = sum([stg * mcount for stg, mcount in tuples])
+    tarsp_p = tarsp_p_abs / uttcount
+    tuple_str = ' + '.join([f'{stg} * {mcount}' for stg, mcount in tuples])
+    tarsp_p_report = ["", "", "TARSP_P", "", "TARSP_P is een score die een aanduiding is voor de gemiddeldde zinscomplexiteit.",
+                      "Deze score is gedefinieerd door [Bruinsma et al. 2020]."]
+    newpars = ["Deze score staat niet vermeld op de profielkaart.", "De waarde van TARSP_P is:" ,
+                f"({tuple_str}) / {uttcount} = {tarsp_p_abs} / {uttcount} = {tarsp_p:.2f}",
+               ]
+    tarsp_p_report.extend(newpars)
+    return tarsp_p_report
+
+
+def mk_pf_report(allresults: AllResults, thequeries: QueryDict) -> List[str]:
+    report = ["", "", "Profielscore", ""]
+    pf_report_data_list = pfplus(allresults, thequeries)
+    pfi_scores = [len(prd.scored_measures) for prd in pf_report_data_list]
+    core_pf_score = sum(pfi_scores)
+    sum_str = ' + '.join([str(score) for score in pfi_scores])
+    newpar = f"De profielscores per fase resulteren in {sum_str} = {core_pf_score} taalmaten"
+    report.append(newpar)
+    addable_taalmaten_str = mk_measure_str(addable_taalmaten, thequeries)
+    newpar = f"De taalmaten {addable_taalmaten_str} kunnen in bepaalde gevallen meegeteld worden voor de profielscore ook als er niet voor gescoord is."
+    report.append(newpar)
+    scored_addables = [meas for meas in addable_taalmaten if meas in allresults.coreresults and
+                       sumfreq(allresults.coreresults[meas]) != 0]
+    scored_addables_str = mk_measure_str(scored_addables, thequeries)
+    hoeven_sgpl = "hoeft" if len(scored_addables) == 1 else "hoeven"
+    newpar = f"Er zijn voorbeelden gevonden voor {scored_addables_str}, dus die {hoeven_sgpl} niet toegevoegd te worden." if scored_addables != [] else ""
+    if newpar != "":
+        report.append(newpar)
+    added_pf_score = 0
+    added_measure_found = False
+    found_added_measures = []
+    for prd in pf_report_data_list:
+        for added_measure in prd.added_measures:
+            found_added_measures.append(added_measure)
+            added_measure_found = True
+            added_qid = added_measure[0]
+            added_item = thequeries[added_qid].item
+            cand_cause_measures = prd.added_measures[added_measure]
+            cause_measures = [meas for meas in cand_cause_measures if meas in allresults.coreresults and
+                              sumfreq(allresults.coreresults[meas]) != 0]
+            cause_items = [thequeries[meas[0]].item for meas in cause_measures]
+            cause_item_str = conj(cause_items)
+            if added_measure == Xneg:
+                longxneg_counter = allresults.coreresults[LongXneg] if LongXneg in allresults.coreresults else {}
+                longxneg_uttids = [uttid for uttid in longxneg_counter if longxneg_counter[uttid] != 0]
+                if longxneg_uttids == []:
+                    settings.LOGGER.error(f'No LongXneg measures found for {added_measure} measure')
+                longxneg_uttids_str = conj(longxneg_uttids)
+                newpar = f"Taalmaat {added_item} wordt toegevoegd omdat er minimaal één langere uiting met 'niet' is gescoord, namelijk {longxneg_uttids_str}."
+            else:
+                newpar = f"Taalmaat {added_item} wordt toegevoegd omdat er gescoord is voor {cause_item_str}."
+            report.append(newpar)
+            added_pf_score += 1
+    rest_addables = [meas for meas in addable_taalmaten if meas not in found_added_measures + scored_addables]
+    for rest_addable in rest_addables:
+        the_item = thequeries[rest_addable[0]].item
+        causes = addable_dict[rest_addable] if rest_addable in addable_dict else []
+        if causes != []:
+            causes_str = mk_measure_str(causes, thequeries, coord=disj)
+            if rest_addable == Xneg:
+                newpar = f"{the_item} wordt niet toegevoegd omdat er geen enkele langere uiting met 'niet' is gescoord."
+            else:
+                newpar = f"{the_item} wordt niet toegevoegd omdat er voor geen van de taalmaten {causes_str} gescoord is."
+            report.append(newpar)
+    # if not added_measure_found:
+    #     all_add_causes = long_VC_measures + long_B_measures + [Into] + [LongXneg]
+    #     all_add_cause_items = [thequeries[meas[0]].item for meas in all_add_causes]
+    #     unique_add_cause_items = sorted(list(set(all_add_cause_items)))
+    #     all_add_cause_items_str = ', '.join(unique_add_cause_items)
+    #     cand_add_measures = [OndVC, OndB, VCW, BX, Into, Xneg]
+    #     cand_add_measure_items = [thequeries[m[0]].item for m in cand_add_measures]
+    #     cand_add_measures_str = ', '.join(cand_add_measure_items)
+    #     newpar = f"Geen van de taalmaten {cand_add_measures_str} worden toegevoegd omdat er al voor gescoord is of omdat er niet gescoord is voor {all_add_cause_items_str}"
+    #     report.append(newpar)
+    pf = allresults.postresults[pf_qid]
+    if pf != core_pf_score + added_pf_score:
+        settings.LOGGER.error(f'pf ({pf}) is not identical to core_pf_score ({core_pf_score}) + added_pf_score ({added_pf_score}) = {core_pf_score + added_pf_score}')
+    newpars = ["", f"Daarmee komt de totale profielscore (PF) uit op {core_pf_score} + {added_pf_score} = {pf}"]
+    report.extend(newpars)
+
+    # extend with TARSP_P score
+    pf1_prd = genpfiplus(1, allresults, thequeries)
+    utt_count = allresults.postresults[gtotaal_qid]
+    Tarsp_p_report = mk_tarsp_p_report([pf1_prd] + pf_report_data_list, utt_count, allresults)
+
+    report.extend(Tarsp_p_report)
+
+    return report
+
+def mk_missing_measures_report(stage: int, allresults: AllResults, thequeries: QueryDict) -> List[str]:
+    ## @@ extend but first extend method definition
+    start = 1 if stage == 1 else 2
+    for stg in range(start, stage + 1):
+        raw_unscored_queries = [qid for qid in thequeries if thequeries[qid].fase == stg and
+                                    thequeries[qid].stars != "star2" and
+                                    thequeries[qid].stars != "star1" and
+                                    sumfreq(allresults.coreresults[mkresultskey(qid)]) == 0
+                               ]
+        #implied_queries = [qid for qid in raw_unscored_queries if any([el for el in implied_qid[qid] if qid in implied ])]
+
+
+def mk_toelichting(allresults: AllResults, thequeries: QueryDict):
+
+    samplename = getbasename(allresults.filename)
+    full_report = [f"Toelichting op het taalprofielformulier voor sample {samplename}", ""]
+    stage_report = mk_stage_report(allresults, thequeries)
+
+    full_report.extend(stage_report)
+    pf_report = mk_pf_report(allresults, thequeries)
+    full_report.extend(pf_report)
+    outfullname = get_toelichting_filename(allresults.filename, '_form_toelichting')
+    with open(outfullname, 'w', encoding='utf-8') as outfile:
+        print('\n'.join(full_report), file=outfile)
+
+
+
+

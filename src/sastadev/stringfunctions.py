@@ -658,6 +658,26 @@ def show_roman(i: int, upper_case=True) -> str:
         result = baseresult
     return result
 
+def coord(wlist: List[str], conjunct:str, sep:str = ", ") -> str:
+    if len(wlist) == 0:
+        result = ''
+    elif len(wlist) == 1:
+        result = wlist[0]
+    else:
+        part1 = sep.join(wlist[:-1])
+        part2 = f' {conjunct} {wlist[-1]}'
+        result = part1 + part2
+    return result
+
+def conj(wlist: List[str], conjunct='en') -> str:
+    result = coord(wlist, conjunct)
+    return result
+
+def disj(wlist: List[str], conjunct='of') -> str:
+    result = coord(wlist, conjunct)
+    return result
+
+
 
 if __name__ == '__main__':
     test()
