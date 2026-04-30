@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-auchann==0.2.0
+auchann==0.3.0
     # via sastadev (setup.py)
 chamd==0.5.13
     # via auchann
@@ -13,7 +13,9 @@ et-xmlfile==2.0.0
 fsspec==2026.4.0
     # via pyyaml-include
 levenshtein==0.27.3
-    # via sastadev (setup.py)
+    # via
+    #   auchann
+    #   sastadev (setup.py)
 lxml==6.1.0
     # via sastadev (setup.py)
 more-itertools==11.0.2
