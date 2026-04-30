@@ -1,9 +1,0 @@
-auchann
-flake8
-lxml
-mypy
-openpyxl
-pytest
-pyspellchecker
-xlsxwriter
-more-itertools
