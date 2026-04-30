@@ -8,7 +8,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='sastadev',
-    version='0.4.3',
+    version='0.4.4',
     description='Linguistic functions for SASTA tool',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -17,7 +17,7 @@ setup(
     author_email='digitalhumanities@uu.nl',
     package_dir={'': 'src'},
     packages=['sastadev'],
-    python_requires='>=3.7, <4',
+    python_requires='>=3.10, <4',
     package_data={'sastadev': ['py.typed', 'data/**/*']},
     license='BSD-3-Clause',
     entry_points={
@@ -33,5 +33,6 @@ setup(
         'typing-extensions',
         'pyspellchecker',
         'more-itertools',
+        'levenshtein'
     ],
 )
