@@ -1,32 +1,58 @@
-from editdistance import distance
+from typing import Callable, List, Tuple
+
+from Levenshtein import distance
+
 from sastadev.basicreplacements import basicreplacements
 from sastadev.conf import settings
-from sastadev.corrector import (disambiguationdict, initialmaarvgxpath)
-from sastadev.lexicon import de, dets, nochildword, preferably_intransitive_verbs, tsw_non_words, validnouns, \
-    validword, \
-    wordsunknowntoalpinolexicondict, wrongposwordslexicon
+from sastadev.corrector import disambiguationdict, initialmaarvgxpath
+from sastadev.lexicon import (
+    de,
+    dets,
+    nochildword,
+    preferably_intransitive_verbs,
+    tsw_non_words,
+    validnouns,
+    validword,
+    wordsunknowntoalpinolexicondict,
+    wrongposwordslexicon,
+)
 from sastadev.macros import expandmacros
-from sastadev.metadata import (Meta,  defaultpenalty,
-                               ADULTSPELLINGCORRECTION, ALLSAMPLECORRECTIONS, BASICREPLACEMENTS, CONTEXT,
-                               HISTORY, CHILDRENSPELLINGCORRECTION, THISSAMPLECORRECTIONS, replacementsubsources
-                               )
-from sastadev.methods import Method, asta, tarsp, supported_methods, tarsp2017
+from sastadev.metadata import (
+    ADULTSPELLINGCORRECTION,
+    ALLSAMPLECORRECTIONS,
+    BASICREPLACEMENTS,
+    CHILDRENSPELLINGCORRECTION,
+    CONTEXT,
+    HISTORY,
+    THISSAMPLECORRECTIONS,
+    Meta,
+    defaultpenalty,
+    replacementsubsources,
+)
+from sastadev.methods import Method, asta, supported_methods, tarsp, tarsp2017
 from sastadev.predcvagreement import get_predc_v_mismatches
 from sastadev.readmethod import read_method
-
 from sastadev.sastatypes import (
-                                 MethodName, Penalty,
-                                 SynTree, )
+    MethodName,
+    Penalty,
+    SynTree,
+)
 from sastadev.semantic_compatibility import semincompatiblecount
 from sastadev.stringfunctions import digits, ispunctuation
 from sastadev.sva import phicompatible
-from sastadev.treebankfunctions import (clausecats, countav,
-                                          find1,
-                                        getattval,
-                                        getcompoundcount, getnodeyield,
-                                         getsentence,  getxsid,
-                                        getyield, isdefdet, is_neut_sg)
-from typing import Callable, List, Tuple
+from sastadev.treebankfunctions import (
+    clausecats,
+    countav,
+    find1,
+    getattval,
+    getcompoundcount,
+    getnodeyield,
+    getsentence,
+    getxsid,
+    getyield,
+    is_neut_sg,
+    isdefdet,
+)
 
 
 class Criterion():

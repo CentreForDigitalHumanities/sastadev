@@ -1,16 +1,18 @@
-from collections import defaultdict
-from editdistance import distance
-from lxml import etree
 import os
+from collections import defaultdict
+from typing import Callable, List, Tuple
+
+from Levenshtein import distance
+from lxml import etree
+
 from sastadev.conf import settings
 from sastadev.constants import outtreebanksfolder
 from sastadev.datasets import infiguresdatasets
 from sastadev.filefunctions import getbasename
 from sastadev.lexicon import known_word
-from sastadev.sastatypes import TreeBank, SynTree
-from sastadev.treebankfunctions import getattval, getorigutt, getmeta, getxsid
+from sastadev.sastatypes import SynTree, TreeBank
+from sastadev.treebankfunctions import getattval, getmeta, getorigutt, getxsid
 from sastadev.xlsx import mkworkbook
-from typing import Callable, List, Tuple
 
 comma = ','
 
