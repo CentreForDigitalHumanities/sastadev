@@ -1,5 +1,5 @@
 from collections import defaultdict
-from editdistance import distance
+from Levenshtein import distance
 from lxml import etree
 import os
 from sastadev.conf import settings

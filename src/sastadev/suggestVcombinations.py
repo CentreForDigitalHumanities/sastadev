@@ -25,7 +25,7 @@ comma = ','
 outtreebankssuffix = '_corrected'
 
 
-methodfullname = "D:\Dropbox\jodijk\myprograms\python\sastacode\mysastadev\src\sastadev\data\methods\TARSP_Index_Current.xlsx"
+methodfullname = r"D:\Dropbox\jodijk\myprograms\python\sastacode\mysastadev\src\sastadev\data\methods\TARSP_Index_Current.xlsx"
 
 # tarspmethod = read_method('tarsp', methodfullname)
 

@@ -1,4 +1,4 @@
-from editdistance import distance
+from Levenshtein import distance
 from sastadev.basicreplacements import basicreplacements, knownreplacementsdict
 from sastadev.conf import settings
 from sastadev.corrector import (disambiguationdict, initialmaarvgxpath)
