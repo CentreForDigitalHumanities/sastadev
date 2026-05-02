@@ -415,6 +415,10 @@ adj_no_pp_lexicon_filename = 'adj_no_pp_lexicon.txt'
 adj_no_pp_lexicon_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, adj_no_pp_lexicon_filename)
 adj_no_pp_lexicon = initializelexicon(adj_no_pp_lexicon_fullname)
 
+en_must_do_words_lexicon_filename = 'en_must_do_words_lexicon.txt'
+en_must_do_words_lexicon_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, en_must_do_words_lexicon_filename)
+en_must_do_words_lexicon = initializelexicon(en_must_do_words_lexicon_fullname)
+
 # validnouns is intended for nous  that Alpino assigns frame (both,both, both) but that are valid Dutch words
 validnouns = {'knijper', 'roosvicee'}
 

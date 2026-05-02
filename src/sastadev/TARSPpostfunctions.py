@@ -3,9 +3,11 @@ The module TARSPpostfunctions defines functions for the TARSP post part of the m
 
 '''
 from collections import Counter
-from typing import Dict, List
+import copy
+from typing import Dict, List, Optional, Tuple
 
 from sastadev.allresults import AllResults, mkresultskey, ResultsKey
+from sastadev.CHILDES_age import childes_age_from_string, normalise_age, month_diff
 from sastadev.conf import settings
 from sastadev.filefunctions import getbasename
 from sastadev.forms import get_toelichting_filename
@@ -13,9 +15,10 @@ from sastadev.query import core_process, query_inform
 from sastadev.rpf1 import sumfreq
 from sastadev.sastatypes import QId, QueryDict, Stage, SynTree
 from sastadev.stringfunctions import show_roman, conj, disj
-from sastadev.toelichting import PFReportData, StageReportData
+from sastadev.tarsp_tables import gzw_by_stage, gzw_by_age, norm_tabel_1_data, norm_tabel_2_data
+from sastadev.toelichting import PFReportData, ReportData, StageReportData, FullStageReportData
 from sastadev.treebankfunctions import getmeta
-from typing import Tuple
+from typing import Callable, Tuple
 
 RefinedStage = Tuple[int, bool]
 
@@ -64,6 +67,15 @@ excludedqids = ['T039', 'T048', 'T049', 'T052']   # TARSP p. 21: hè, Into, Inve
 #: The variable (constant) *gofase_minthreshold* contains the value of the minimum
 #: percentage of analysis units that must have been scored to be included in G.O. Fase.
 gofase_minthreshold = 0.05  # 5% p21 Tarsp 2005
+
+girl = 'meisje'
+boy = 'jongen'
+child = 'kind'
+snel = 'snel'
+gemiddeld = 'gemiddeld'
+
+snel_gemiddeld = {snel, gemiddeld}
+
 
 def mk_measure_str(measure_list: List[ResultsKey], thequeries: QueryDict, coord=conj) -> str:
     qids = [meas[0] for meas in measure_list]
@@ -501,9 +513,11 @@ def getchildage(allresults: AllResults, allqueries: QueryDict) -> str:
 
 non_clause_measures_str = "Woordgroepen, Verbindingswoorden, Voornaamwoorden en Woordstructuren"
 #def mk_stage_report(stage_report_data: StageReportData) -> List[str]:
-def mk_stage_report(allresults: AllResults, thequeries: QueryDict) -> List[str]:
+def mk_stage_report_data(allresults: AllResults, thequeries: QueryDict, in_report_data) -> StageReportData:
+    report_data = copy.deepcopy(in_report_data)
+    full_stage_report_data = FullStageReportData()
     stage_report_data = gofaseplus(allresults, thequeries)
-    report = ["Fase", ""]
+    full_stage_report_data.stage_report_data = stage_report_data
     utt_count = stage_report_data.utt_count
     stage = stage_report_data.stage
     stagecount = stage_report_data.clause_measure_count[stage]
@@ -513,10 +527,51 @@ def mk_stage_report(allresults: AllResults, thequeries: QueryDict) -> List[str]:
     proportion = stagecount / utt_count
     pct = proportion * 100
     gofase_minthreshold_pct = gofase_minthreshold * 100
+    full_stage_report_data.fullstage = fullstage
+    full_stage_report_data.proportion = proportion
+
+    higher_stages = [stg for stg in stage_report_data.clause_measure_count if stg > stage]
+    higher_stages_clause_counts = {stg: stage_report_data.clause_measure_count[stg] for stg in higher_stages if stg in stage_report_data.clause_measure_count}
+    higher_stages_clause_sum = sum([stage_report_data.clause_measure_count[stg] for stg in higher_stages])
+    total_clause_count = stagecount + higher_stages_clause_sum
+    total_proportion = total_clause_count / utt_count
+    total_pct = total_proportion * 100
+
+    full_stage_report_data.higher_stages = higher_stages
+    full_stage_report_data.higher_stages_clause_counts = higher_stages_clause_counts
+
+
+    # refinement
+    refinement_proportion = len(stage_report_data.scored_non_clause_reskeys) / len(stage_report_data.non_clause_reskeys)
+    lscored = len(stage_report_data.scored_non_clause_reskeys)
+    lnonclause = len(stage_report_data.non_clause_reskeys)
+
+    full_stage_report_data.refinement_proportion = refinement_proportion
+    full_stage_report_data.lscored = lscored
+    full_stage_report_data.lnonclause = lnonclause
+
+    report_data.full_stage_report_data = full_stage_report_data
+
+    return report_data
+
+non_clause_measures_str = "Woordgroepen, Verbindingswoorden, Voornaamwoorden en Woordstructuren"
+#def mk_stage_report(stage_report_data: StageReportData) -> List[str]:
+def mk_stage_report(allresults: AllResults, thequeries: QueryDict, report_data) -> List[str]:
+    full_stage_report_data = report_data.full_stage_report_data
+    stage_report_data = full_stage_report_data.stage_report_data
+    report = ["", "", "Fase", ""]
+    utt_count = stage_report_data.utt_count
+    stage = stage_report_data.stage
+    roman_stage = show_roman(stage)
+    stagecount = stage_report_data.clause_measure_count[stage]
+    fullstage = full_stage_report_data.fullstage
+    proportion = stagecount / utt_count
+    pct = proportion * 100
+    gofase_minthreshold_pct = gofase_minthreshold * 100
     newpar = f"De vastgestelde fase inclusief verfijning is {fullstage}."
     report.append(newpar)
     if proportion >= gofase_minthreshold:
-        newpars = [f"Fase {stage} is de hoogste fase waarin  {gofase_minthreshold_pct:.2f}% of meer van de uitingen gevonden zijn bij de Zinsconstructies.",
+        newpars = [f"Fase {roman_stage} is de hoogste fase waarin  {gofase_minthreshold_pct:.2f}% of meer van de uitingen gevonden zijn bij de Zinsconstructies.",
                    f"Er zijn in deze fase namelijk {stagecount} uitingen gevonden in {utt_count} uitingen ({pct:.2f}%, en dat is groter dan of gelijk aan {gofase_minthreshold_pct:.2f}%)."
                    ]
         report.extend(newpars)
@@ -545,6 +600,15 @@ def mk_stage_report(allresults: AllResults, thequeries: QueryDict) -> List[str]:
         newpars.append(f'Dat is meer dan de helft en daarom is een + voor verfijning van de fase toegekend.')
     else:
         newpars.append(f'Dat is niet meer dan de helft en daarom is er geen + voor verfijning toegekend.')
+    report.extend(newpars)
+
+    # comparison with norm table 1
+    newpars = [""]
+    report.extend(newpars)
+    age = report_data.speaker_metadata['childage'] if 'childage' in report_data.speaker_metadata else None
+    gender = report_data.speaker_metadata['sex'] if 'sex' in report_data.speaker_metadata else None
+    ses = report_data.speaker_metadata['SES'] if 'SES' in report_data.speaker_metadata else None
+    newpars = compare_with_norm_stage(roman_stage, age, gender, ses)
     report.extend(newpars)
 
     return report
@@ -661,16 +725,343 @@ def mk_missing_measures_report(stage: int, allresults: AllResults, thequeries: Q
 
 def mk_toelichting(allresults: AllResults, thequeries: QueryDict):
 
-    samplename = getbasename(allresults.filename)
-    full_report = [f"Toelichting op het taalprofielformulier voor sample {samplename}", ""]
-    stage_report = mk_stage_report(allresults, thequeries)
+    report_data = ReportData(sample_name = getbasename(allresults.filename), speaker_metadata=allresults.speaker_metadata)
 
+    report_data = mk_stage_report_data(allresults, thequeries, report_data)
+    stage_report_data = report_data.full_stage_report_data.stage_report_data
+    stage = stage_report_data.stage
+
+    age = allresults.speaker_metadata['childage'] if 'childage' in allresults.speaker_metadata else ''
+
+
+    full_report = [f"TARSP rapport  bij het taalprofielformulier voor sample {report_data.sample_name}", ""]
+
+    speaker_report = mk_speaker_report(report_data)
+    full_report.extend(speaker_report)
+    stage_report = mk_stage_report(allresults, thequeries, report_data)
     full_report.extend(stage_report)
     pf_report = mk_pf_report(allresults, thequeries)
     full_report.extend(pf_report)
+    GZW_report = mk_GZW_report(allresults, thequeries, stage, age)
+    full_report.extend(GZW_report)
+
     outfullname = get_toelichting_filename(allresults.filename, '_form_toelichting')
     with open(outfullname, 'w', encoding='utf-8') as outfile:
         print('\n'.join(full_report), file=outfile)
+
+def get_GZW(allresults: AllResults) -> tuple:
+    total_wc = sum([wc for _, wc in allresults.commwordcounts])
+    utt_count = len(allresults.commwordcounts)
+    result = total_wc / utt_count
+    return total_wc, utt_count, result
+
+def mk_GZW_report(allresults: AllResults, thequeries: QueryDict, stage, age) -> List[str]:
+    report = ["","","Gemiddelde Zinslengte in Woorden (GZW)", '']
+    total_wc, utt_count, gzw = get_GZW(allresults)
+    newpar = f"De Gemiddelde zinslengte in woorden (GZW) is {total_wc} / {utt_count} = {gzw:.2f}."
+    report.append(newpar)
+
+    # vergelijking met norm @@ to do
+    newpars = mk_gwz_compare_report(gzw, stage, age)
+    report.extend(newpars)
+
+    return report
+
+
+max_z = 2
+
+
+def compare_with_norm_by_stage(gzw, stage) -> Optional[Tuple[float, float]]:
+    roman_stage = show_roman(stage)
+    if roman_stage in gzw_by_stage:
+        norm_row = gzw_by_stage[roman_stage]
+        diff = gzw - norm_row[2]
+        sd = norm_row[3]
+        z = diff / sd
+        return diff, z
+    else:
+        return None
+
+
+def compare_with_norm_by_age(gzw, age) -> Optional[Tuple[float, float]]:
+    norm_data = gzw_by_age
+    norm_row = None
+    ch_age = childes_age_from_string(age)
+    if ch_age is None:
+        return None
+    for b, e in norm_data:
+        ch_b = childes_age_from_string(b)
+        ch_e = childes_age_from_string(e)
+        if ch_age >= ch_b and ch_age < ch_e:
+            norm_row = gzw_by_age[(b, e)]
+            break
+    if norm_row is not None:
+        diff = gzw - norm_row[2]
+        sd = norm_row[3]
+        z = diff / sd
+        return diff, z
+    else:
+        return None
+
+
+def mk_comparison_report(comparison, item) -> List[str]:
+    report = []
+    if comparison is None:
+        newpars = ["", f"Een vergelijking met normwaarden voor GZW per {item} is niet mogelijk."]
+        report.extend(newpars)
+    else:
+        diff, z = comparison
+        newpar = f"Het verschil met het gemiddelde van de GZW per {item}  bedraagt {diff:.2f} en de z-waarde is {z:.2f}."
+        report.append(newpar)
+        if abs(z) >= max_z:
+            newpar = "Dit is een groot verschil."
+        else:
+            newpar = "Dit is een verschil dat  verwaarloosd kan worden."
+        report.append(newpar)
+    return report
+
+def mk_compare_with_norm_high_age_report(gzw, age):
+    report = []
+    mindiff = 100
+    min_b = None
+    min_e = None
+    for b, e in gzw_by_age:
+        gzw_b_e = gzw_by_age[(b, e)][2]
+        diff = gzw - gzw_b_e
+        if abs(diff) <= abs(mindiff):
+            mindiff = diff
+            min_b = b
+            min_e = e
+    closest_cat = gzw_by_age[(min_b, min_e)]
+    thediff = gzw - closest_cat[2]
+    sd = closest_cat[3]
+    z = thediff / sd
+
+    norm_age = normalise_age(age)
+
+    newpars = ["", f"De leeftijd van het kind ({norm_age}) is hoger dan 4 jaar. Daarom is een directe vergelijking van de GZW met de norm niet mogelijk.",
+               f"De GZW voor dit kind ({gzw:.2f}) ligt het dichtst bij de GZW van de leeftijdscategorie {b}-{e}.",
+               f"Het verschil hiermee is {thediff:.2f} met een z-waarde van {z:.2f}."]
+
+    report.extend(newpars)
+    return report
+
+
+def mk_gwz_compare_report(gzw, stage, age) -> List[str]:
+    report = []
+    comparison1 = compare_with_norm_by_stage(gzw, stage)
+
+    comparison_report = mk_comparison_report(comparison1, 'fase')
+    report.extend(comparison_report)
+
+    comparison_report = mk_compare_with_norm_high_diff_report(gzw, stage)
+    report.extend(comparison_report)
+
+    age_str = age if (age is not None and age != '')  else 'onbekend'
+    # newpars = ["", f"De leeftijd van het kind is {age_str}."]
+    # report.extend(newpars)
+    if age < '4;':
+        comparison2 = compare_with_norm_by_age(gzw, age)
+        comparison_report = mk_comparison_report(comparison2, 'leeftijd')
+    else:
+        comparison_report = mk_compare_with_norm_high_age_report(gzw, age)
+    report.extend(comparison_report)
+
+    return report
+
+def mk_compare_with_norm_high_diff_report(gzw, stage) -> List[str]:
+    report = []
+    highest_norm_gzw = gzw_by_stage['VI']
+    if gzw > highest_norm_gzw[2]:
+        diff = gzw - highest_norm_gzw[2]
+        sd = highest_norm_gzw[3]
+        z = diff / sd
+        newpars = ["", f"De GZW ({gzw:.2f}) is groter dan de grootste GZW in de normtabel voor fases." +
+                   f"Het verschil is {diff:.2f} met een z-waarde van {z:.2f}."]
+    else:
+        mindiff = 100
+        min_stage = None
+        for stg in gzw_by_stage:
+            stg_gzw = gzw_by_stage[stg][2]
+            diff = gzw - stg_gzw
+            if abs(diff) < abs(mindiff):
+                mindiff = diff
+                min_stage = stg
+                sd = gzw_by_stage[stg][3]
+        roman_min_stage = show_roman(min_stage)
+        diff = gzw - gzw_by_stage[min_stage][2]
+        z = diff / sd
+        newpars = [f"De GZW ({gzw:.2f}) verschilt het minst met de GZW voor fase {roman_min_stage}.",
+                   f"Het verschil is {mindiff:.2f} en de z-waarde is  {z:.2f}."]
+    report.extend(newpars)
+    return report
+
+def mk_speaker_report(report_data) -> List[str]:
+    speaker_metadata = report_data.speaker_metadata
+    sample = report_data.sample_name
+
+    gender = normalise_gender(speaker_metadata['sex'])
+    age = normalise_age(speaker_metadata['childage'])
+    if gender not in {boy, girl}:
+        gender_str = child
+    else:
+        gender_str = gender
+    if age is None:
+        age_str = f'van onbekende leeftijd'
+    else:
+        age_str = f'met leeftijd {age}'
+
+    ses = speaker_metadata['SES'] if 'SES' in speaker_metadata else None
+
+    if ses is not None and ses != '':
+        ses_pars = [f"De waarde voor Sociaal Economische Status (SES) is {ses}"]
+        if ses not in {'A', 'B'}:
+            newstr = "Deze waarde kan niet gerelateerd worden aan de TARSP waardes A of B voor milieu, en wordt daarom genegeerd."
+            ses_pars.append(newstr)
+    else:
+        ses_pars =["Er is geen informatie over de Sociaal Economische Status (SES) van het kind."]
+
+        # intro
+    newpars = [f"Dit is het rapport voor het spontane-taalsample {sample}. Dit sample is het transcript van een gesprek met een {gender_str} {age_str}."]
+    if gender_str == child:
+        no_gender_str = "Het geslacht van het kind is niet bekend."
+        newpars.append(no_gender_str)
+
+    newpars.extend(ses_pars)
+
+    return newpars
+
+
+def compare_with_norm_stage(romanstage: str, raw_age: str, raw_gender: str = None, ses: str = None) -> List[str]:
+    gender = normalise_gender(raw_gender)
+    age = normalise_age(raw_age)
+    if ses == '':
+        ses = None
+
+    base_message =  f'De ontwikkeling van het onderzochte kind komt overeen met'
+
+    # age, gender, ses check stage
+    filtered_rows = [row for row in norm_tabel_1_data if (gender is None or row[3] == gender) and
+                    age >= row[1] and age < row[2] and (ses is None or row[4] == ses) and romanstage == row[6]]
+    if filtered_rows != []:
+        message2_list = []
+        for row in filtered_rows:
+           snelheid = adapt_snelheid(row[5])
+           message2 = f' een {snelheid} ontwikkeling voor een {row[3]} van leeftijdsgroep {row[0]} ({row[1]}-{row[2]}) van milieu {row[4]}'
+           message2_list.append(message2)
+        full_message2 = ' of \n'.join(message2_list) + "."
+
+        concl_message = f"\n\nDe leeftijd van het kind komt hiermee overeen. De taal van het kind ontwikkelt zich op normale wijze."
+        message = base_message + full_message2 + concl_message
+
+
+
+    else:
+        # leave out the age condition
+        filtered_rows = [row for row in norm_tabel_1_data if (gender is None or row[3] == gender) and
+                         (ses is None or row[4] == ses) and romanstage == row[6]]
+
+        # if needed leave out the ses condition (ses has a value that cannot be mapped to A or B)
+        if filtered_rows == []:
+            filtered_rows = [row for row in norm_tabel_1_data if (gender is None or row[3] == gender) and
+                             romanstage == row[6]]
+
+        if filtered_rows != []:
+
+            # select nu de rows met hoogste leeftijdklasses en als daar geen snel  of gemiddelde bij zit dan ook de rows hoogste leeftijdklasse met snel
+            highest_age_class_filtered_rows = listmax(filtered_rows, key=lambda row: row[0])
+            if not any([row[5] in  snel_gemiddeld for row in highest_age_class_filtered_rows]):
+                additional_rows = [row for row in filtered_rows if row[5] in snel_gemiddeld]
+            else:
+                additional_rows = []
+            if gender is None:
+                girl_rows = [row for row in additional_rows if row[3] == girl]
+                boy_rows = [row for row in additional_rows if row[3] == boy]
+                highest_girl_rows = listmax(girl_rows, key = lambda row: row[0])
+                highest_boy_rows = listmax(boy_rows, key = lambda row: row[0])
+                highest_age_additional_rows = highest_girl_rows + highest_boy_rows
+            else:
+                highest_age_additional_rows = listmax(additional_rows, key = lambda row: row[0])
+
+
+            all_rows = highest_age_class_filtered_rows + highest_age_additional_rows
+            message2_list = []
+            for row in all_rows:
+                snelheid = adapt_snelheid(row[5])
+                message2 = f' een {snelheid} ontwikkeling voor een {row[3]} van leeftijdsgroep {row[0]} ({row[1]}-{row[2]}) van milieu {row[4]}'
+                message2_list.append(message2)
+            full_message2 = ' of \n'.join(message2_list)
+
+            lowest_rows = listmin(all_rows, key = lambda row: row[0])
+            lowest_row = lowest_rows[0]
+            highest_rows = listmax(all_rows, key = lambda row: row[0])
+            highest_row = highest_rows[0]
+            if age < lowest_row[1]:
+                diff = month_diff(lowest_row[1], age)
+                concl_message = f"\n\nDe leeftijd van het kind is lager dan de ondergrens van het laagste genoemde leeftijdsinterval. Het verschil is {diff} maanden. De taal van het kind ontwikkelt zich sneller dan gewoonlijk."
+            elif age == lowest_row[1]:
+                concl_message = f'\n\nDe leeftijd van het kind is precies gelijk aan de ondergrens van het laagste genoemde leeftijdsinterval. De taal van het kind ontwikkelt zich normaal.'
+            elif age > highest_row[2]:
+                diff = month_diff(age, highest_row[2])
+                concl_message = f"\n\nDe leeftijd van het kind is hoger dan de bovengrens van het hoogste genoemde leeftijdsinterval. Het verschil is {diff} maanden. Mogelijk is hier sprake van een taalontwikkelingsstoornis (TOS)."
+            elif age == highest_row[2]:
+                concl_message = f'\n\nDe leeftijd van het kind is precies gelijk aan de bovengrens van het hoogste genoemde leeftijdsinterval. De taal van het kind ontwikkelt zich normaal.'
+            else:
+                concl_message = ''
+            message = base_message + full_message2 + concl_message
+        else:
+            message = "Met de aangeboden gegevens kan geen vergelijking met de normtabellen voor fases gemaakt worden."
+
+    return [message]
+
+
+def listmax(xs: list, key: Callable) -> list:
+    themax = None
+    results = []
+    for row in xs:
+        if themax is None or key(row) > themax:
+            results = [row]
+            themax = key(row)
+        elif key(row) < themax:
+            pass
+        else:
+            results.append(row)
+    return results
+
+def listmin(xs: list, key: Callable) -> list:
+    themin = None
+    results = []
+    for row in xs:
+        if themin is None or key(row) < themin:
+            results = [row]
+            themin = key(row)
+        elif key(row) > themin:
+            pass
+        else:
+            results.append(row)
+    return results
+
+
+
+gender_dict = {'male': boy, 'female': girl, boy: boy, girl: girl, '': None}
+def normalise_gender(raw_gender: str) -> str:
+    if raw_gender in gender_dict:
+        result = gender_dict[raw_gender.lower()]
+    else:
+        result = raw_gender
+        settings.LOGGER.error(f"Unknown gender: {raw_gender}")
+    return result
+
+def adapt_snelheid(wrd: str) -> str:
+    if wrd == 'langzaam':
+        result = 'langzame'
+    elif wrd == 'gemiddeld':
+        result = 'gemiddelde'
+    elif wrd == 'snel':
+        result = 'snelle'
+    else:
+        result = wrd
+    return result
 
 
 

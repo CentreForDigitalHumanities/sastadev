@@ -112,7 +112,12 @@ wond4 = """(%ynquery% and %realcomplormodnodecount% = 3)"""
 
 wond5plus = """(%ynquery% and %realcomplormodnodecount% >= 4)"""
 
-onlythesearerealwords = """(count(.//node[%bxrealwordnode%]) = count(%allbxrealwordnodes%))"""
+bareconjunct = """(@rel="cnj" and parent::node[@cat="conj" and %xg_rel%])"""
+
+xg_rel = """(@rel="--" or @rel="dp" or @rel="nucl")"""
+
+
+onlythesearerealwords = """(count(.//node[%bxrealwordnode%]) = count(%allbxrealwordnodes%) or %bareconjunct%)"""
 
 
 partofwhquestion = """((@cat="sv1" or @cat="ssub") and @rel="body" and parent::node[@cat="whq" or @cat="whsub" or (@cat="whrel" and %indeprel%) ]) """

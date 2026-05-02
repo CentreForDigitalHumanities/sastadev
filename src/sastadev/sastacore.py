@@ -26,7 +26,7 @@ from sastadev.sastatypes import (FileName, MethodName, Position, QId,
                                  UttId)
 from sastadev.stringfunctions import getallrealwords
 from sastadev.targets import get_mustbedone
-from sastadev.treebankfunctions import (getattval, getnodeendmap,
+from sastadev.treebankfunctions import (find1, getattval, getnodeendmap,
                                         getxmetatreepositions, getxsid,
                                         getyield, showtree, topcat)
 
@@ -60,6 +60,28 @@ def doauchann(intreebank: SynTree) -> SynTree:
 
     return outtreebank
 
+target_speaker_xpath = """.//alpino_ds[descendant::meta[@name="role" and @value="Target_Child"] or
+                                       descendant::meta[@name="speaker" and @value="CHI"] or
+                                       descendant::meta[@name="speaker" and @value="PMA"]
+                                      ]"""
+
+target_speaker_meta_names = ['childage', 'education',  'group', 'name', 'SES','sex']
+def get_speaker_meta(tb: TreeBank) -> str:
+    """
+    It is presupposed that a treebank contains utterances and age of only a single target speaker
+
+    """
+    #first find a tree from a target speaker
+    speaker_metadata = {}
+    target_speaker_tree = find1(tb, target_speaker_xpath)
+    for meta in target_speaker_meta_names:
+        raw_val = find1(target_speaker_tree, f'.//meta[@name="{meta}"]/@value')
+        if raw_val is None:
+            speaker_metadata[meta]  = ''
+        else:
+            speaker_metadata[meta] = str(raw_val)
+    return speaker_metadata
+
 
 def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
               annotatedfileresults: Optional[AllResults],
@@ -73,6 +95,9 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
     else:
         if not (origtreebank is not None and annotatedfileresults is None):
             pass  # report an error and exit
+
+    # gather the treebank wide metadata that are relevant
+    target_speaker_metadata = get_speaker_meta(correctedtreebank) if correctedtreebank is not None else {}
 
     corr = scp.corr
     themethod = scp.themethod
@@ -167,7 +192,7 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
     postresults: Dict[ResultsKey, Any] = {}
     allresults = AllResults(uttcount, coreresults, exactresults, postresults, allmatches, infilename,
                             analysedtrees,
-                            allutts, annotationinput)
+                            allutts, annotationinput, speaker_metadata=target_speaker_metadata)
 
     commwordcounts: List[Tuple[UttId, int]] = get_tb_comm_word_count(correctedtreebank)
     noncommwordcounts: List[Tuple[UttId, int]] = get_tb_noncomm_word_count(correctedtreebank)

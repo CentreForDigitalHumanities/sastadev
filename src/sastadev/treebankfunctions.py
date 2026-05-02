@@ -801,7 +801,7 @@ def getnodeyield(syntree: SynTree) -> List[SynTree]:
         return []
     else:
         for node in syntree.iter():
-            if node.tag in ['node'] and 'pt' in node.attrib or 'pos' in node.attrib:
+            if node.tag in ['node'] and ('pt' in node.attrib or 'pos' in node.attrib or 'word' in node.attrib):
                 resultlist.append(node)
         sortedresultlist = sorted(resultlist, key=lambda x: int(
             getattval_fallback(x, 'end', '9999')))
@@ -809,7 +809,7 @@ def getnodeyield(syntree: SynTree) -> List[SynTree]:
 
 
 # deze herformuleren in termen van getnodeyield na testen
-def getyield(syntree: SynTree) -> List[str]:
+def old_getyield(syntree: SynTree) -> List[str]:
     resultlist = []
     if syntree is None:
         theyield = []
@@ -830,6 +830,11 @@ def getyield(syntree: SynTree) -> List[str]:
         sortedresultlist = sorted(resultlist, key=lambda x: x[1])
         theyield = [w for (w, _) in sortedresultlist]
     return theyield
+
+def getyield(syntree: SynTree) -> List[str]:
+        sortedresultlist = getnodeyield(syntree)
+        theyield = [getattval(n, 'word') for n in sortedresultlist]
+        return theyield
 
 
 def parent(node: SynTree) -> Optional[SynTree]:

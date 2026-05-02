@@ -25,8 +25,8 @@ def clean(valstr):
 
 
 class Query:
-    def __init__(self, id, cat, subcat, level, item, altitems, implies, original, pages, fase, query, inform,
-                 screening, process, literal, stars, filter, variants, unused1, unused2, comments):
+    def __init__(self, id, cat, subcat, level, item, altitems, implies, original, pages2005, pages2017, fase, query, inform,
+                 screening, process, literal, stars, filter, variants, acq_order, implied_by, unused1, unused2, comments):
         self.id = id             # identifier of the query. so far of the form[TSA][0-9]{3,3}
         self.cat = cat           # a category for grouping  queries
         self.subcat = subcat     # a subcategory for grouping  queries
@@ -36,7 +36,8 @@ class Query:
         self.implies = implies   # obsolete, not needed anymore
         self.original = original # whether it is a query that occurs originally in the method definition or has been
                                  # added
-        self.pages = pages      # page numbers where the query is described in the defining books/ documents
+        self.pages = pages2005   # page numbers where the query is described in the defining 2005 books/ documents
+        self.pages = pages2017   # page numbers where the query is described in the defining 2017 books/ documents
         self.fase = fase        # stage that this query belongs to (relevant for Tarsp only
         self.query = query      # the actual query, a Xpath expression, possibly with macros, or the name of a python
                                 # function
@@ -50,6 +51,8 @@ class Query:
         self.stars = clean(stars) # whther the Tarsp code contains stars (asterisks)
         self.filter = filter    # boolean function used to filter results depending on results of other queies
         self.variants = variants  # to specify the variant(s) of the method that the query belongs to
+        self.acq_order = acq_order # acquisition order (row number in the Tarsp form
+        self.implied_by = implied_by # qids that the query is implied by (see Schlichting p. 29/29 STAP 9
         self.unused1 = unused1   # for future extensions
         self.unused2 = unused2  # for future extensions
         self.comments = comments  # free text comments

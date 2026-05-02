@@ -1,20 +1,25 @@
 import copy
 from lxml import etree
 import os
+
+from sastadev.allresults import AllResults
 from sastadev.celexlexicon import getinflforms, pos2posnum
 from sastadev.conf import settings
-from sastadev.constants import outtreebanksfolder
+from sastadev.comm_ncomm import get_comm_word_count
+from sastadev.constants import datafolder, outtreebanksfolder
 from sastadev.lexicon import informlexicon, adj_no_pp_lexicon
 from sastadev.macros import expandmacros
 from sastadev.methods import Method
+from sastadev.rpf1 import sumfreq
 from sastadev.sas_filter import filterbymetadata
 from sas_queries import get_message_with_word_function
 from sastadev.sastatypes import ExactResultsDict, SynTree, TreeBank
 from sastadev.stringfunctions import monosyllabic
 from sastadev.treebankfunctions import (clausebodycats, find1, immediately_follows, getattval as gav, getnodeyield,
-                                        getxsid, getmeta, getyield, iswordnode, nodecopy,
+                                        getxsid, getmeta, getyield, iswordnode, nodecopy, openclasspts,
                                         adjacent, showtree, getbeginend)
-from typing import List, Tuple
+from sastadev.xlsx import getxlsxdata
+from typing import List, Optional, Tuple
 
 compoundsep = '_'
 space = ' '
@@ -483,7 +488,47 @@ def volgend_vorig(node: SynTree) -> bool:
         return False
     return True
 
+def get_first_word_node_of(node: SynTree) -> Optional[SynTree]:
+    if 'word' in node.attrib:
+        result = node
+    else:
+        result = find1(node, f"node[@begin = '{gav(node, 'begin')}'] ]")
+    return result
 
+
+def get_associate(node: SynTree) -> Optional[SynTree]:
+    """
+    function to obtain the word node that an omitted word should be marked on. Possibly none is found.
+    If there is none, the marking will be on the whole sentence
+    """
+    node_pt = gav(node, 'pt')
+    node_conjtype = gav(node, 'vwtype')
+    if node_pt == '':     # only defined for word nodes with a pt attributes
+        return None
+    # if cnj then crd if there is one
+    if gav(node, 'rel') == 'cnj':
+        result = find1(node, "../node[@rel='crd']")
+    # if content word then its governing head, if there is one
+    elif node_pt in openclasspts:
+        result = find1(node, "../node[@rel='hd']")
+        if gav(result, 'cat') == 'mwu':
+            result = get_first_word_node_of(result)
+        # if crd then the first word of the first conjunct
+    elif node_pt == "vg" and node_conjtype == 'neven':
+        node_parent = node.getparent()
+        first_conjunct = find1(node_parent, f"./node[@rel='cnj' and @begin = {gav(node_parent, 'begin')}]")
+        result = get_first_word_node_of(first_conjunct)
+    # if function word then the head of its complement if there is one else its governing head
+    elif node_pt == "vz":
+        compl = find1(node, '../node[@rel="obj1" or @rel="pobj1"]')
+        result = get_first_word_node_of(compl)
+    elif node_pt == "vw" and node_conjtype == 'onder':
+        compl = find1(node, '../node[@rel="body"]')
+        result = get_first_word_node_of(compl)
+    # else None
+    else:
+        result = None
+    return result
 
 
 

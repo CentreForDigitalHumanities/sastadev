@@ -85,7 +85,7 @@ detless_count_nouns = ['papa', 'mama', 'oma', 'opa', 'moeder', 'sinterklaas', 'm
                        ['kerstmis', 'pasen', 'pinksteren'] +\
                        ['eentje']
 
-predc_detless_count_nouns = ['avond', 'ochtend', 'middag', 'nacht']
+predc_detless_count_nouns = ['avond', 'ochtend', 'middag', 'nacht', 'weer']
 
 color_names = ['rood', 'wit', 'blauw', 'oranje', 'zwart', 'geel', 'groen']
 mass_exceptions = ['acquisitie', 'acte', 'appel_sap', 'begeleiding', 'bezoek', 'brood', 'buiten',

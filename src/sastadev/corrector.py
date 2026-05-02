@@ -35,7 +35,7 @@ from sastadev.lexicon import (alt_pt_ww_n_pairdict, WordInfo, de, definite_deter
                               hwwilemmas, informlexicon, isa_namepart, isa_inf, isa_vd, known_word, nochildword,
                               possessive_determiners,
                               tswnouns, validnotalpinocompoundword, validword, vuwordslexicon,
-                              wordsunknowntoalpinolexicondict)
+                              wordsunknowntoalpinolexicondict, en_must_do_words_lexicon)
 from sastadev.macros import expandmacros
 from sastadev.metadata import (Meta, bpl_word_delprec, bpl_indeze, bpl_node, bpl_none, bpl_paspast, bpl_word,
                                bpl_wordlemma, defaultbackplacement,
@@ -1970,7 +1970,9 @@ def getalternativetokenmds(tokenmd: TokenMD,  tokens: List[Token], tokenctr: int
                                                 penalty=-defaultpenalty)
 
     # e-> e(n)
-    if not token_is_valid_word and token.word not in basicreplacements and token.word not in enexceptions:
+    # en_mustdos = ['belle']  # replaced by en_must_do_words_lexicon
+    if (not token_is_valid_word and token.word not in basicreplacements and token.word not in enexceptions) or \
+            token.word in en_must_do_words_lexicon:
         if endsinschwa(token.word) and not monosyllabic(token.word):
             newword = token.word + 'n'
             if validword(newword, methodname):
