@@ -5,14 +5,14 @@ based on its correction and the lemma of its correction.
 It works for nouns only!
 
 '''
-import editdistance
+import Levenshtein
 
 from sastadev.normalise_lemma import normaliselemma
 
 vowels = 'AEIOUYaeiou '
 
 def reldistance(word, corr):
-    thedistance = editdistance.distance(word, corr)
+    thedistance = Levenshtein.distance(word, corr)
     result = thedistance / max(len(word), len(corr))
     return result
 
@@ -56,14 +56,14 @@ def issmartcompound(word, corr, rawcorrlemma):
     # the next gives errors, eg. for pusses/puzzelstukjes (es is an existing word)
     # if commonsuffix != '' and informlexicon(commonsuffix) and containsvowel(word[:-len(commonsuffix)]):
     #    return True
-    corrdistance = editdistance.distance(word, corr)
+    corrdistance = Levenshtein.distance(word, corr)
     relcorrdistance = reldistance(word, corr)
     if corr[:lcorrlemmaprefix] == corrlemmaprefix:
         corrleft = corrlemmaprefix
         corright = corr[lcorrlemmaprefix:]
 
-        corrleftdistance = editdistance.distance(word, corrleft)
-        corrrightdistance = editdistance.distance(word, corright)
+        corrleftdistance = Levenshtein.distance(word, corrleft)
+        corrrightdistance = Levenshtein.distance(word, corright)
 
         relcorrleftdistance = reldistance(word, corrleft)
         relcorrrightdistance = reldistance(word, corright)

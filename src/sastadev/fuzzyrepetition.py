@@ -1,4 +1,4 @@
-from editdistance import distance
+from Levenshtein import distance
 
 topcat = 'top'
 
