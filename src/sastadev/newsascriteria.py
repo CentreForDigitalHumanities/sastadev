@@ -3,6 +3,7 @@ from lxml import etree
 import os
 
 from sastadev.allresults import AllResults
+from sastadev.ASTApostfunctions import mdbasedquery, mdnameonlyxpathtemplate
 from sastadev.celexlexicon import getinflforms, pos2posnum
 from sastadev.conf import settings
 from sastadev.comm_ncomm import get_comm_word_count
@@ -529,6 +530,69 @@ def get_associate(node: SynTree) -> Optional[SynTree]:
     else:
         result = None
     return result
+
+
+deheterror = 'deheterror'
+hetdeerror = 'hetdeerror'
+articles = ['de', 'een', 'het', "'t", "'n"]
+from sastadev import correctionlabels
+from sastadev.CHAT_Annotation import CHAT_replacement
+from sastadev.metadata import Meta
+
+def mk_xpath_condition(att: str, values: List[str]) -> str:
+    or_list = []
+    for value in values:
+        new_el = f'@name="{value}"'
+        or_list.append(new_el)
+    or_list_str = ' or '.join(or_list)
+    result = f'({or_list_str})'
+    return result
+
+def get_nodes(stree: SynTree, meta: Meta, xpath_cond="") -> List[SynTree]:
+    annotatedposlist_str = getattr(meta, 'annotatedposlist')
+    annotatedposlist = eval(annotatedposlist_str)
+    results = []
+    xpath_cond_str = f'and {xpath_cond}' if xpath_cond != '' else ''
+    for pos in annotatedposlist:
+        new_node = stree.xpath(f'.//node[@word and @begin="{pos} {xpath_cond_str}"]')
+    return results
+
+def get_node(stree: SynTree, meta: Meta, xpath_cond="") -> SynTree:
+    nodes = get_nodes(stree, meta)
+    node = nodes[0] if len(nodes) > 0 else None
+    return node
+
+
+def sublid(stree: SynTree) -> List[SynTree]:
+
+    results = []
+
+    # deheterror
+    deheterror_nodes = mdbasedquery(stree, correctionlabels.grammarerror, deheterror)
+
+    # hetdeerrors
+
+    hetdeerror_nodes = mdbasedquery(stree, correctionlabels.grammarerror, hetdeerror)
+
+    results = deheterror_nodes + hetdeerror_nodes
+    # replacements of articles
+    art_cond = mk_xpath_condition('value')
+    # replacement_xpath = f'.//xmeta[@name="{CHAT_replacement}"]'
+    replacement_metadata = stree.xpath(mdnameonlyxpathtemplate.format(CHAT_replacement))
+    art_replacement_metadata = []
+    for replacement in replacement_metadata:
+        annotated_list = eval(getattr(replacement, 'annotatedwordlist'))
+        annotation_list = eval(getattr(replacement, 'annotationwordlist'))
+        annotated = annotated_list[0] if annotated_list else None
+        annotation = annotation_list[0] if annotation_list else None
+        if annotation in articles:
+            art_replacement_metadata.append(replacement)
+    for art_replacement in art_replacement_metadata:
+        new_node = get_node(stree, art_replacement, xpath_cond='@pt="lw"')
+        if new_node is not None:
+            results.append(new_node)
+    return results
+
 
 
 
