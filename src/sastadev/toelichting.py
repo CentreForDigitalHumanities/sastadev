@@ -32,7 +32,11 @@ class PFReportData():
 class GZWReportData():
     pass
 
-
+@dataclass
+class LeerdoelenReportData():
+    stage: int = None
+    leerdoelen_by_stage: dict = None
+    natuurlijke_hiaten: dict = None
 
 @dataclass
 class ReportData():
@@ -40,3 +44,4 @@ class ReportData():
     speaker_metadata: dict = None
     full_stage_report_data: FullStageReportData = None
     pf_report_data: PFReportData = None
+    leerdoelen_report_data: LeerdoelenReportData = None

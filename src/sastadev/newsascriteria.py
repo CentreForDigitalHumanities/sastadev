@@ -565,8 +565,6 @@ def get_node(stree: SynTree, meta: Meta, xpath_cond="") -> SynTree:
 
 def sublid(stree: SynTree) -> List[SynTree]:
 
-    results = []
-
     # deheterror
     deheterror_nodes = mdbasedquery(stree, correctionlabels.grammarerror, deheterror)
 
@@ -574,26 +572,33 @@ def sublid(stree: SynTree) -> List[SynTree]:
 
     hetdeerror_nodes = mdbasedquery(stree, correctionlabels.grammarerror, hetdeerror)
 
-    results = deheterror_nodes + hetdeerror_nodes
-    # replacements of articles
-    art_cond = mk_xpath_condition('value')
-    # replacement_xpath = f'.//xmeta[@name="{CHAT_replacement}"]'
+    other_nodes = sub_pt(stree, 'lid')
+    results = deheterror_nodes + hetdeerror_nodes + other_nodes
+    return results
+
+def sub_pt(stree: SynTree, pt: str) -> List[SynTree]:
+    """
+    finds substitutions of words with part of speech == pt in stree
+    It finds them on the basis of the the metad
+    """
+    results = []
     replacement_metadata = stree.xpath(mdnameonlyxpathtemplate.format(CHAT_replacement))
-    art_replacement_metadata = []
-    for replacement in replacement_metadata:
+    explanation_as_replacement_metadata = (
+        stree.xpath(mdnameonlyxpathtemplate.format(correctionlabels.explanationasreplacement)))
+    all_metadata = replacement_metadata + explanation_as_replacement_metadata
+    pt_replacement_metadata = []
+    for replacement in all_metadata:
         annotated_list = eval(getattr(replacement, 'annotatedwordlist'))
         annotation_list = eval(getattr(replacement, 'annotationwordlist'))
         annotated = annotated_list[0] if annotated_list else None
         annotation = annotation_list[0] if annotation_list else None
         if annotation in articles:
-            art_replacement_metadata.append(replacement)
-    for art_replacement in art_replacement_metadata:
-        new_node = get_node(stree, art_replacement, xpath_cond='@pt="lw"')
+            pt_replacement_metadata.append(replacement)
+    for art_replacement in pt_replacement_metadata:
+        new_node = get_node(stree, art_replacement, xpath_cond=f'@pt="{pt}"')
         if new_node is not None:
             results.append(new_node)
     return results
-
-
 
 
 if __name__ == '__main__':

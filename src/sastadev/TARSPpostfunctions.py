@@ -4,6 +4,7 @@ The module TARSPpostfunctions defines functions for the TARSP post part of the m
 '''
 from collections import Counter
 import copy
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 from sastadev.allresults import AllResults, mkresultskey, ResultsKey
@@ -11,12 +12,13 @@ from sastadev.CHILDES_age import childes_age_from_string, normalise_age, month_d
 from sastadev.conf import settings
 from sastadev.filefunctions import getbasename
 from sastadev.forms import get_toelichting_filename
+from sastadev.implied_by import tarsp_implied_by_dict
 from sastadev.query import core_process, query_inform
 from sastadev.rpf1 import sumfreq
 from sastadev.sastatypes import QId, QueryDict, Stage, SynTree
 from sastadev.stringfunctions import show_roman, conj, disj
 from sastadev.tarsp_tables import gzw_by_stage, gzw_by_age, norm_tabel_1_data, norm_tabel_2_data
-from sastadev.toelichting import PFReportData, ReportData, StageReportData, FullStageReportData
+from sastadev.toelichting import LeerdoelenReportData, PFReportData, ReportData, StageReportData, FullStageReportData
 from sastadev.treebankfunctions import getmeta
 from typing import Callable, Tuple
 
@@ -47,6 +49,16 @@ Vr5plus = mkresultskey('T113')
 
 gtotaal_qid = 'T152'
 pf_qid = 'T162'
+
+geb_w = 'Gebiedende Wijs'
+mededelende_zin = "Mededelende Zin"
+verbindingswoorden = "Verbindingswoorden"
+voornaamwoorden = "Voornaamwoorden"
+vraag = 'Vragen'
+woordgroepen = 'Woordgroepen'
+woordstructuur = 'Woordstructuur'
+zinsconstructies = 'Zinsconstructies'
+
 
 long_B_measures = [BWOndBB, OndWB, OndWBB, OndWBVC, VCWOndBB]
 long_VC_measures = [OndWVC, OndWBVC, VCWOndBB, OndWVCVCX]
@@ -722,7 +734,6 @@ def mk_missing_measures_report(stage: int, allresults: AllResults, thequeries: Q
                                ]
         #implied_queries = [qid for qid in raw_unscored_queries if any([el for el in implied_qid[qid] if qid in implied ])]
 
-
 def mk_toelichting(allresults: AllResults, thequeries: QueryDict):
 
     report_data = ReportData(sample_name = getbasename(allresults.filename), speaker_metadata=allresults.speaker_metadata)
@@ -745,12 +756,27 @@ def mk_toelichting(allresults: AllResults, thequeries: QueryDict):
     GZW_report = mk_GZW_report(allresults, thequeries, stage, age)
     full_report.extend(GZW_report)
 
+    leerdoelen_report_data = get_leerdoelen_report_data(allresults, thequeries, report_data)
+    report_data.leerdoelen_report_data = leerdoelen_report_data
+
+    leerdoelen_report = mk_leerdoelen_report(allresults, thequeries, report_data)
+    full_report.extend(leerdoelen_report)
+
+    versie = ""
+    datum = datetime.now().isoformat("T", "minutes")
+    user = ""
+    bywhom = f"in opdracht van {user}" if user != "" else ""
+    lastpars = ["","", f"Dit rapport is automatisch gegenereerd door SASTA {versie} {bywhom} op {datum}."]
+
+    full_report.extend(lastpars)
+
     outfullname = get_toelichting_filename(allresults.filename, '_form_toelichting')
     with open(outfullname, 'w', encoding='utf-8') as outfile:
         print('\n'.join(full_report), file=outfile)
 
 def get_GZW(allresults: AllResults) -> tuple:
-    total_wc = sum([wc for _, wc in allresults.commwordcounts])
+    word_counts = [wc for _, wc in allresults.commwordcounts]
+    total_wc = sum(word_counts)
     utt_count = len(allresults.commwordcounts)
     result = total_wc / utt_count
     return total_wc, utt_count, result
@@ -813,12 +839,30 @@ def mk_comparison_report(comparison, item) -> List[str]:
         diff, z = comparison
         newpar = f"Het verschil met het gemiddelde van de GZW per {item}  bedraagt {diff:.2f} en de z-waarde is {z:.2f}."
         report.append(newpar)
-        if abs(z) >= max_z:
-            newpar = "Dit is een groot verschil."
-        else:
-            newpar = "Dit is een verschil dat  verwaarloosd kan worden."
+        newpar = mk_gzw_addition(diff, z)
         report.append(newpar)
     return report
+
+
+def mk_gzw_addition(diff: float, z: float ) -> str:
+    if abs(z) >= max_z:
+        if diff > 0:
+            addition = "Het kind vormt veel langere zinnen dan gebruikelijk."
+        else:
+            addition = ""
+        newpar = f"Dit is een groot verschil. {addition}"
+    elif abs(z) > .5 * max_z:
+        if diff > 0:
+            newpar = "Het kind vormt wat langere zinnen dan gebruikelijk."
+        elif diff < 0:
+            newpar = "Het kind vormt wat kortere zinnen dan gebruikelijk maar er is geen reden tot zorg."
+        else:
+            newpar = ""
+    else:
+        newpar = "Dit is een verschil dat  verwaarloosd kan worden."
+
+    return newpar
+
 
 def mk_compare_with_norm_high_age_report(gzw, age):
     report = []
@@ -841,8 +885,9 @@ def mk_compare_with_norm_high_age_report(gzw, age):
 
     newpars = ["", f"De leeftijd van het kind ({norm_age}) is hoger dan 4 jaar. Daarom is een directe vergelijking van de GZW met de norm niet mogelijk.",
                f"De GZW voor dit kind ({gzw:.2f}) ligt het dichtst bij de GZW van de leeftijdscategorie {b}-{e}.",
-               f"Het verschil hiermee is {thediff:.2f} met een z-waarde van {z:.2f}."]
+               f"Het verschil hiermee is {gzw:.2f} - {closest_cat[2]} = {thediff:.2f} met een z-waarde van {z:.2f}."]
 
+    newpars += [mk_gzw_addition(thediff, z)]
     report.extend(newpars)
     return report
 
@@ -1063,6 +1108,107 @@ def adapt_snelheid(wrd: str) -> str:
         result = wrd
     return result
 
+
+cat_order = {zinsconstructies: 1, woordgroepen: 2, verbindingswoorden: 3, voornaamwoorden: 4, woordstructuur: 5}
+subcat_order = {mededelende_zin:1, vraag: 2, geb_w:3}
+
+def get_subcat_order(subcat: str) -> int:
+    if subcat in subcat_order:
+        return subcat_order[subcat]
+    else:
+        return 1
+
+def get_cat_order(cat: str) -> int:
+    if cat in cat_order:
+        return cat_order[cat]
+    else:
+        return 100
+
+def get_leerdoelen_report_data(allresults: AllResults, thequeries: QueryDict, report_data:ReportData) -> LeerdoelenReportData:
+    stage = report_data.full_stage_report_data.stage_report_data.stage
+    leerdoelen_by_stage = {}
+    # natuurlijke_hiaten = [qid for qid in thequeries if (mkresultskey(qid) not in allresults.coreresults or
+    #                                                     sumfreq(allresults.coreresults[mkresultskey(qid)]) == 0) and
+    #                       qid in tarsp_implied_by_dict and
+    #                       any([mkresultskey(implied_qid) in allresults.coreresults and
+    #                            sumfreq(allresults.coreresults[mkresultskey(implied_qid)]) != 0
+    #                            for implied_qid in tarsp_implied_by_dict[qid] ])
+    #                       ]
+    natuurlijke_hiaten = {}
+    for qid in thequeries:
+        if (mkresultskey(qid) not in allresults.coreresults or sumfreq(allresults.coreresults[mkresultskey(qid)]) == 0) and \
+                qid in tarsp_implied_by_dict and tarsp_implied_by_dict[qid] != []:
+            causes = [implied_qid for implied_qid in tarsp_implied_by_dict[qid]
+                            if mkresultskey(implied_qid) in allresults.coreresults and
+                               sumfreq(allresults.coreresults[mkresultskey(implied_qid)]) != 0
+                     ]
+            if causes != []:
+                natuurlijke_hiaten[qid] = causes
+    if stage == 1:
+        leerdoelen_by_stage[1] = ['T104', 'T006', 'T023', 'T120']   # [Zn, Avn, Bv/B, W]                           ]
+    for i in range(2, stage + 1):
+         leerdoelen_list = [qid for qid in thequeries if thequeries[qid].fase == i and
+                            qid not in natuurlijke_hiaten and
+                            thequeries[qid].stars not in ["star1", "star2"] and
+                            thequeries[qid].process == core_process and
+                            thequeries[qid].inform  == 'yes' and
+                            (mkresultskey(qid) not in allresults.coreresults or
+                            sumfreq(allresults.coreresults[mkresultskey(qid)]) == 0)
+                           ]
+         sorted_leerdoelen_list = sorted(leerdoelen_list,
+                                         key=lambda qid: (thequeries[qid].acq_order,
+                                                          get_cat_order(thequeries[qid].cat),
+                                                          get_subcat_order(thequeries[qid].subcat)
+                                                          ))
+         leerdoelen_by_stage[i] = sorted_leerdoelen_list
+    result = LeerdoelenReportData(stage, leerdoelen_by_stage, natuurlijke_hiaten)
+    return result
+
+
+def mk_leerdoelen_report(allresults, thequeries, report_data) -> List[str]:
+
+    report = []
+
+    header = ["","", "Mogelijke leerdoelen", ""]
+    report.extend(header)
+
+    intro = [f'De leerdoelen worden als volgt bepaald:', "", "--indien de vastgeteld fase 1 is, dan is het leerdoel " +
+             "de éénwoordzin totdat het kind 50 tot 80 woorden zegt.",
+             f'--anders worden taalmaten uit de fases 2 tot en met de vastgestelde fase geselecteerd die niet voorkomen'
+             + ' in het sample en die geen sterretje bij zich hebben en die niet tot de natuurlijke hiaten behoren.' ,"",
+
+             'De hier genoemde leerdoelen zijn mogelijke leerdoelen, omdat andere onderzoeken bij het kind tot andere leerdoelen kunnen leiden.',
+        
+             
+             "De leerdoelen worden opgesomd per fase en in volgorde van acquisitievolgorde, categorie en  subcategorie. ",
+             "Hoe hoger een taalmaat in het formulier staat, des te eerder wordt de taalmaat verworven.",
+             "Hoe meer naar links een taalmaat in het formulier staat, des te eerder wordt de taalmaat genoemd in de leerdoelen."]
+
+    report.extend(intro)
+
+    natuurlijke_hiaten = report_data.leerdoelen_report_data.natuurlijke_hiaten
+    natuurlijke_hiaten_str = conj([thequeries[qid].item for qid in natuurlijke_hiaten])
+    natuurlijke_hiaten_pars = ["",f"De natuurlijke hiaten in dit sample zijn: {natuurlijke_hiaten_str}"]
+
+    # verantwoording voor de natuurlijke hiaten
+    for qid in natuurlijke_hiaten:
+        causes = [thequeries[cause_qid].item for cause_qid in natuurlijke_hiaten[qid] if cause_qid in thequeries]
+        causes_string = conj(causes)
+        newpar = f"{thequeries[qid].item} is een natuurlijk hiaat omdat er gescoord is voor {causes_string}."
+        natuurlijke_hiaten_pars.append(newpar)
+
+    report.extend(natuurlijke_hiaten_pars)
+    fullstage = report_data.full_stage_report_data.fullstage
+    leerdoelen_pars = ["", f'De vastgestelde fase is {fullstage}.','Dit zijn de mogelijke leerdoelen:', ""]
+    the_leerdoelen =  report_data.leerdoelen_report_data.leerdoelen_by_stage
+    for stg in the_leerdoelen:
+        ld_str = conj([thequeries[qid].item for qid in the_leerdoelen[stg]]) if the_leerdoelen[stg] else "geen leerdoelen"
+        new_line = f"--Voor fase {show_roman(stg)}: {ld_str}."
+        leerdoelen_pars.append(new_line)
+
+    report.extend(leerdoelen_pars)
+
+    return report
 
 
 

@@ -60,9 +60,12 @@ def getimplies(str: str) -> List[str]:
     return result
 
 
-def getlistofitems(str: str, sep: str) -> List[str]:
+def getlistofitems(str: str, sep: str, keepcase=False) -> List[str]:
     rawresult = str.split(sep)
-    cleanresult = [w.strip().lower() for w in rawresult]
+    if keepcase:
+        cleanresult = [w.strip() for w in rawresult]
+    else:
+        cleanresult = [w.strip().lower() for w in rawresult]
     if cleanresult == ['']:
         cleanresult = []
     return cleanresult
@@ -166,7 +169,7 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
             filter: str = row[filtercol].strip()
             variants: str = str2list(row[variantscol])
             acq_order: int = row[acqordcol]
-            implied_by: List[str] = getlistofitems(row[impliedbycol], comma)
+            implied_by: List[str] = getlistofitems(row[impliedbycol], comma, keepcase=True)
             unused1: str = row[unused1col]
             unused2: str = row[unused2col]
             comments: str = row[commentscol]
