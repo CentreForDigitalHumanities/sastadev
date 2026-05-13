@@ -5,13 +5,14 @@ from typing import List
 from lxml import etree
 
 from sastadev.__main__ import mkerrorreport
-from sastadev.alpinoparsing import parse
+from sastadev.conf import settings
 from sastadev.correctionparameters import CorrectionParameters
 from sastadev.correcttreebank import correcttreebank, corrn, errorwbheader
 from sastadev.targets import target_all
 from sastadev.xlsx import mkworkbook
 
 tarsp = 'tarsp'
+parse = settings.PARSE_FUNC
 
 def write2excel(allorandalts, base):
     errorloggingfullname = f'{base}_errorlogging.xlsx'
