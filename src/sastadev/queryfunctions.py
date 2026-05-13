@@ -228,7 +228,7 @@ def tarsp_verkl(stree: SynTree) -> List[SynTree]:
 
 
 def getuitloop(nodeyield: List[SynTree]) -> Tuple[List[SynTree], List[SynTree]]:
-    lastlemma = getattval(nodeyield[-1], 'lemma')
+    lastlemma = getattval(nodeyield[-1], 'lemma') if nodeyield != [] else ''
     if lastlemma in punctuationchars:
         if lastlemma == comma:
             return nodeyield, []
