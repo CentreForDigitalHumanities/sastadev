@@ -69,6 +69,7 @@ from sastadev.treebankfunctions import (fatparse, getattval, getmeta, getnodeyie
                                         inflate_step, isdefdet, keycheck,
                                         mktoken2nodemap, requires_plural_tw, showtree)
 from sastadev.treetransform import dotreetransformations
+from sastadev.v_modal_switch import v_modal_switch
 from sastadev.wrong_ie_dims import get_je_from_wrong_ie_dim
 
 Correction = Tuple[List[Token], List[Meta]]
@@ -1037,6 +1038,20 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
             newresults += smallclauses(uttmd, fatntree)
         # showtree(fatntree, text='fatntree')
     allalternativemds += newresults
+
+    newresults = []
+    for uttmd in allalternativemds:
+        # utterance = space.join([token.word for token in uttmd.tokens])
+        utterance, _ = mkuttwithskips(uttmd.tokens)
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        fatntree = fatparse(utterance, noskiptokens)
+        debug = False
+        if debug:
+            showtree(fatntree)
+        uttalternativemds = v_modal_switch(uttmd, fatntree, uttid)
+        newresults += uttalternativemds
+    allalternativemds += newresults
+
 
     # final check whether the alternatives are improvements. It is not assumed that the original tokens is included in the alternatives
     finalalternativemds = lexcheck(tokensmd, allalternativemds, methodname)

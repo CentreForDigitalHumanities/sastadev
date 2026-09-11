@@ -17,7 +17,9 @@ from sastadev.corrector import (Correction, getcorrections,
 from sastadev.celexlexicon import celex2dcoi
 from sastadev.lexicon import getwordposinfo,nochildwords
 from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, bpl_none,
-                               bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, bpl_paspast, insertion,
+                               bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, bpl_paspast,
+                               bpl_switch_order,
+                               insertion,
                                EXTRAGRAMMATICAL
                                )
 from sastadev.methods import Method, asta, tarsp, stap
@@ -37,7 +39,7 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         getsentid, getsentence, gettokenpos_str, gettokposlist, getxsid,
                                         getyield, is_infl_different, mkattrib, myfind,
                                         showflatxml, show_nodeyield,
-                                        showtree, simpleshow, subclasscompatible, transplant_node,
+                                        showtree, simpleshow, subclasscompatible, switch_nodes, transplant_node,
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
 from sastadev.treetransform import (adaptlemmas, dotreetransformations)
@@ -978,6 +980,10 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                 thetree, './/node[@pt and @end="{}"]'.format(nodeend))
             if newnode is not None:
                 newnode.set('pvagr', 'ev')
+        elif curbackplacement == bpl_switch_order:
+            pos1 = meta.annotatedposlist[0]
+            pos2 = meta.annotatedposlist[1]
+            thetree = switch_nodes(thetree, pos1, pos2)
         elif curbackplacement == bpl_replacement:
             # showtree(fatstree, 'fatstree')
             if len(meta.annotationposlist) > 1:

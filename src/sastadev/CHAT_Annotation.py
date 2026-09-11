@@ -8,16 +8,35 @@ from sastadev.sastatoken import Token, show
 
 CHAT = 'CHAT'
 
+CHAT_blocking = 'Blocking'
+CHAT_complex_local_event = 'Complex Local Event'
 CHAT_errormarking = 'Error Marking'
 CHAT_explanation = 'Explanation'
+CHAT_falling_tone = 'Falling Tone'
+CHAT_lengthened_syllable = 'Lengthened Syllable'
+CHAT_long_event = 'Long Event'
+CHAT_long_nonverbal_event = 'Long Nonverbal Event'
 CHAT_omittedword = 'Omitted Word'
+CHAT_overlap_follows = 'Overlap Follows'
+CHAT_overlap_precedes = 'Overlap Precedes'
+CHAT_pause = 'Pause'
+CHAT_pause_between_syllables = 'Pause Between Syllables'
+CHAT_phonological_coding = 'Phonological Coding'
+CHAT_phonological_fragment = 'Phonological Fragment'
+CHAT_primary_stress = 'Primary Stress'
 CHAT_reformulation = 'Reformulation'
 CHAT_repetition = 'Repetition'
 CHAT_replacement = 'Replacement'
 CHAT_retracing = 'Retracing'
+CHAT_rising_tone = 'Rising Tone'
+CHAT_satellite_at_end = 'Satellite at End'
+CHAT_satellite_in_beginning = 'Satellite in Beginning'
+CHAT_secondary_stress = 'Secondary Stress'
+CHAT_simple_event = 'Simple Event'
 CHAT_specialform = 'Special Form'
-CHAT_phonological_coding = 'Phonological Coding'
-CHAT_phonological_fragment = 'Phonological Fragment'
+CHAT_timed_pause = 'Timed Pause'
+CHAT_trailing_off = 'Trailing Off'
+CHAT_trailing_off_of_a_question = 'Trailing Off of a Question'
 CHAT_untranscribed_material = 'Untranscribed Material'
 CHAT_unintelligible_speech = 'Unintelligible Speech'
 CHAT_wordnoncompletion = 'Noncompletion of a Word'
@@ -702,10 +721,10 @@ def CHAT_message(msg):
 
 annotations = [
     # overlap crucially before annotations taht delete things
-    CHAT_Annotation('Overlap Follows', '8.4:71', '10.3:74-75',
+    CHAT_Annotation(CHAT_overlap_follows, '8.4:71', '10.3:74-75',
                     CHAT_SimpleScopedRegex(r'\[\>[0-9]?\]', keep, True, monadic), simplescopedmetafunction),
     # here additional things could be done
-    CHAT_Annotation('Overlap Precedes', '8.4:71-72', '10.3:75',
+    CHAT_Annotation(CHAT_overlap_precedes, '8.4:71-72', '10.3:75',
                     CHAT_SimpleScopedRegex(r'\[\<[0-9]?\]', keep, True, monadic), simplescopedmetafunction),
     CHAT_Annotation(CHAT_specialform, '6.3:37', '8.3:43-44', CHAT_SimpleRegex(specialformpat, getsfword, False),
                     simplemetafunction(getsfvalue)),
@@ -719,45 +738,45 @@ annotations = [
     #                 CHAT_NoncompletionRegex(r'(.*)\((\w*)\)(.*)', r'\1\2\3', r'\1\3'), noncompletionmetafunction),
     CHAT_Annotation(CHAT_omittedword, '6.5:43', '8.5:48-49',
                     CHAT_SimpleRegex(r"0[\w:']+", dropzero, False), simple_bpldel_metafunction(dropzero)),
-    CHAT_Annotation('Satellite at End', '7.4:58', '9.2:59-60',
+    CHAT_Annotation(CHAT_satellite_at_end, '7.4:58', '9.2:59-60',
                     CHAT_SimpleRegex(r'\s„\s', eps, False), simplemetafunction(identity)),
-    CHAT_Annotation('Satellite in Beginning', '7.4:58', '9.2:59-60',
+    CHAT_Annotation(CHAT_satellite_in_beginning, '7.4:58', '9.2:59-60',
                     CHAT_SimpleRegex(r'\s‡\s', eps, False), simplemetafunction(identity)),
-    CHAT_Annotation('Falling Tone', '7.6:59', '9.8:63',
+    CHAT_Annotation(CHAT_falling_tone, '7.6:59', '9.8:63',
                     CHAT_SimpleRegex(u'\u2193', eps, False), simplemetafunction(identity)),
-    CHAT_Annotation('Rising Tone', '7.6:59', '9.8:63',
+    CHAT_Annotation(CHAT_rising_tone, '7.6:59', '9.8:63',
                     CHAT_SimpleRegex(u'\u2191', eps, False), simplemetafunction(identity)),
-    CHAT_Annotation('Primary Stress', '7.7:59', '9.9:63',
+    CHAT_Annotation(CHAT_primary_stress, '7.7:59', '9.9:63',
                     CHAT_InWordRegex(u'\u02C8', ''), complexmetafunction),
-    CHAT_Annotation('Secondary Stress', '7.7:59', '9.9:63',
+    CHAT_Annotation(CHAT_secondary_stress, '7.7:59', '9.9:63',
                     CHAT_InWordRegex(u'\u02CC', ''), complexmetafunction),
-    CHAT_Annotation('Lengthened Syllable', '7.7:59-60', '9.9:63',
+    CHAT_Annotation(CHAT_lengthened_syllable, '7.7:59-60', '9.9:63',
                     CHAT_InWordRegex(r':', ''), complexmetafunction),
-    CHAT_Annotation('Blocking', '7.7:60', '9.9:64', CHAT_SimpleRegex(r'\^' + wordpat, dropinitial, False),
+    CHAT_Annotation(CHAT_blocking, '7.7:60', '9.9:64', CHAT_SimpleRegex(r'\^' + wordpat, dropinitial, False),
                     simplemetafunction(dropinitial)),  # this one must crucially precede Pause Between Syllables
-    CHAT_Annotation('Pause Between Syllables', '7.7:60', '9.9:63-64',
+    CHAT_Annotation(CHAT_pause_between_syllables, '7.7:60', '9.9:63-64',
                     CHAT_InWordRegex(r'\^', ''), complexmetafunction),
-    CHAT_Annotation('Simple Event', '7.8.1:60', '9.10.1:64-65', CHAT_SimpleRegex(r'&=[\w:]+', eps, False),
+    CHAT_Annotation(CHAT_simple_event, '7.8.1:60', '9.10.1:64-65', CHAT_SimpleRegex(r'&=[\w:]+', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Complex Local Event', '7.8.2:61', '9.10.3:65',
+    CHAT_Annotation(CHAT_complex_local_event, '7.8.2:61', '9.10.3:65',
                     CHAT_ComplexRegex(
                         (r'\[\^\s', wordorpuncpat, r'\]'), (keep, eps), False),
                     complexmetafunction),
-    CHAT_Annotation('Pause', '7.8.3:62', '9.10.4:66', CHAT_SimpleRegex(r'\(\.\.?\.?\)', eps, False),
+    CHAT_Annotation(CHAT_pause, '7.8.3:62', '9.10.4:66', CHAT_SimpleRegex(r'\(\.\.?\.?\)', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Timed Pause', '7.8.3:62', '9.10.4:66', CHAT_SimpleRegex(r'\([0-9]+\.[0-9]+\)', eps, False),
+    CHAT_Annotation(CHAT_timed_pause, '7.8.3:62', '9.10.4:66', CHAT_SimpleRegex(r'\([0-9]+\.[0-9]+\)', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Long Event', '7.8.4:62', '9.10.5:66',
+    CHAT_Annotation(CHAT_long_event, '7.8.4:62', '9.10.5:66',
                     CHAT_ComplexRegex(
                         (r'&{l=[\w:]+', wordpat, r'&}l=[\w:]+'), (keep, eps), True),
                     complexmetafunction),  # no check that the latter part equals the initial part
-    CHAT_Annotation('Long Nonverbal Event', '7.8.4:62', '9.10.5:66',
+    CHAT_Annotation(CHAT_long_nonverbal_event, '7.8.4:62', '9.10.5:66',
                     CHAT_ComplexRegex(
                         (r'&{n=[\w:]+', wordpat, r'&}n=[\w:]+'), (keep, eps), True),
                     complexmetafunction),  # no check that the latter part equals the initial part
-    CHAT_Annotation('Trailing Off', '7.9:62', '9.11:66', CHAT_SimpleRegex(r'\+\.\.\.', eps, False),
+    CHAT_Annotation(CHAT_trailing_off, '7.9:62', '9.11:66', CHAT_SimpleRegex(r'\+\.\.\.', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Trailing Off of a Question', '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+\.\.\?', eps, False),
+    CHAT_Annotation(CHAT_trailing_off_of_a_question, '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+\.\.\?', eps, False),
                     simplemetafunction(identity)),
     CHAT_Annotation('Question With Exclamation', '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+!\?', eps, False),
                     simplemetafunction(identity)),

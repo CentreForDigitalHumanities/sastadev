@@ -3,8 +3,9 @@ import os
 from sastadev.conf import settings
 from sastadev.constants import intreebanksfolder, outtreebanksfolder
 from sastadev.datasets import alldatasets, trainingdatasets, testdatasets
+from sastadev.lexicon import modalverbs
 from sastadev.dedup import filledpauseslexicon
-from sastadev.sastatypes import FileName
+from sastadev.sastatypes import FileName, SynTree
 from sastadev.treebankfunctions import (getattval, getnodeyield, getstree,
                                         getuttid, getyield, onbvnwdet)
 from typing import List
@@ -237,6 +238,26 @@ def cond22(raw_ns, _, i):
     else:
         return False
 
+def is_tgw_mv(nd: SynTree) -> bool:
+    result = gav(nd, 'pt') == 'ww' and gav(nd, 'wvorm') == 'pv' and \
+             gav(nd, 'pvtijd') == 'tgw' and gav(nd, 'pvagr') == 'mv'
+    return result
+
+def cond23(ns,_, i):
+    if len(ns) >= 3:
+        result0 = pt(ns[0]) != 'ww'
+        first = ns[1]
+        second = ns[2]
+        result1 = pt(first) == 'ww'
+        result2 = gav(first, 'wvorm') == 'inf'
+        result6 = gav(first, 'lemma') not in modalverbs
+        result7 = gav(first, 'positie') != 'nom'
+        result3 = is_tgw_mv(first)
+        result4 = gav(second, 'lemma') in modalverbs
+        result5 = gav(second, 'wvorm') == 'pv'
+        return  result0 and result1 and (result2 or result3) and result6 and \
+               result4
+
 ngram1 = Ngram(4, cond1)
 ngram2 = Ngram(4, cond2)
 ngram3 = Ngram(2, cond3)
@@ -261,6 +282,7 @@ ngram19 = Ngram(2, cond19) # omdat doordat
 ngram20 = Ngram(4, cond20) # heb ik zie ik: pv vnw pv vnw
 ngram21 = Ngram(3, cond21) # een mooie meisje
 ngram22 = Ngram(3, cond22) # (dit is een man) die heeft een mooi jasje
+ngram23 = Ngram(3, cond23)  # beesten die *bloeden kunnen*
 
 def main():
 
@@ -282,7 +304,7 @@ def main():
                 leaves = getnodeyield(tree)
                 cleanleaves = [leave for leave in leaves if getattval(leave, 'word') not in filledpauseslexicon]
                 cleanwordlist = [getattval(leave, 'word') for leave in cleanleaves]
-                matches = findmatches(ngram22, cleanleaves)
+                matches = findmatches(ngram23, cleanleaves)
                 # matches = sipvjpvjsi(cleanleaves, tree)
                 for match in matches:
                     uttid = getuttid(tree)

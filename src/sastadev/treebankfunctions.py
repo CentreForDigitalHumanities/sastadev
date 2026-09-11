@@ -2937,7 +2937,20 @@ def getmarkeduttbypositions(syntree: SynTree, thepositions: List[int]) -> str:
 
 
 
-
+def switch_nodes(instree: SynTree, node_pos1: int, node_pos2: int) -> SynTree:
+    stree = deepcopy(instree)
+    node1 = find1(stree, f'.//node[@pt and @begin="{str(node_pos1)}"]')
+    node2 = find1(stree, f'.//node[@pt and @begin="{str(node_pos2)}"]')
+    if node1 is None or node2 is None:
+        xsid = getxsid(stree)
+        yieldstr = getyieldstr(stree)
+        settings.LOGGER.error(f'Node(s) to be switched not found in {xsid}: {yieldstr}')
+        return instree
+    node1.set('begin', str(node_pos2))
+    node1.set('end', str(node_pos2 + 1))
+    node2.set('begin', str(node_pos1))
+    node2.set('end', str(node_pos1 + 1))
+    return stree
 
 if __name__ == '__main__':
     # test()
