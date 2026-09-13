@@ -1,9 +1,10 @@
 import os
 
+from sastadev.TARSPscreening import hetZn
 from sastadev.conf import settings
 from sastadev.constants import intreebanksfolder, outtreebanksfolder
 from sastadev.datasets import alldatasets, trainingdatasets, testdatasets
-from sastadev.lexicon import modalverbs
+from sastadev.lexicon import de, dets, het, modalverbs
 from sastadev.dedup import filledpauseslexicon
 from sastadev.sastatypes import FileName, SynTree
 from sastadev.treebankfunctions import (getattval, getnodeyield, getstree,
@@ -257,6 +258,31 @@ def cond23(ns,_, i):
         result5 = gav(second, 'wvorm') == 'pv'
         return  result0 and result1 and (result2 or result3) and result6 and \
                result4
+    else:
+        return False
+
+def cond24(ns, _, i):
+    if len(ns) >= 3:
+        first = ns[0]
+        second = ns[1]
+        third = ns[2]
+
+        first_word = gav(first, 'word').lower()
+        if first_word in dets[de]:
+            first_dehet = de
+        elif first_word in dets[het]:
+            first_dehet = het
+        else:
+            first_dehet = None
+        is_third_evon = gav(third, 'genus') == 'onz' and gav(third, 'getal') == 'ev'
+        third_pt = gav(third, 'pt')
+        third_dehet = het if is_third_evon else de
+        second_pt = gav(second, 'pt')
+        result = third_pt == 'n' and first_dehet == de and first_dehet != third_dehet and second_pt == 'adj'
+        return result
+    else:
+        return False
+
 
 ngram1 = Ngram(4, cond1)
 ngram2 = Ngram(4, cond2)
@@ -283,33 +309,33 @@ ngram20 = Ngram(4, cond20) # heb ik zie ik: pv vnw pv vnw
 ngram21 = Ngram(3, cond21) # een mooie meisje
 ngram22 = Ngram(3, cond22) # (dit is een man) die heeft een mooi jasje
 ngram23 = Ngram(3, cond23)  # beesten die *bloeden kunnen*
+ngram24 = Ngram(3, cond24)  # de andere paard
 
 def main():
 
     infullnames = []
     thedatasets = trainingdatasets + testdatasets
     for ds in thedatasets:
-        infullnames += getfilenames(ds, source='in')
+        infullnames = getfilenames(ds, source='in')
 
-    # for ds in [asta]:
-    #    infullnames += getfilenames(ds, session=4)
 
-    for infullname in infullnames:
-        short = shorten(infullname)
-        fulltreebank = getstree(infullname)
-        if fulltreebank is not None:
-            treebank = fulltreebank.getroot()
-            for tree in treebank:
-                uttid = getuttid(tree)
-                leaves = getnodeyield(tree)
-                cleanleaves = [leave for leave in leaves if getattval(leave, 'word') not in filledpauseslexicon]
-                cleanwordlist = [getattval(leave, 'word') for leave in cleanleaves]
-                matches = findmatches(ngram23, cleanleaves)
-                # matches = sipvjpvjsi(cleanleaves, tree)
-                for match in matches:
+        for infullname in infullnames:
+            short = shorten(infullname)
+            fulltreebank = getstree(infullname)
+            if fulltreebank is not None:
+                treebank = fulltreebank.getroot()
+                for tree in treebank:
                     uttid = getuttid(tree)
-                    cleanleaves_str = [word(el) for el in cleanleaves]
-                    print(short, uttid, match, cleanleaves_str, getyield(tree))
+                    leaves = getnodeyield(tree)
+                    cleanleaves = [leave for leave in leaves if getattval(leave, 'word') not in filledpauseslexicon]
+                    cleanwordlist = [getattval(leave, 'word') for leave in cleanleaves]
+                    matches = findmatches(ngram24, cleanleaves)
+                    # matches = sipvjpvjsi(cleanleaves, tree)
+                    for match in matches:
+                        uttid = getuttid(tree)
+                        cleanleaves_str = [word(el) for el in cleanleaves]
+                        match_list = cleanleaves_str[match[0]:match[1]]
+                        print(ds.name, short, uttid, match, match_list, cleanleaves_str, getyield(tree))
 
 
 if __name__ == '__main__':

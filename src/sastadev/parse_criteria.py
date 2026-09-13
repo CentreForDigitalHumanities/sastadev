@@ -2,6 +2,7 @@ from Levenshtein import distance
 from sastadev.basicreplacements import basicreplacements, disambiguationdict, adult_disambiguationdict, knownreplacementsdict
 from sastadev.conf import settings
 from sastadev.corrector import (initialmaarvgxpath)
+from sastadev.find_ngram import findmatches, ngram24
 from sastadev.lexicon import de, dets, nochildword, preferably_intransitive_verbs, tsw_non_words, validnouns, \
     validword, \
     wordsunknowntoalpinolexicondict, wrongposlemmaslexicon, wrongposwordslexicon
@@ -163,10 +164,23 @@ def get_de_plus_neuter_nodes(tree: SynTree, mds: List[Meta], method: Method = de
     return found_nodes
 
 
+def get_de_adj_neuter_n_nodes(stree: SynTree) -> List[SynTree]:
+    word_nodes = getnodeyield(stree)
+    matches = findmatches(ngram24, word_nodes)
+    match_begins = [match[0] for match in matches]
+    results = []
+    for word_ctr, word_node in enumerate(word_nodes):
+        if word_ctr in match_begins:
+            results.append(word_node)
+    return results
+
+
 def getdeplusneutcount(
     tree: SynTree, mds: List[Meta], method: Method = defaultmethod) -> int:
     de_plus_neuter_nodes = get_de_plus_neuter_nodes(tree, mds, method)
-    return len(de_plus_neuter_nodes)
+    de_adj_neuter_n_nodes = get_de_adj_neuter_n_nodes(tree)
+    result = len(de_plus_neuter_nodes) + len(de_adj_neuter_n_nodes)
+    return result
 
 
 validwords = {"z'n", 'dees', 'cool', "'k"}

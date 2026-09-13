@@ -388,6 +388,8 @@ def isvalidtoken(wrd:str) -> bool:
     result = known_word(wrd) or ispunctuation(wrd)
     return result
 
+
+
 lexiconfoldername = 'data/aux_lexicons'
 
 nochildwordsfilename = 'nochildwords.txt'

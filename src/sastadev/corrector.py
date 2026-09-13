@@ -29,7 +29,7 @@ from sastadev.dedup import (cleanwordofnort, filled_pause_exceptions, find_dupli
                             getunwantedtokens, nodesfindjaneenou)
 from sastadev.deregularise import correctinflection, separable_prefixes
 from sastadev.find_ngram import (Ngram, findmatches, ngram1, ngram2, ngram7, ngram9,
-                                 ngram10, ngram11, ngram16, ngram17, ngram19, ngram20)
+                                 ngram10, ngram11, ngram16, ngram17, ngram19, ngram20, ngram24)
 from sastadev.history import (childescorrections, childescorrectionsexceptions)
 from sastadev.iedims import getjeforms
 from sastadev.lexicon import (adj_e_exceptions, alt_pt_ww_n_pairdict, WordInfo, de, definite_determiners, dets, getwordinfo,
@@ -915,6 +915,19 @@ def getalternatives(origtokensmd: TokenListMD,  tree: SynTree, uttid: UttId,
             fatntree = fatparse(utterance, noskiptokens)
             newresults += getwrongdetalternatives(uttmd, fatntree, uttid)
     allalternativemds += newresults
+
+    # de andere paard
+
+    newresults = []
+    for uttmd in allalternativemds:
+        # utterance = space.join([token.word for token in uttmd.tokens])
+        utterance, _ = mkuttwithskips(uttmd.tokens) # this leaves the skip words out
+        noskiptokens = [t for t in uttmd.tokens if not t.skip]
+        if noskiptokens != []:
+            fatntree = fatparse(utterance, noskiptokens)
+            newresults += getwrongdet_adj_n_alternatives(uttmd, fatntree, uttid)
+    allalternativemds += newresults
+
 
     # lonely toe
     newresults = []
@@ -2714,3 +2727,33 @@ def get_plural(node: SynTree) -> List[str]:
         newwords = getinflforms(lemma, ncode, 'm')
     return newwords
 
+
+def getwrongdet_adj_n_alternatives(tokensmd: TokenListMD, tree: SynTree, uttid: UttId) -> List[TokenListMD]:
+    '''
+    The function *getwrongdet_adj_n_alternatives* attempts to correct sequences of det_adj_n where
+    the wrong determiner is wrong. Only if the determiner is a de--determiner
+    '''
+    tokens = tokensmd.tokens
+    metadata = copy.deepcopy(tokensmd.metadata)
+    word_nodes = getnodeyield(tree)
+    token2nodemap = mktoken2nodemap(tokens, tree)
+    matches = findmatches(ngram24, word_nodes)
+    if matches == []:
+        return []
+    match_starts = [match[0] for match in matches]
+    changedone = False
+    newtokens= []
+    for tokenctr, token in enumerate(tokens):
+        if tokenctr in match_starts:
+            newtoken_word = swapdehet(token.word)
+            newtoken = Token(newtoken_word, token.pos)
+            meta = mkSASTAMeta(token, newtoken, name=correctionlabels.grammarerror,
+                               value=correctionlabels.deheterror, cat=correctionlabels.error,
+                               backplacement=bpl_node, penalty=.10 * defaultpenalty)
+            metadata.append(meta)
+            changedone = True
+        else:
+            newtoken = token
+        newtokens.append(newtoken)
+    results = [TokenListMD(newtokens, metadata)] if changedone else []
+    return results
