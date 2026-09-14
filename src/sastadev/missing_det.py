@@ -91,7 +91,7 @@ n_v_expression_pairs = [tuple(el.split()) for el in n_v_expression_list]
 count_exceptions = []
 excluded_nouns = [ 'boem', 'hop', 'klik', 'piep', 'plons', 'stop', 'tik', 'facilitair']
 
-volgend_vorig_nouns = ['jaar','keer', 'maand', 'week', 'seizoen', 'semester']
+volgend_vorig_nouns = ['jaar','keer', 'maand', 'week', 'seizoen', 'semester', 'weekend']
 
 
 special_vzs = ['zonder', 'per', 'ter', 'ten']

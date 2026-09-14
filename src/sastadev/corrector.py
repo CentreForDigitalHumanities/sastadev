@@ -2745,7 +2745,7 @@ def getwrongdet_adj_n_alternatives(tokensmd: TokenListMD, tree: SynTree, uttid: 
     newtokens= []
     for tokenctr, token in enumerate(tokens):
         if tokenctr in match_starts:
-            newtoken_word = swapdehet(token.word)
+            newtoken_word = swapdehet(token.word.lower())
             newtoken = Token(newtoken_word, token.pos)
             meta = mkSASTAMeta(token, newtoken, name=correctionlabels.grammarerror,
                                value=correctionlabels.deheterror, cat=correctionlabels.error,
