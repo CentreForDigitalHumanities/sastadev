@@ -8,14 +8,19 @@ from sastadev.sastatoken import Token, show
 
 CHAT = 'CHAT'
 
+CHAT_alternative_transcription = 'Alternative Transcription'
+CHAT_best_guess = 'Best Guess'
 CHAT_blocking = 'Blocking'
 CHAT_complex_local_event = 'Complex Local Event'
 CHAT_errormarking = 'Error Marking'
 CHAT_explanation = 'Explanation'
 CHAT_falling_tone = 'Falling Tone'
+CHAT_filler = 'Filler'
+CHAT_interruption = 'Interruption'
 CHAT_lengthened_syllable = 'Lengthened Syllable'
 CHAT_long_event = 'Long Event'
 CHAT_long_nonverbal_event = 'Long Nonverbal Event'
+CHAT_nonword = 'Nonword'
 CHAT_omittedword = 'Omitted Word'
 CHAT_overlap_follows = 'Overlap Follows'
 CHAT_overlap_precedes = 'Overlap Precedes'
@@ -32,14 +37,17 @@ CHAT_rising_tone = 'Rising Tone'
 CHAT_satellite_at_end = 'Satellite at End'
 CHAT_satellite_in_beginning = 'Satellite in Beginning'
 CHAT_secondary_stress = 'Secondary Stress'
+CHAT_self_completion = 'Self Completion'
 CHAT_simple_event = 'Simple Event'
 CHAT_specialform = 'Special Form'
+CHAT_stressing = 'Stressing'
 CHAT_timed_pause = 'Timed Pause'
 CHAT_trailing_off = 'Trailing Off'
 CHAT_trailing_off_of_a_question = 'Trailing Off of a Question'
 CHAT_untranscribed_material = 'Untranscribed Material'
 CHAT_unintelligible_speech = 'Unintelligible Speech'
 CHAT_wordnoncompletion = 'Noncompletion of a Word'
+CHAT_zero_utterance = 'Zero Utterance'
 
 monadic = 1
 dyadic = 2
@@ -780,7 +788,7 @@ annotations = [
                     simplemetafunction(identity)),
     CHAT_Annotation('Question With Exclamation', '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+!\?', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Interruption', '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+/\.', eps, False),
+    CHAT_Annotation(CHAT_interruption, '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+/\.', eps, False),
                     simplemetafunction(identity)),
     CHAT_Annotation('Interruption of a Question', '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+/\?', eps, False),
                     simplemetafunction(identity)),
@@ -808,7 +816,7 @@ annotations = [
                     simplemetafunction(identity)),
     CHAT_Annotation('Lazy Overlap', '7.10:65-66', '10.3:75', CHAT_SimpleRegex(r'\+\<', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Self Completion', '7.10:66', '9.11:69', CHAT_SimpleRegex(r'\+,', eps, False),
+    CHAT_Annotation(CHAT_self_completion, '7.10:66', '9.11:69', CHAT_SimpleRegex(r'\+,', eps, False),
                     simplemetafunction(identity)),
     CHAT_Annotation('Other Completion', '7.10:66', '9.11:69-70', CHAT_SimpleRegex(r'\+\+', eps, False),
                     simplemetafunction(identity)),
@@ -850,7 +858,7 @@ annotations = [
                     CHAT_ComplexRegex(
                         (r'\[=!', anybutrb, r'\]'), (keep, eps), True),
                     complexmetafunction),
-    CHAT_Annotation('Stressing', '8.2:68', '10.1:72', CHAT_SimpleScopedRegex(r'\[!\]', keep, False, monadic),
+    CHAT_Annotation(CHAT_stressing, '8.2:68', '10.1:72', CHAT_SimpleScopedRegex(r'\[!\]', keep, False, monadic),
                     simplescopedmetafunction),
     CHAT_Annotation('Contrastive Stressing', '8.2:68', '10.1:72',
                     CHAT_SimpleScopedRegex(r'\[!!\]', keep, False, monadic),
@@ -868,14 +876,14 @@ annotations = [
                     complexmetafunction_replbpl),
     CHAT_Annotation('Replacement of Real Word', '8.3:70', '10.3:73',
                     CHAT_ComplexRegex((r'\[::', r'([^\]]+)', r'\]'), (eps, keep), True), complexmetafunction),
-    CHAT_Annotation('Alternative Transcription', '8.3:70', '10.3:74',
+    CHAT_Annotation(CHAT_alternative_transcription, '8.3:70', '10.3:74',
                     CHAT_ComplexRegex((r'\[=\?', r'([^\]]+)', r'\]'), (keep, eps), True), complexmetafunction),
     CHAT_Annotation('Dependent Tier on Main Line', '8.3:70', 'none',
                     CHAT_ComplexRegex((r'\[%\w\w\w:', anybutrb, r'\]'), (keep, eps), True), complexmetafunction),
     # @@must do something with the speaker
     CHAT_Annotation('Comment on Main Line', '8.3:70', '10.3:74',
                     CHAT_ComplexRegex((r'\[%\s+', anybutrb, r'\]'), (keep, eps), True), complexmetafunction),
-    CHAT_Annotation('Best Guess', '8.3:70-71', '10.3:74', CHAT_SimpleScopedRegex(r'\[\?\]', keep, True, monadic),
+    CHAT_Annotation(CHAT_best_guess, '8.3:70-71', '10.3:74', CHAT_SimpleScopedRegex(r'\[\?\]', keep, True, monadic),
                     simplescopedmetafunction),
     CHAT_Annotation(CHAT_repetition, '8.4:72', '10.4:75-76', CHAT_SimpleScopedRegex(r'\[/\]', eps, True, monadic),
                     simplescopedmetafunction),
@@ -908,7 +916,7 @@ annotations = [
                     simplemetafunction(interposedword)),
     CHAT_Annotation('Included Utterance', '8.6:76', '10.5:79', CHAT_SimpleRegex(r'\[\+\s+trn\]', eps, False),
                     simplemetafunction(interposedword)),
-    CHAT_Annotation('Zero Utterance', '', '10.5:79, 11.1:81', CHAT_SimpleRegex(r'\b0\b', eps, False),
+    CHAT_Annotation(CHAT_zero_utterance, '', '10.5:79, 11.1:81', CHAT_SimpleRegex(r'\b0\b', eps, False),
                     simplemetafunction(identity)),
     CHAT_Annotation('Segment Repetition', '10:85,11:89', '13:91', CHAT_InWordRegex(u'\u21AB.*?\u21AB', ''),
                     complexmetafunction),
@@ -928,9 +936,9 @@ annotations = [
     CHAT_Annotation(CHAT_phonological_fragment, 'None', '8.4:48; https://talkbank.org/manuals/Clin-CLAN.pdf '
                                                      'states &+ for phonological fragments(p. 18)',
                     CHAT_SimpleRegex(r'&\+' + simplewordpat, eps, False), simplemetafunction(identity)),
-    CHAT_Annotation('Filler', 'None', '8.4:48',
+    CHAT_Annotation(CHAT_filler, 'None', '8.4:48',
                     CHAT_SimpleRegex(r'&\-' + wordpat, eps, False), simplemetafunction(identity)),
-    CHAT_Annotation('Nonword', 'None', '2024:8.5:49',
+    CHAT_Annotation(CHAT_nonword, 'None', '2024:8.5:49',
                     CHAT_SimpleRegex(r'&~' + wordpat, eps, False), simplemetafunction(identity)),
 
     # ad-hoc extensiosn for Lotti
