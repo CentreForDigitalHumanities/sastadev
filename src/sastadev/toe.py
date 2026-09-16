@@ -118,15 +118,15 @@ def beetje(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
         prevtoken = tokens[i-1] if i > 0 else None
         prevprevtoken = tokens[i - 2] if i > 1 else None
         if token.word == 'beetje':
-            if prevtoken is not None:
-                prevtoken_node = token2nodemap[prevtoken.pos]
+            if prevtoken is not None and not prevtoken.skip:
+                prevtoken_node = token2nodemap[prevtoken.pos] if prevtoken.pos in token2nodemap else None
                 prevtoken_pt = gav(prevtoken_node, 'pt')
                 if prevtoken_pt == 'adj':
                     art_token = prevprevtoken
                 else:
                     art_token = prevtoken
                 if art_token is not None:
-                    art_token_node = token2nodemap[art_token.pos]
+                    art_token_node = token2nodemap[art_token.pos] if art_token.pos in token2nodemap else None
                     art_token_lemma = gav(art_token_node, 'lemma')
                     if art_token_lemma != 'een':
                         insert_position = art_token.pos if art_token is not None else 0
