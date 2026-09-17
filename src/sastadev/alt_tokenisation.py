@@ -1,4 +1,5 @@
 from lxml import etree
+import re
 from sastadev import CHAT_Annotation as CHAT
 from sastadev.CHAT_Annotation import CHAT_trailing_off_of_a_question
 from sastadev.conf import settings
@@ -21,12 +22,20 @@ inclusion_annotations = [ann for ann in CHAT.annotations if ann.name in inclusio
 filler_annotation_names = [CHAT.CHAT_filler, CHAT.CHAT_nonword,
                            CHAT.CHAT_phonological_fragment]
 ignore_annotation_names = [CHAT.CHAT_overlap_follows, CHAT.CHAT_overlap_precedes,
-                           CHAT.CHAT_pause, CHAT.CHAT_trailing_off,
-                           CHAT.CHAT_trailing_off_of_a_question, CHAT.CHAT_self_completion,
-                           CHAT.CHAT_omittedword, CHAT.CHAT_stressing,
+                           CHAT.CHAT_pause, CHAT.CHAT_timed_pause, CHAT.CHAT_trailing_off,
+                           CHAT.CHAT_trailing_off_of_a_question, CHAT.CHAT_question_with_exclamation,
+                           CHAT.CHAT_interruption, CHAT.CHAT_interruption_of_a_question, CHAT.CHAT_self_interruption,
+                           CHAT.CHAT_self_interrupted_question, CHAT.CHAT_transcription_break,
+                           CHAT.CHAT_quotation_precedes, CHAT.CHAT_quotation_follows, CHAT.CHAT_quoted_utterance,
+                           CHAT.CHAT_quick_uptake, CHAT.CHAT_lazy_overlap,
+                           CHAT.CHAT_self_completion, CHAT.CHAT_other_completion,
+                           CHAT.CHAT_omittedword, CHAT.CHAT_stressing, CHAT.CHAT_contrastive_stressing,
                            # CHAT.CHAT_alternative_transcription
                            CHAT.CHAT_best_guess, CHAT.CHAT_interruption,
-                           CHAT.CHAT_simple_event, CHAT.CHAT_zero_utterance
+                           CHAT.CHAT_simple_event,
+                           CHAT.CHAT_falling_tone, CHAT.CHAT_rising_tone, CHAT.CHAT_clause_delimiter,
+                           CHAT.CHAT_interposed_word, CHAT.CHAT_zero_utterance, CHAT.CHAT_untranscribed_material,
+                           CHAT.CHAT_een, CHAT.CHAT_twee
                            ] + filler_annotation_names
 
 
@@ -34,12 +43,25 @@ ignore_annotation_names = [CHAT.CHAT_overlap_follows, CHAT.CHAT_overlap_precedes
 ignore_annotations =  [ann for ann in CHAT.annotations if ann.name in ignore_annotation_names]
 
 normal_annotation_names = [CHAT.CHAT_specialform, CHAT.CHAT_unintelligible_speech,
-                           CHAT.CHAT_phonological_coding, CHAT.CHAT_wordnoncompletion]
+                           CHAT.CHAT_phonological_coding, CHAT.CHAT_wordnoncompletion,
+                           CHAT.CHAT_satellite_at_end, CHAT.CHAT_satellite_in_beginning, CHAT.CHAT_primary_stress,
+                           CHAT.CHAT_secondary_stress, CHAT.CHAT_lengthened_syllable, CHAT.CHAT_blocking,
+                           CHAT.CHAT_pause_between_syllables, CHAT.CHAT_quotation_begin, CHAT.CHAT_quotation_end,
+                           CHAT.CHAT_segment_repetition, CHAT.CHAT_joined_words, CHAT.CHAT_clitic_boundary,
+                           CHAT.CHAT_blocked_segments]
 normal_annotations =  [ann for ann in CHAT.annotations if ann.name in normal_annotation_names]
 
-scoped_ignore_annotations = ['[/]', '[//]', '[///]']
+scoped_ignore_annotations = ['[/]', '[//]', '[///]', '[/-]', '[/?]', '[e]']
 
-scope_keep_annotations = ['[<]', '[>]']
+scope_keep_annotations = ['[<]', '[>]', '[*]']
+
+start_ignore_tokens = ['[+ ', '[*', '[* ', '[=?', '[=!', '[x', '[% ', '[%', '[^', '[=!',  '[*', '[* ',
+                       '[-', '[- ']
+start_event_ignore_tokens = ['&{l=', '&{n=']
+end_event_ignore_tokens = ['&}l=', '&}l=']
+
+bullet_ignore_tokens= [u'\u00b7', u'\u0015']
+
 
 def is_inclusion_token(token:str) -> bool:
     for ann in inclusion_annotations:
@@ -64,7 +86,8 @@ def retokenize(tokens: List[str]) -> List[str]:
     newtokenlist = []
     scope_tokens = []
     (neutral, in_scope, inclusion_state, ignore_state,
-     multi_replacement_state_1, multi_replacement_state_2) = 0, 1, 2, 3, 4, 5
+     multi_replacement_state_1, multi_replacement_state_2,
+     bullet_ignore_state, event_ignore_state) = 0, 1, 2, 3, 4, 5, 6, 7
     state = neutral
     for tokenctr, token in enumerate(tokens):
         next_token = tokens[tokenctr + 1] if tokenctr < len(tokens) - 1  else None
@@ -74,7 +97,7 @@ def retokenize(tokens: List[str]) -> List[str]:
             state = neutral
         elif state == multi_replacement_state_1:
             newtokenlist.append(token)
-            if token not in ['[:', '[: ']:
+            if token not in ['[:', '[: ', '[::']:
                 newtokenstr = space.join(newtokenlist)
                 newtokens.append(newtokenstr)
                 newtokenlist = []
@@ -91,11 +114,19 @@ def retokenize(tokens: List[str]) -> List[str]:
             newtokens.append(newtokenstr)
             newtokenlist = []
             state = neutral
-        elif token in ['[+ ', '[*', '[* ', '[=?', '[=!', '[x', '[% ', '[%']:
+        elif token in start_ignore_tokens or re.search(r'^\[%\w\w\w:\]$', token):
             state = ignore_state
-        elif state == ignore_state:
+        elif token[:4] in start_event_ignore_tokens:
+            state = event_ignore_state
+        elif state == event_ignore_state and token[:4] in end_event_ignore_tokens:
+            state = neutral
+        elif state in [bullet_ignore_state] and token in bullet_ignore_tokens:
+            state = neutral
+        elif token  in bullet_ignore_tokens:
+            state = bullet_ignore_state
+        elif state in [ignore_state, bullet_ignore_state, event_ignore_state]:
             pass
-        elif state == neutral and next_token in ['[:', '[=', '[: ', '[= ']:
+        elif state == neutral and next_token in ['[:', '[=', '[: ', '[= ', '[::']:
             next_3_token = tokens[tokenctr + 3] if tokenctr < len(tokens) - 3 else None
             if next_3_token == ']':
                 state = inclusion_state
@@ -103,7 +134,7 @@ def retokenize(tokens: List[str]) -> List[str]:
             elif next_token  in ['[=', '[= ']:
                 state = inclusion_state
                 newtokenlist.append(token)
-            elif next_token in ['[:', '[: ']:
+            elif next_token in ['[:', '[: ', '[::']:
                 newtokenlist.append(token)
                 state = multi_replacement_state_1
         elif state == inclusion_state and token == ']':
@@ -144,7 +175,10 @@ def retokenize(tokens: List[str]) -> List[str]:
     return newtokens
 
 
-example_pairs = [(['[>]', 'Jan'], ['Jan']),
+example_pairs = [
+            (['nog', 'n', 'naar', 'binnen', 'toe', '.', '[+ ', 'G', ']'], ['nog', 'n', 'naar', 'binnen', 'toe', '.']),
+            (['e', '[=', 'even', ']', 'kijken', '.', '[+ ', 'G', ']'], ['e [= even ]', 'kijken', '.']),
+            (['[>]', 'Jan'], ['Jan']),
             (['dit', 'is', '[/]', 'is', 'mooi'], ['dit', 'is', 'mooi']),
             (['<', 'dit', 'is', '>', '[/]', 'dit', 'is', 'mooi'], ['dit', 'is', 'mooi']),
             (['een', 'heul', '[:', 'heel', ']', 'mooi', 'boek'], ['een', 'heul [: heel ]', 'mooi', 'boek'] )

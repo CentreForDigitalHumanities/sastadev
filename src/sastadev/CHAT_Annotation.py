@@ -10,44 +10,82 @@ CHAT = 'CHAT'
 
 CHAT_alternative_transcription = 'Alternative Transcription'
 CHAT_best_guess = 'Best Guess'
+CHAT_blocked_segments = 'Blocked Segments'
 CHAT_blocking = 'Blocking'
+CHAT_clause_delimiter = 'Clause Delimiter'
+CHAT_clitic_boundary = 'Clitic Boundary'
+CHAT_comment_on__main_line = 'Comment on Main Line'
+CHAT_contrastive_stressing = 'Contrastive Stressing'
 CHAT_complex_local_event = 'Complex Local Event'
+CHAT_dependent_tier_on_main_line = 'Dependent Tier on Main Line'
+CHAT_een = '[een]'
 CHAT_errormarking = 'Error Marking'
+CHAT_excluded_material = 'Excluded Material'
+CHAT_excluded_utterance = 'Excluded Utterance'
 CHAT_explanation = 'Explanation'
 CHAT_falling_tone = 'Falling Tone'
+CHAT_false_start_without_retracing = 'False Start Without Retracing'
 CHAT_filler = 'Filler'
+CHAT_included_utterance = 'Included Utterance'
+CHAT_interposed_word = 'Interposed Word'
 CHAT_interruption = 'Interruption'
+CHAT_interruption_of_a_question = 'Interruption of a Question'
+CHAT_joined_words = 'Joined Words'
+CHAT_language_precode = 'Language Precode'
+CHAT_lazy_overlap = 'Lazy Overlap'
 CHAT_lengthened_syllable = 'Lengthened Syllable'
 CHAT_long_event = 'Long Event'
 CHAT_long_nonverbal_event = 'Long Nonverbal Event'
+CHAT_multiple_repetition = 'Multiple Repetition'
 CHAT_nonword = 'Nonword'
 CHAT_omittedword = 'Omitted Word'
+CHAT_other_completion = 'Other Completion'
 CHAT_overlap_follows = 'Overlap Follows'
 CHAT_overlap_precedes = 'Overlap Precedes'
+CHAT_paralinguistic_material = 'Paralinguistic Material'
 CHAT_pause = 'Pause'
 CHAT_pause_between_syllables = 'Pause Between Syllables'
+CHAT_pic_bullet = 'Pic Bullet'
+CHAT_postcode = 'Postcode'
 CHAT_phonological_coding = 'Phonological Coding'
 CHAT_phonological_fragment = 'Phonological Fragment'
+CHAT_question_with_exclamation = 'Question With Exclamation'
+CHAT_quick_uptake = 'Quick Uptake'
+CHAT_quotation_begin = 'Quotation Begin'
+CHAT_quotation_end = 'Quotation End'
+CHAT_quotation_follows = 'Quotation Follows'
+CHAT_quotation_precedes = 'Quotation Precedes'
+CHAT_quoted_utterance = 'Quoted Utterance'
 CHAT_primary_stress = 'Primary Stress'
 CHAT_reformulation = 'Reformulation'
 CHAT_repetition = 'Repetition'
 CHAT_replacement = 'Replacement'
+CHAT_replacement_of_real_word = 'Replacement of Real Word'
 CHAT_retracing = 'Retracing'
 CHAT_rising_tone = 'Rising Tone'
 CHAT_satellite_at_end = 'Satellite at End'
 CHAT_satellite_in_beginning = 'Satellite in Beginning'
 CHAT_secondary_stress = 'Secondary Stress'
+CHAT_segment_repetition = 'Segment Repetition'
 CHAT_self_completion = 'Self Completion'
+CHAT_self_interruption = 'Self-Interruption'
+CHAT_self_interrupted_question = 'Self-Interrupted Question'
 CHAT_simple_event = 'Simple Event'
 CHAT_specialform = 'Special Form'
 CHAT_stressing = 'Stressing'
+CHAT_text_bullet = 'Text Bullet'
+CHAT_time_alignment = 'Time Alignment'
 CHAT_timed_pause = 'Timed Pause'
 CHAT_trailing_off = 'Trailing Off'
 CHAT_trailing_off_of_a_question = 'Trailing Off of a Question'
+CHAT_transcription_break = 'Transcription Break'
+CHAT_twee = '[twee]'
+CHAT_unclear_retracing_type = 'Unclear Retracing Type'
 CHAT_untranscribed_material = 'Untranscribed Material'
 CHAT_unintelligible_speech = 'Unintelligible Speech'
 CHAT_wordnoncompletion = 'Noncompletion of a Word'
 CHAT_zero_utterance = 'Zero Utterance'
+
 
 monadic = 1
 dyadic = 2
@@ -786,39 +824,39 @@ annotations = [
                     simplemetafunction(identity)),
     CHAT_Annotation(CHAT_trailing_off_of_a_question, '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+\.\.\?', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Question With Exclamation', '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+!\?', eps, False),
+    CHAT_Annotation(CHAT_question_with_exclamation, '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+!\?', eps, False),
                     simplemetafunction(identity)),
     CHAT_Annotation(CHAT_interruption, '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+/\.', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Interruption of a Question', '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+/\?', eps, False),
+    CHAT_Annotation(CHAT_interruption_of_a_question, '7.9:63', '9.11:67', CHAT_SimpleRegex(r'\+/\?', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Self-Interruption', '7.9:64', '9.11:68', CHAT_SimpleRegex(r'\+//\.', eps, False),
+    CHAT_Annotation(CHAT_self_interruption, '7.9:64', '9.11:68', CHAT_SimpleRegex(r'\+//\.', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Self-Interrupted Question', '7.9:64', '9.11:68', CHAT_SimpleRegex(r'\+//\?', eps, False),
+    CHAT_Annotation(CHAT_self_interrupted_question, '7.9:64', '9.11:68', CHAT_SimpleRegex(r'\+//\?', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Transcription Break', '7.9:64', '9.11:68', CHAT_SimpleRegex(r'\+\.', eps, False),
+    CHAT_Annotation(CHAT_transcription_break, '7.9:64', '9.11:68', CHAT_SimpleRegex(r'\+\.', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Quotation Begin', '7.9:64', '9.11:68', CHAT_SimpleRegex(u'\u201C', keep, False),
+    CHAT_Annotation(CHAT_quotation_begin, '7.9:64', '9.11:68', CHAT_SimpleRegex(u'\u201C', keep, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Quotation End', '7.9:64', '9.11:68', CHAT_SimpleRegex(u'\u201D', keep, False),
+    CHAT_Annotation(CHAT_quotation_end, '7.9:64', '9.11:68', CHAT_SimpleRegex(u'\u201D', keep, False),
                     simplemetafunction(identity)),
     # CHAT_Annotation('Inner Quotation Begin', '7.9', '64', CHAT_SimpleRegex(u'\u2018', keep, False),
     #                simplemetafunction(identity)), # not anymore in the 2020-06-19 edition
     # CHAT_Annotation('Inner Quotation End', '7.9', '64', CHAT_SimpleRegex(u'\u2019', keep, False),
     #                simplemetafunction(identity)), # not anymore in the 2020-06-19 edition
-    CHAT_Annotation('Quotation Follows', '7.9:64-65', '9.11:68-69', CHAT_SimpleRegex(r'\+\"/\.', eps, False),
+    CHAT_Annotation(CHAT_quotation_follows, '7.9:64-65', '9.11:68-69', CHAT_SimpleRegex(r'\+\"/\.', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Quotation Precedes', '7.9:65', '9.11:69', CHAT_SimpleRegex(r'\+\"\.', eps, False),
+    CHAT_Annotation(CHAT_quotation_precedes, '7.9:65', '9.11:69', CHAT_SimpleRegex(r'\+\"\.', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Quoted Utterance', '7.10:65', '9.11:69', CHAT_SimpleRegex(r'\+\"', eps, False),
+    CHAT_Annotation(CHAT_quoted_utterance, '7.10:65', '9.11:69', CHAT_SimpleRegex(r'\+\"', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Quick Uptake', '7.10:65', '9.11:69', CHAT_SimpleRegex(r'\+\^', eps, False),
+    CHAT_Annotation(CHAT_quick_uptake, '7.10:65', '9.11:69', CHAT_SimpleRegex(r'\+\^', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Lazy Overlap', '7.10:65-66', '10.3:75', CHAT_SimpleRegex(r'\+\<', eps, False),
+    CHAT_Annotation(CHAT_lazy_overlap, '7.10:65-66', '10.3:75', CHAT_SimpleRegex(r'\+\<', eps, False),
                     simplemetafunction(identity)),
     CHAT_Annotation(CHAT_self_completion, '7.10:66', '9.11:69', CHAT_SimpleRegex(r'\+,', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Other Completion', '7.10:66', '9.11:69-70', CHAT_SimpleRegex(r'\+\+', eps, False),
+    CHAT_Annotation(CHAT_other_completion, '7.10:66', '9.11:69-70', CHAT_SimpleRegex(r'\+\+', eps, False),
                     simplemetafunction(identity)),
 
     # error marking crucially before [/] [//] [///] etc
@@ -838,29 +876,29 @@ annotations = [
                         (r'\[\*', r'[\w:\-\+=]+', r'\]'), (keep, eps), False),
                     complexmetafunction),
 
-    CHAT_Annotation('Pic Bullet', '8.1:67', '10.1:71',
+    CHAT_Annotation(CHAT_pic_bullet, '8.1:67', '10.1:71',
                     CHAT_ComplexRegex(
                         (u'\u00b7' + r'%pic:', filenamepat, u'\u00b7'), (keep, eps), True),
                     complexmetafunction),  # pic bullet and text bullet must essentially before time alignment
-    CHAT_Annotation('Text Bullet', '8.1:67', '10.1:71',
+    CHAT_Annotation(CHAT_text_bullet, '8.1:67', '10.1:71',
                     CHAT_ComplexRegex(
                         (u'\u00b7' + r'%txt:', filenamepat, u'\u00b7'), (keep, eps), True),
                     complexmetafunction),
-    CHAT_Annotation('Time Alignment', '7.10:67', '10.1:71',
+    CHAT_Annotation(CHAT_time_alignment, '7.10:67', '10.1:71',
                     CHAT_ComplexRegex(
                         (u'\u00b7', r'[0-9_]+', u'\u00b7'), (keep, eps), True),
                     complexmetafunction),
-    CHAT_Annotation('Time Alignment', '7.10:67', '10.1:71',
+    CHAT_Annotation(CHAT_time_alignment, '7.10:67', '10.1:71',
                     CHAT_ComplexRegex(
                         (u'\u0015', r'[0-9_]+', u'\u0015'), (keep, eps), True),
                     complexmetafunction),  # not an official code but it occurs as such in CLPF
-    CHAT_Annotation('Paralinguistic Material', '8.2:68', '10.1:72',
+    CHAT_Annotation(CHAT_paralinguistic_material, '8.2:68', '10.1:72',
                     CHAT_ComplexRegex(
                         (r'\[=!', anybutrb, r'\]'), (keep, eps), True),
                     complexmetafunction),
     CHAT_Annotation(CHAT_stressing, '8.2:68', '10.1:72', CHAT_SimpleScopedRegex(r'\[!\]', keep, False, monadic),
                     simplescopedmetafunction),
-    CHAT_Annotation('Contrastive Stressing', '8.2:68', '10.1:72',
+    CHAT_Annotation(CHAT_contrastive_stressing, '8.2:68', '10.1:72',
                     CHAT_SimpleScopedRegex(r'\[!!\]', keep, False, monadic),
                     simplescopedmetafunction),
     # Duration to be added here @@
@@ -874,62 +912,62 @@ annotations = [
                         (eps, keep), True,
                         containswords=True),
                     complexmetafunction_replbpl),
-    CHAT_Annotation('Replacement of Real Word', '8.3:70', '10.3:73',
+    CHAT_Annotation(CHAT_replacement_of_real_word, '8.3:70', '10.3:73',
                     CHAT_ComplexRegex((r'\[::', r'([^\]]+)', r'\]'), (eps, keep), True), complexmetafunction),
     CHAT_Annotation(CHAT_alternative_transcription, '8.3:70', '10.3:74',
                     CHAT_ComplexRegex((r'\[=\?', r'([^\]]+)', r'\]'), (keep, eps), True), complexmetafunction),
-    CHAT_Annotation('Dependent Tier on Main Line', '8.3:70', 'none',
+    CHAT_Annotation(CHAT_dependent_tier_on_main_line, '8.3:70', 'none',
                     CHAT_ComplexRegex((r'\[%\w\w\w:', anybutrb, r'\]'), (keep, eps), True), complexmetafunction),
     # @@must do something with the speaker
-    CHAT_Annotation('Comment on Main Line', '8.3:70', '10.3:74',
+    CHAT_Annotation(CHAT_comment_on__main_line, '8.3:70', '10.3:74',
                     CHAT_ComplexRegex((r'\[%\s+', anybutrb, r'\]'), (keep, eps), True), complexmetafunction),
     CHAT_Annotation(CHAT_best_guess, '8.3:70-71', '10.3:74', CHAT_SimpleScopedRegex(r'\[\?\]', keep, True, monadic),
                     simplescopedmetafunction),
     CHAT_Annotation(CHAT_repetition, '8.4:72', '10.4:75-76', CHAT_SimpleScopedRegex(r'\[/\]', eps, True, monadic),
                     simplescopedmetafunction),
-    CHAT_Annotation('Multiple Repetition', '8.4:72-73', '10.4:76',
+    CHAT_Annotation(CHAT_multiple_repetition, '8.4:72-73', '10.4:76',
                     CHAT_ComplexRegex((r'\[x', r'[0-9]+', r'\]'), (keep, eps), True), complexmetafunction),
     CHAT_Annotation(CHAT_retracing, '8.4:73', '10.4:76-77', CHAT_SimpleScopedRegex(r'\[//\]', eps, True, monadic),
                     simplescopedmetafunction),
     CHAT_Annotation(CHAT_reformulation, '8.4:73-74', '10.4:77', CHAT_SimpleScopedRegex(r'\[///\]', eps, True, monadic),
                     simplescopedmetafunction),
-    CHAT_Annotation('False Start Without Retracing', '8.4:74', '10.4:77',
+    CHAT_Annotation(CHAT_false_start_without_retracing, '8.4:74', '10.4:77',
                     CHAT_SimpleScopedRegex(r'\[/\-\]', eps, True, dyadic), simplescopedmetafunction),
-    CHAT_Annotation('Unclear Retracing Type', '8.4:74', '10.4:77',
+    CHAT_Annotation(CHAT_unclear_retracing_type, '8.4:74', '10.4:77',
                     CHAT_SimpleScopedRegex(r'\[/\?\]', keep, True, monadic), simplescopedmetafunction),
-    CHAT_Annotation('Excluded Material', '', '10.4:77-78', CHAT_SimpleScopedRegex(r'\[e\]', eps, True, monadic),
+    CHAT_Annotation(CHAT_excluded_material, '', '10.4:77-78', CHAT_SimpleScopedRegex(r'\[e\]', eps, True, monadic),
                     simplescopedmetafunction),
-    CHAT_Annotation('Clause Delimiter', '8.4:74', '78', CHAT_SimpleRegex(r'\[\^c\]', eps, False),
+    CHAT_Annotation(CHAT_clause_delimiter, '8.4:74', '78', CHAT_SimpleRegex(r'\[\^c\]', eps, False),
                     simplemetafunction(identity)),  # needs extension
-    CHAT_Annotation('Interposed Word', '8.4:74', '9.10.2:65', CHAT_SimpleRegex(r'&\*\w\w\w:[\w:]+', eps, False),
+    CHAT_Annotation(CHAT_interposed_word, '8.4:74', '9.10.2:65', CHAT_SimpleRegex(r'&\*\w\w\w:[\w:]+', eps, False),
                     # grouped metadata would come in handy here ID100 text speaker = XXX, ID100 text interposedword = hmm
                     simplemetafunction(interposedword)),
-    CHAT_Annotation('Postcode', '8.6:75', '10.5:78',
+    CHAT_Annotation(CHAT_postcode, '8.6:75', '10.5:78',
                     CHAT_ComplexRegex(
                         (r'\[\+\s+', wordpat, r'\]'), (keep, eps), False),
                     complexmetafunction),
-    CHAT_Annotation('Language Precode', '8.6:75', '10.5:79',
+    CHAT_Annotation(CHAT_language_precode, '8.6:75', '10.5:79',
                     CHAT_ComplexRegex(
                         (r'\[\-\s+', wordpat, r'\]'), (keep, eps), False),
                     complexmetafunction),
-    CHAT_Annotation('Excluded Utterance', '8.6:75-76', '10.5:79', CHAT_SimpleRegex(r'\[\+\s+bch\]', eps, False),
+    CHAT_Annotation(CHAT_excluded_utterance, '8.6:75-76', '10.5:79', CHAT_SimpleRegex(r'\[\+\s+bch\]', eps, False),
                     simplemetafunction(interposedword)),
-    CHAT_Annotation('Included Utterance', '8.6:76', '10.5:79', CHAT_SimpleRegex(r'\[\+\s+trn\]', eps, False),
+    CHAT_Annotation(CHAT_included_utterance, '8.6:76', '10.5:79', CHAT_SimpleRegex(r'\[\+\s+trn\]', eps, False),
                     simplemetafunction(interposedword)),
     CHAT_Annotation(CHAT_zero_utterance, '', '10.5:79, 11.1:81', CHAT_SimpleRegex(r'\b0\b', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('Segment Repetition', '10:85,11:89', '13:91', CHAT_InWordRegex(u'\u21AB.*?\u21AB', ''),
+    CHAT_Annotation(CHAT_segment_repetition, '10:85,11:89', '13:91', CHAT_InWordRegex(u'\u21AB.*?\u21AB', ''),
                     complexmetafunction),
-    CHAT_Annotation('Joined Words', '6.6.4:46', '8.6.3:51',
+    CHAT_Annotation(CHAT_joined_words, '6.6.4:46', '8.6.3:51',
                     CHAT_InWordRegex(r'_', space), complexmetafunction),
     # take care extra token!@@
-    CHAT_Annotation('Clitic Boundary', '6.6.15:52', 'not found',
+    CHAT_Annotation(CHAT_clitic_boundary, '6.6.15:52', 'not found',
                     CHAT_InWordRegex(r'~', space), complexmetafunction),
     # take care extra token@@
-    CHAT_Annotation('Blocked Segments', '10:85,11:89', '13:91', CHAT_InWordRegex(u'\u2260.*?\u2260', ''),
+    CHAT_Annotation(CHAT_blocked_segments, '10:85,11:89', '13:91', CHAT_InWordRegex(u'\u2260.*?\u2260', ''),
                     complexmetafunction),
     # these must be applied after [/], [//], [///] etc
-    CHAT_Annotation('Untranscribed Material', '6.4:42', '8.4:47', CHAT_SimpleRegex(r'[wW][wW][wW]', eps, False),
+    CHAT_Annotation(CHAT_untranscribed_material, '6.4:42', '8.4:47', CHAT_SimpleRegex(r'[wW][wW][wW]', eps, False),
                     simplemetafunction(epsf)),
     CHAT_Annotation(CHAT_phonological_fragment, '6.4:42', '8.4:48',
                     CHAT_SimpleRegex(r'&' + simplewordpat, eps, False), simplemetafunction(identity)),
@@ -942,9 +980,9 @@ annotations = [
                     CHAT_SimpleRegex(r'&~' + wordpat, eps, False), simplemetafunction(identity)),
 
     # ad-hoc extensiosn for Lotti
-    CHAT_Annotation('[een]', 'ad-hoc extension', 'ad-hoc extension', CHAT_SimpleRegex(r'\[een\]', eps, False),
+    CHAT_Annotation(CHAT_een, 'ad-hoc extension', 'ad-hoc extension', CHAT_SimpleRegex(r'\[een\]', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation('[twee]', 'ad-hoc extension', 'ad-hoc extension', CHAT_SimpleRegex(r'\[twee\]', eps, False),
+    CHAT_Annotation(CHAT_twee, 'ad-hoc extension', 'ad-hoc extension', CHAT_SimpleRegex(r'\[twee\]', eps, False),
                     simplemetafunction(identity)),
 
 ]
