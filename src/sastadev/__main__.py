@@ -200,7 +200,7 @@ from sastadev.SAFreader import (get_golddata, richexact2global,
 from sastadev.sample_uttid_tuples import get_samplename_uttids_tuples
 from sastadev.sas_adapt_results import sas_adapt_results
 from sastadev.sas_impact import mksas_impactrows, sas_impact, maxutt
-from sastadev.sastacore import (SastaCoreParameters, doauchann, dopostqueries,
+from sastadev.sastacore import (SastaCoreParameters, doauchann, dopostqueries, get_corrected_treebank,
                                 isxpathquery, sastacore)
 from sastadev.sastatypes import (AltCodeDict, DataSetName, ExactResultsDict,
                                  FileName, GoldTuple, MatchesDict,
@@ -1190,7 +1190,7 @@ def main():
                                           allutts=allutts,
                                           annotationinput=annotationinput)
         origtreebank = None
-        treebank = None
+        treebank = get_corrected_treebank(options.infilename)
         targets = target_all
     else:
         tree = etree.parse(options.infilename)
@@ -1261,16 +1261,18 @@ def main():
         treebank, errordict, allorandalts = correcttreebank(treebank2, targets,  correctionparameters, corr=corr)
 
     # store the spelling corrections
-    store_spelling_corrections(correctionparameters.children_correctionsdict, children_correctionsfullname)
-    store_spelling_corrections(correctionparameters.adult_correctionsdict, adult_correctionsfullname)
+    if not annotationinput:
+        store_spelling_corrections(correctionparameters.children_correctionsdict, children_correctionsfullname)
+        store_spelling_corrections(correctionparameters.adult_correctionsdict, adult_correctionsfullname)
 
 
     allresults, samplesizetuple = sastacore(
         origtreebank, treebank, annotatedfileresults, scp)
 
-    treebank = etree.Element('treebank')
-    for _, tree in allresults.analysedtrees:
-        treebank.append(tree)
+    if allresults.analysedtrees != []:
+        treebank = etree.Element('treebank')
+        for _, tree in allresults.analysedtrees:
+            treebank.append(tree)
 
     exactresults = allresults.exactresults
     exactresultsoutput = False
@@ -1293,7 +1295,8 @@ def main():
                            pretty_print=True)
 
     # create the individual trees and filelists for inspection via Tred
-    treebank2trees(treebank, dataset, newtreebankfullname)
+    if treebank is not None:
+        treebank2trees(treebank, dataset, newtreebankfullname)
 
     # create error file
     errorreportfilename = os.path.join(

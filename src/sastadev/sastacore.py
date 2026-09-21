@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -9,7 +10,8 @@ from sastadev.allresults import (AllResults, ExactResultsDict, getexactbyutt, Ma
 from sastadev.ASTApostfunctions import getastamaxsamplesizeuttidsandcutoff
 from sastadev.comm_ncomm import get_tb_comm_word_count, get_tb_noncomm_word_count
 from sastadev.conf import settings
-from sastadev.constants import false_start_mode, self_correction_mode, repetition_mode
+from sastadev.constants import correctedsuffix, false_start_mode, outtreebanksfolder, safsuffix, \
+    self_correction_mode, repetition_mode
 from sastadev.external_functions import str2functionmap
 from sastadev.grammarerrors import find_grammar_errors_in_allresults
 from sastadev.macros import expandmacros
@@ -43,6 +45,43 @@ class SastaCoreParameters:
     includeimplies: bool = False
     infilename: FileName = None
     targets: int = None
+
+
+def get_corrected_treebank(infullname: str) -> TreeBank:
+    """
+    function to obtain the corrected treebank. needed when an improved annotation form has been uploaded to compute
+    communicative v. nincommunicative words etc and other fluency measures
+
+    It is assumed that the infullname has the following form:
+
+    {inpath}/{samplename}_SAF**.xlsx
+    where ** is an arbitrary string
+
+    the name of the file containing the corrected treebank is then
+
+    {samplename}{correctedtreebanksuffix}.xml}
+
+    The path where it can be found depends on the application. In sastadev it is determined by the SASTADATA datastrucure
+    """
+    inpath, infilename = os.path.split(infullname)
+    to_position = infilename.find(safsuffix)
+    if to_position != -1:
+        samplename = infilename[:to_position]
+        treebank_filename = f'{samplename}{correctedsuffix}.xml'
+    else:
+        return None
+    # remove the last folder from inpath and add outtreebanksfolder
+    base_inpath, last_folder = os.path.split(inpath)
+    treebank_inpath = os.path.join(base_inpath, outtreebanksfolder)
+
+    treebank_fullname  = os.path.join(treebank_inpath, treebank_filename)
+    fulltreebank = etree.parse(treebank_fullname)
+    if fulltreebank is None:
+        return None
+    treebank = fulltreebank.getroot()
+    return treebank
+
+
 
 
 def doauchann(intreebank: SynTree) -> SynTree:
@@ -196,12 +235,20 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
                             analysedtrees,
                             allutts, annotationinput, speaker_metadata=target_speaker_metadata)
 
-    commwordcounts: List[Tuple[UttId, int]] = get_tb_comm_word_count(correctedtreebank)
-    noncommwordcounts: List[Tuple[UttId, int]] = get_tb_noncomm_word_count(correctedtreebank)
+    if correctedtreebank is not None:
+        commwordcounts: List[Tuple[UttId, int]] = get_tb_comm_word_count(correctedtreebank)
+        noncommwordcounts: List[Tuple[UttId, int]] = get_tb_noncomm_word_count(correctedtreebank)
 
-    false_start_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode= false_start_mode)
-    self_correction_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode=self_correction_mode)
-    repetition_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode=repetition_mode)
+        false_start_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode= false_start_mode)
+        self_correction_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode=self_correction_mode)
+        repetition_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode=repetition_mode)
+    else:
+        settings.LOGGER.error('No corrected treebank found')
+        commwordcounts: List[Tuple[UttId, int]] = []
+        noncommwordcounts: List[Tuple[UttId, int]] = []
+        false_start_word_counts = []
+        self_correction_word_counts = []
+        repetition_word_counts = []
 
     allresults.commwordcounts = commwordcounts
     allresults.noncommwordcounts = noncommwordcounts
@@ -235,8 +282,11 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
     datasetname = ''
     select_criterion = hasxsid
     exactresultsbyuttid = getexactbyutt(allresults.exactresults)
-    allresults.fullsasresults = sample_sas(correctedtreebank,exactresultsbyuttid, select_criterion,
+    if correctedtreebank is not None:
+        allresults.fullsasresults = sample_sas(correctedtreebank,exactresultsbyuttid, select_criterion,
                              datasetname, xmlfilename, themethod)
+    else:
+        allresults.fullsasresults = []
     allresults.sasresults = allresults.fullsasresults[:maxutt]
 
     return allresults, samplesizetuple
