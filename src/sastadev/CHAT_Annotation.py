@@ -631,6 +631,7 @@ class CHAT_ComplexRegex(CHAT_Regex):
                 'Not in an end state, state={} in {}'.format(state, show(tokens)))
             return (tokens, [])
 
+compiledre_types = [CHAT_SimpleRegex, CHAT_SimpleScopedRegex, CHAT_NoncompletionRegex, CHAT_InWordRegex]
 
 def findbrackets(tokens, regexes, offset=0):
     (bregex, mregex, eregex) = regexes

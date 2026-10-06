@@ -1897,7 +1897,7 @@ def nominal(node: SynTree) -> bool:
 
 
 def decomposetree(tree: SynTree) -> Tuple[SynTree, SynTree, SynTree, SynTree, SynTree]:
-    metadata, sentence, comments, nod, parser = None, None, None, None, None
+    metadata, sentence, comments, node, parser = None, None, None, None, None
     for child in tree:
         if child.tag == 'metadata':
             metadata = child
