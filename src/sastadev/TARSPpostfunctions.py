@@ -13,6 +13,7 @@ from sastadev.conf import settings
 from sastadev.filefunctions import getbasename
 from sastadev.forms import get_toelichting_filename
 from sastadev.implied_by import tarsp_implied_by_dict
+from sastadev.methods import tarsp_overige_qids, tarsp_into_qids
 from sastadev.query import core_process, query_inform
 from sastadev.rpf1 import sumfreq
 from sastadev.sastatypes import QId, QueryDict, Stage, SynTree
@@ -636,7 +637,7 @@ def mk_tarsp_p_report(pf_report_data_list, uttcount, allresults) -> List[str]:
     tarsp_p_abs = sum([stg * mcount for stg, mcount in tuples])
     tarsp_p = tarsp_p_abs / uttcount
     tuple_str = ' + '.join([f'{stg} * {mcount}' for stg, mcount in tuples])
-    tarsp_p_report = ["", "", "TARSP_P", "", "TARSP_P is een score die een aanduiding is voor de gemiddeldde zinscomplexiteit.",
+    tarsp_p_report = ["", "", "TARSP_P", "", "TARSP_P is een score die een aanduiding is voor de gemiddelde zinscomplexiteit.",
                       "Deze score is gedefinieerd door [Bruinsma et al. 2020]. " +
                       "Voor iedere fase wordt het aantal gescoorde uitingen vermenigvuldigd met de fase. " +
                       "De zo gevonden resultaten worden bij elkaar opgeteld en en het totaal wordt gedeeld " +
@@ -813,10 +814,14 @@ def mk_GZW_report(report_data: ReportData, allresults: AllResults, thequeries: Q
     newpar = f"De Gemiddelde zinslengte in woorden (GZW) is {total_wc} / {utt_count} = {gzw:.2f}."
     report.append(newpar)
 
+
     # vergelijking met norm
-    stage = report_data.full_stage_report_data.stage_report_data.stage
-    age = report_data.speaker_metadata.get('childage') if 'childage' in report_data.speaker_metadata else ''
-    newpars = mk_gwz_compare_report(gzw, stage, age)
+    newpars = [
+        'De GZW normdata van Schlichting lijken te laag. Daarom wordt geen vergelijking met deze normdata gemaakt.']
+
+    # stage = report_data.full_stage_report_data.stage_report_data.stage
+    # age = report_data.speaker_metadata.get('childage') if 'childage' in report_data.speaker_metadata else ''
+    # newpars = mk_gwz_compare_report(gzw, stage, age)
     report.extend(newpars)
 
     return report
@@ -1077,7 +1082,7 @@ def compare_with_norm_stage(romanstage: str, raw_age: str, raw_gender: str = Non
                 concl_message = f'\n\nDe leeftijd van het kind is precies gelijk aan de ondergrens van het laagste genoemde leeftijdsinterval. De taal van het kind ontwikkelt zich normaal.'
             elif age > highest_row[2]:
                 diff = month_diff(age, highest_row[2])
-                concl_message = f"\n\nDe leeftijd van het kind is hoger dan de bovengrens van het hoogste genoemde leeftijdsinterval. Het verschil is {diff} maanden. Mogelijk is hier sprake van een taalontwikkelingsstoornis (TOS)."
+                concl_message = f"\n\nDe leeftijd van het kind is hoger dan de bovengrens van het hoogste genoemde leeftijdsinterval. Het verschil is {diff} maanden."
             elif age == highest_row[2]:
                 concl_message = f'\n\nDe leeftijd van het kind is precies gelijk aan de bovengrens van het hoogste genoemde leeftijdsinterval. De taal van het kind ontwikkelt zich normaal.'
             else:
@@ -1178,6 +1183,8 @@ def get_leerdoelen_report_data(allresults: AllResults, thequeries: QueryDict, re
     for i in range(2, stage + 1):
          leerdoelen_list = [qid for qid in thequeries if thequeries[qid].fase == i and
                             qid not in natuurlijke_hiaten and
+                            qid not in tarsp_overige_qids and
+                            qid not in tarsp_into_qids and
                             thequeries[qid].stars not in ["star1", "star2"] and
                             thequeries[qid].process == core_process and
                             thequeries[qid].inform  == 'yes' and
@@ -1201,10 +1208,10 @@ def mk_leerdoelen_report(allresults, thequeries, report_data) -> List[str]:
     header = ["","", "Mogelijke leerdoelen", ""]
     report.extend(header)
 
-    intro = [f'De leerdoelen worden als volgt bepaald:', "", "--indien de vastgeteld fase 1 is, dan is het leerdoel " +
+    intro = [f'De leerdoelen worden als volgt bepaald:', "", "--indien de vastgestelde fase 1 is, dan is het leerdoel " +
              "de éénwoordzin totdat het kind 50 tot 80 woorden zegt.",
              f'--anders worden taalmaten uit de fases 2 tot en met de vastgestelde fase geselecteerd die niet voorkomen'
-             + ' in het sample en die geen sterretje bij zich hebben en die niet tot de natuurlijke hiaten behoren.' ,"",
+             + ' in het sample, niet "Into" zijn, die geen sterretje bij zich hebben, die niet tot de "Overige" horen en  die niet tot de natuurlijke hiaten behoren.' ,"",
 
              'De hier genoemde leerdoelen zijn mogelijke leerdoelen, omdat andere onderzoeken bij het kind tot andere leerdoelen kunnen leiden.',
         

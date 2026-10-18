@@ -44,6 +44,8 @@ astafuture = 'astafuture'
 validmethodvariantpairs = [(tarsp, tarsp2005), (tarsp, tarsp2017), (tarsp, tarspauris), (stap, ''),
                            (asta, ''), (asta, astae), (asta, astafuture)]
 
+tarsp_overige_qids = ['T078', 'T079', 'T080', 'T081', 'To82', 'T083', 'T084', 'T085', 'T102', 'T156', 'T166']
+tarsp_into_qids = ['T048']
 
 class SampleSize:
     def __init__(self, maxuttcount=None, maxwordcount=None):
