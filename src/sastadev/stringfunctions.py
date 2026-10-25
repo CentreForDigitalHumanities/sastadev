@@ -718,6 +718,12 @@ def is_t_elision(wrong_word:str, correction: str, next_word:str) -> bool:
     return result
 
 
+def token_normalise(utt: str) -> str:
+    tokens = simple_tokenise(utt)
+    result = space.join(tokens)
+    return result
+
+
 if __name__ == '__main__':
     test()
     # testpuncs()
