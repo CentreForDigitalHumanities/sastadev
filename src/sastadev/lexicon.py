@@ -570,6 +570,7 @@ predc_detless_count_nouns = ['avond', 'ochtend', 'middag', 'nacht', 'weer']
 
 color_names = ['rood', 'wit', 'blauw', 'oranje', 'zwart', 'geel', 'groen']
 
+chat_xxx_codes = {'xxx', 'yyy', 'www'}
 
 junk = 0
 
@@ -596,9 +597,12 @@ def known_word(word: str, includealpinonouncompound=True) -> bool:
 
 def is_acronym(wrd: str) -> bool:
     result = wrd in acronyms_lexicon
-    result = result or wrd.upper() in acronyms_lexicon
+    result = result or robust_is_acronym(wrd) or wrd.upper() in acronyms_lexicon
     return result
 
+def robust_is_acronym(wrd:str) -> bool:
+    result = wrd.lower() not in chat_xxx_codes and len(wrd) >= 1 and wrd[0].isupper() and wrd[-1].isupper()
+    return result
 
 def validword(wrd: str, methodname: MethodName, includealpinonouncompound=True) -> bool:
     result = wrd == '' or known_word(wrd, includealpinonouncompound=includealpinonouncompound)
