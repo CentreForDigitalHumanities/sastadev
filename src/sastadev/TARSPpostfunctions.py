@@ -573,7 +573,7 @@ non_clause_measures_str = "Woordgroepen, Verbindingswoorden, Voornaamwoorden en 
 def mk_stage_report(allresults: AllResults, thequeries: QueryDict, report_data) -> List[str]:
     full_stage_report_data = report_data.full_stage_report_data
     stage_report_data = full_stage_report_data.stage_report_data
-    report = ["", "", "Fase", ""]
+    report = ["", "", "Fase (p. 21, 23)",""]
     utt_count = stage_report_data.utt_count
     stage = stage_report_data.stage
     roman_stage = show_roman(stage)
@@ -660,7 +660,7 @@ def mk_pf_report_data(allresults: AllResults, thequeries: QueryDict, report_data
 
 
 def mk_pf_report(report_data: PFReportData, allresults: AllResults, thequeries: QueryDict) -> List[str]:
-    report = ["", "", "Profielscore", ""]
+    report = ["", "", "Profielscore (p. 23)", ""]
     pf_report_data = report_data.pf_report_data
     pf_report_data_list = pf_report_data.stage_reports
     pfi_scores = pf_report_data.pfi_scores
@@ -758,8 +758,20 @@ def mk_toelichting(allresults: AllResults, thequeries: QueryDict):
     report_data = mk_pf_report_data(allresults, thequeries, report_data)
     report_data = mk_GZW_report_data(allresults, thequeries, report_data)
 
+    references = ["\n", "\n",
+                  "Bibliografie", "\n",
+                  """[Bruinsma et al 2020] Gerda Bruinsma, Frank Wijnen, and Ellen Gerrits. 2020. Focused Stimulation Intervention in 4- and 5-Year-Old Children With Developmental Language Disorder: Exploring Implementation in Clinical Practice. Language, Speech, and Hearing Services in Schools, Vol. 51, Nr 2, 247-269. https://doi.org/10.1044/2020_LSHSS-19-0006""",
+                  """[Schlichting 2017] Schlichting, L. (2017) Taalanalyse Remediëring en Screening Procedure TARSP. Taalontwikkelingsschaal van Nederlandse kinderen van 1-4 jaar met aanvullende structuren tot 6 jaar. Amsterdam: Pearson"""
+                  ]
+
 
     full_report = [f"TARSP rapport  bij het taalprofielformulier voor sample {report_data.sample_name}", ""]
+
+    intro = ["Dit rapport is gebaseerd op [Schlichting 2017].",
+             "Paginaverwijzingen in de tekst betreffen deze herziene TARSP uitgave uit 2017.",
+             "Een spontane taalanalyse (STA) kan onderdeel uitmaken van een uitgebreid logopedisch of linguïstisch onderzoek. Een STA alleen volstaat niet om een diagnose TOS te stellen, maar is zeer geschikt voor het selecteren van behandeldoelen en het meten van vooruitgang. De behandelsuggesties in dit rapport zijn gebaseerd op de TARSP profielkaart. De therapeut dient de bruikbaarheid en volgorde ervan via klinisch redeneren te beoordelen.",
+             ""]
+    full_report.extend(intro)
 
     speaker_report = mk_speaker_report(report_data)
     full_report.extend(speaker_report)
@@ -775,6 +787,8 @@ def mk_toelichting(allresults: AllResults, thequeries: QueryDict):
 
     leerdoelen_report = mk_leerdoelen_report(allresults, thequeries, report_data)
     full_report.extend(leerdoelen_report)
+
+    full_report.extend(references)
 
     versie = ""
     datum = datetime.now().isoformat("T", "minutes")
@@ -807,7 +821,7 @@ def mk_GZW_report_data(allresults: AllResults, thequeries: QueryDict, report_dat
 
 
 def mk_GZW_report(report_data: ReportData, allresults: AllResults, thequeries: QueryDict) -> List[str]:
-    report = ["","","Gemiddelde Zinslengte in Woorden (GZW)", '']
+    report = ["","","Gemiddelde Zinslengte in Woorden (GZW, p. 30)", '']
     total_wc = report_data.gzw_report_data.wc
     utt_count = report_data.gzw_report_data.utt_count
     gzw = report_data.gzw_report_data.gzw
@@ -817,7 +831,7 @@ def mk_GZW_report(report_data: ReportData, allresults: AllResults, thequeries: Q
 
     # vergelijking met norm
     newpars = [
-        'De GZW normdata van Schlichting lijken te laag. Daarom wordt geen vergelijking met deze normdata gemaakt.']
+        'De GZW normdata van Schlichting (p. 137) lijken te laag. Daarom wordt geen vergelijking met deze normdata gemaakt.']
 
     # stage = report_data.full_stage_report_data.stage_report_data.stage
     # age = report_data.speaker_metadata.get('childage') if 'childage' in report_data.speaker_metadata else ''
@@ -1016,6 +1030,7 @@ def compare_with_norm_stage(romanstage: str, raw_age: str, raw_gender: str = Non
     if ses == '':
         ses = None
 
+    intro_message = "Vergelijking met de normtabel (p. 141):\n"
     base_message =  f'De ontwikkeling van het onderzochte kind komt overeen met'
 
     # age, gender, ses check stage
@@ -1031,7 +1046,7 @@ def compare_with_norm_stage(romanstage: str, raw_age: str, raw_gender: str = Non
         full_message2 = ' of \n'.join(message2_list) + "."
 
         concl_message = f"\n\nDe leeftijd van het kind komt hiermee overeen. De taal van het kind ontwikkelt zich op normale wijze."
-        message = base_message + full_message2 + concl_message
+        message = intro_message + base_message + full_message2 + concl_message
 
 
 
@@ -1205,7 +1220,7 @@ def mk_leerdoelen_report(allresults, thequeries, report_data) -> List[str]:
 
     report = []
 
-    header = ["","", "Mogelijke leerdoelen", ""]
+    header = ["","", "Mogelijke leerdoelen (p. 29)", ""]
     report.extend(header)
 
     intro = [f'De leerdoelen worden als volgt bepaald:', "", "--indien de vastgestelde fase 1 is, dan is het leerdoel " +
@@ -1224,7 +1239,7 @@ def mk_leerdoelen_report(allresults, thequeries, report_data) -> List[str]:
 
     natuurlijke_hiaten = report_data.leerdoelen_report_data.natuurlijke_hiaten
     natuurlijke_hiaten_str = conj([thequeries[qid].item for qid in natuurlijke_hiaten])
-    natuurlijke_hiaten_pars = ["",f"De natuurlijke hiaten in dit sample zijn: {natuurlijke_hiaten_str}"]
+    natuurlijke_hiaten_pars = ["",f"De natuurlijke hiaten (p. 27) in dit sample zijn: {natuurlijke_hiaten_str}"]
 
     # verantwoording voor de natuurlijke hiaten
     for qid in natuurlijke_hiaten:
