@@ -197,6 +197,7 @@ from sastadev.resultsbyutterance import (byuttheader, exactbyuttdict2table,
 from sastadev.rpf1 import getevalscores, getscores, sumfreq
 from sastadev.SAFreader import (get_golddata, richexact2global,
                                 richscores2scores)
+from sastadev.saf2 import get_saf2_headed_table, mk_saf2_wb
 from sastadev.sample_uttid_tuples import get_samplename_uttids_tuples
 from sastadev.sas_adapt_results import sas_adapt_results
 from sastadev.sas_impact import mksas_impactrows, sas_impact, maxutt
@@ -1314,6 +1315,14 @@ def main():
     errorwb = mkworkbook(errorloggingfullname, [
                          errorwbheader], allerrorrows, freeze_panes=(1, 1))
     errorwb.close()
+
+    # create saf2 file
+    saf2_filename = corefilename + '_saf2' + '.xlsx'
+    saf2_fullname = os.path.join(resultspath, saf2_filename)
+    saf2_header, saf2_table = get_saf2_headed_table(allresults, themethod)
+    saf2_wb = mk_saf2_wb(saf2_fullname, saf2_header, saf2_table)
+    saf2_wb.close()
+    junk = 0
 
     # platinuminfilefound = False
     # if os.path.exists(options.platinuminfilename):
