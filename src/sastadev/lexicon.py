@@ -468,6 +468,11 @@ acronyms_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, acronyms_fi
 raw_acronyms_lexicon = initializelexicon(acronyms_fullname)
 acronyms_lexicon = {entry[0]:entry[1] for entry in raw_acronyms_lexicon}
 
+valid_asta_words_filename = "valid_asta_words.txt"
+valid_asta_words_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, valid_asta_words_filename)
+valid_asta_words_lexicon = initializelexicon(valid_asta_words_fullname)
+
+
 # validnouns is intended for nous  that Alpino assigns frame (both,both, both) but that are valid Dutch words
 validnouns = {'knijper', 'roosvicee'}
 

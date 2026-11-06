@@ -190,6 +190,7 @@ def asta_recognised_nounnode(node: SynTree) -> bool:
     result = result or recognised_wordnodepos(node, pos)
     result = result or recognised_lemmanodepos(node, pos)
     result = result or lex.is_acronym(lemma)
+    result = result or lemma in lex.valid_asta_words_lexicon
     result = result and not (tbf.all_lower_consonantsnode(node))
     result = result and not (tbf.short_nucl_n(node))
     result = result and not iscardinal(node)
@@ -218,6 +219,7 @@ def asta_recognised_wordnode(node: SynTree) -> bool:
     result = result or tbf.isnumber(node)
     result = result or lex.isa_namepart(word)
     result = result or lex.is_acronym(word)
+    result = result or word in lex.valid_asta_words_lexicon
     result = result and not (tbf.all_lower_consonantsnode(node))
     result = result and not (tbf.short_nucl_n(node))
     return result
