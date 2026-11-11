@@ -2,11 +2,11 @@ import re
 from typing import List
 
 from lxml import etree
-from sastadev.correctionlabels import repeatedword
+from sastadev.correctionlabels import repeatedword, insertion
 from sastadev.sastatypes import Penalty
 
 bpl_none, bpl_word, bpl_node, bpl_delete, bpl_indeze, bpl_extra_grammatical, bpl_wordlemma, \
-bpl_cond, bpl_replacement, bpl_word_delprec, bpl_node_nolemma = tuple(range(11))
+bpl_cond, bpl_replacement, bpl_word_delprec, bpl_node_nolemma, bpl_paspast, bpl_switch_order = tuple(range(13))
 defaultpenalty = 100
 defaultbackplacement = bpl_none
 
@@ -14,6 +14,7 @@ SASTA = 'SASTA'
 ADULTSPELLINGCORRECTION = 'AdultSpellingCorrection'
 ALLSAMPLECORRECTIONS = 'AllSampleCorrections'
 BASICREPLACEMENTS = 'BasicReplacements'
+SPECIAL_REPLACEMENTS = 'SpecialReplacements'
 CHILDRENSPELLINGCORRECTION = 'ChildrenSpellingCorrection'
 CONTEXT = 'Context'
 HISTORY = 'History'
@@ -96,6 +97,7 @@ class Meta:
     * cat: a label to specify a category that the metadata belongs to
     * subcat: a label to specify a subcategory that the metadata belongs to
     * source: a label to specify the source of the metadata, e.g. CHAT, SASTA/BasicReplacements, etc.
+    * omitted_pt: string. to specify the pt of an omitted word that the metadat specifies the associate of
     * penalty: an integer value to specify the costs of the change that created the metadata
     * backplacement: integer value. if the metadata describes a replacement, this is used to specify if and how the
     original item should be put back
@@ -107,8 +109,9 @@ class Meta:
     def __init__(self, name, value, annotationwordlist=[], annotationposlist=[], annotatedposlist=[],
                  annotatedwordlist=[], annotationcharlist=[
     ], annotationcharposlist=[], annotatedcharlist=[],
-            annotatedcharposlist=[], atype='text', cat=None, subcat=None, source=None, penalty=defaultpenalty,
-            backplacement=defaultbackplacement):
+            annotatedcharposlist=[], atype='text', cat=None, subcat=None, source=None,
+                 omitted_pt=None, omitted_rel=None, omitted_lemma=None, omitted_word=None, omitted_governor=None,
+                 penalty=defaultpenalty, backplacement=defaultbackplacement):
         self.atype = atype
         self.name = name
         self.annotationwordlist = annotationwordlist if annotationwordlist != [] else value
@@ -123,20 +126,25 @@ class Meta:
         self.cat = cat
         self.subcat = subcat
         self.source = source
+        self.omitted_pt = omitted_pt
+        self.omitted_rel = omitted_rel
+        self.omitted_lemma = omitted_lemma
+        self.omitted_word = omitted_word
         self.penalty = penalty
         self.backplacement = backplacement
         self.fmstr = '<{}:type={}:annotationwordlist={}:annotationposlist={}:annotatedwordlist={}:annotatedposlist={}:value={}:cat={}:source={}>'
         self.xmlformat = xmlformat
 
     def __repr__(self):
-        reprfmstr = 'Meta({},{},annotationwordlist={},annotationposlist={},annotatedposlist{},annotatedwordlist={},' \
+        reprfmstr = 'Meta({},{},annotationwordlist={},annotationposlist={},annotatedposlist={},annotatedwordlist={},' \
                     ' atype={}, cat={}, subcat={}, source={}, penalty={}, backplacement={})'
         result = reprfmstr.format(repr(self.name), repr(self.value), repr(self.annotationwordlist),
                                   repr(self.annotationposlist),
                                   repr(self.annotatedposlist), repr(
             self.annotatedwordlist), repr(self.atype),
-            repr(self.cat), repr(self.subcat), repr(
-                self.source), repr(self.penalty),
+            repr(self.cat), repr(self.subcat), repr(self.source),
+                repr(self.omitted_pt), repr(self.omitted_rel), repr(self.omitted_lemma), repr(self.omitted_word),
+                                  repr(self.penalty),
             repr(self.backplacement))
         return result
 
@@ -159,7 +167,10 @@ class Meta:
                                annotationposlist=str(self.annotationposlist),
                                annotatedwordlist=str(self.annotatedwordlist),
                                annotatedposlist=str(self.annotatedposlist), value=str(self.value), cat=str(self.cat),
-                               subcat=str(self.subcat), source=str(self.source), backplacement=str(self.backplacement),
+                               subcat=str(self.subcat), source=str(self.source), omitted_pt= str(self.omitted_pt),
+                               omitted_rel=str(self.omitted_rel), omitted_lemma=str(self.omitted_lemma),
+                               omitted_word=str(self.omitted_word),
+                               backplacement=str(self.backplacement),
                                penalty=str(self.penalty))
         return result
 
@@ -180,6 +191,10 @@ class Meta:
                   self.cat == other.cat and
                   self.subcat == other.subcat and
                   self.source == other.source and
+                  self.omitted_pt == other.omitted_pt and
+                  self.omitted_rel == other.omitted_rel and
+                  self.omitted_lemma == other.omitted_lemma and
+                  self.omitted_word == other.omitted_word and
                   self.penalty == other.penalty and
                   self.backplacement == other.backplacement and
                   self.fmstr == other.fmstr and
@@ -233,7 +248,7 @@ substringrep = 'Substring repetition'
 repetition = 'Repetition'
 fstoken = 'Retraced token'
 falsestart = 'Retracing with Correction'
-insertion = 'Insertion'
+# insertion = 'Insertion'
 smallclause = 'Small Clause Treatment'
 tokenmapping = 'Token Mapping'
 insertiontokenmapping = 'Insertion Token Mapping'
@@ -241,3 +256,16 @@ insertiontokenmapping = 'Insertion Token Mapping'
 def modifypenalty(pct:int) -> Penalty:
     newpen = int(pct /100 * defaultpenalty)
     return newpen
+
+def mkinsertmeta(inserttokens, resultlist, penalty=defaultpenalty, name=insertion, cat=smallclause):
+    insertposs = [token.pos + token.subpos for token in inserttokens]
+    insertwordlist = [token.word for token in inserttokens]
+    tokenmappinglist = [token.pos if token.subpos == 0 else None for token in resultlist]
+    metadata1 = [Meta(name, [insertword], annotatedposlist=[insertpos],
+                 annotatedwordlist=[], annotationposlist=[insertpos],
+                 annotationwordlist=[insertword], cat=cat, source=SASTA, penalty=penalty,
+                 backplacement=bpl_delete) for insertword, insertpos in zip(insertwordlist, insertposs)]
+    meta2 = Meta(insertiontokenmapping, tokenmappinglist, cat=tokenmapping, source=SASTA, penalty=0,
+                 backplacement=bpl_none)
+    metadata = metadata1 + [meta2]
+    return metadata

@@ -1,12 +1,17 @@
+import os
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from lxml import etree
 
-from sastadev.allresults import (AllResults, ExactResultsDict, MatchesDict,
+from sastadev.comm_ncomm import get_noncomm_word_count, get_tb_noncomm_word_count
+from sastadev.allresults import (AllResults, ExactResultsDict, getexactbyutt, MatchesDict,
                                  ResultsKey, mkresultskey)
 from sastadev.ASTApostfunctions import getastamaxsamplesizeuttidsandcutoff
+from sastadev.comm_ncomm import get_tb_comm_word_count, get_tb_noncomm_word_count
 from sastadev.conf import settings
+from sastadev.constants import correctedsuffix, false_start_mode, outtreebanksfolder, safsuffix, \
+    self_correction_mode, repetition_mode
 from sastadev.external_functions import str2functionmap
 from sastadev.grammarerrors import find_grammar_errors_in_allresults
 from sastadev.macros import expandmacros
@@ -14,14 +19,18 @@ from sastadev.methods import Method, astamethods, stapmethods, tarspmethods
 from sastadev.mismatches import getmarkposition
 from sastadev.query import (Query, form_process, is_core, is_literal, is_pre,
                             post_process, query_exists)
+from sastadev.queryfunctions import get_tb_retracing_word_counts
 from sastadev.reduceresults import exact2results, reduceallresults
+from sastadev.sas_impact import maxutt
+from sastadev.sas_queries import synxsid, hasxsid
+from sastadev.sample_sas import sample_sas
 from sastadev.sasta_explanation import finalexplanation_adapttreebank
 from sastadev.sastatypes import (FileName, MethodName, Position, QId,
                                  QueryDict, SampleSizeTuple, SynTree, TreeBank,
                                  UttId)
 from sastadev.stringfunctions import getallrealwords
 from sastadev.targets import get_mustbedone
-from sastadev.treebankfunctions import (getattval, getnodeendmap,
+from sastadev.treebankfunctions import (find1, getattval, getnodeendmap,
                                         getxmetatreepositions, getxsid,
                                         getyield, showtree, topcat)
 
@@ -36,6 +45,43 @@ class SastaCoreParameters:
     includeimplies: bool = False
     infilename: FileName = None
     targets: int = None
+
+
+def get_corrected_treebank(infullname: str) -> TreeBank:
+    """
+    function to obtain the corrected treebank. needed when an improved annotation form has been uploaded to compute
+    communicative v. nincommunicative words etc and other fluency measures
+
+    It is assumed that the infullname has the following form:
+
+    {inpath}/{samplename}_SAF**.xlsx
+    where ** is an arbitrary string
+
+    the name of the file containing the corrected treebank is then
+
+    {samplename}{correctedtreebanksuffix}.xml}
+
+    The path where it can be found depends on the application. In sastadev it is determined by the SASTADATA datastrucure
+    """
+    inpath, infilename = os.path.split(infullname)
+    to_position = infilename.find(safsuffix)
+    if to_position != -1:
+        samplename = infilename[:to_position]
+        treebank_filename = f'{samplename}{correctedsuffix}.xml'
+    else:
+        return None
+    # remove the last folder from inpath and add outtreebanksfolder
+    base_inpath, last_folder = os.path.split(inpath)
+    treebank_inpath = os.path.join(base_inpath, outtreebanksfolder)
+
+    treebank_fullname  = os.path.join(treebank_inpath, treebank_filename)
+    fulltreebank = etree.parse(treebank_fullname)
+    if fulltreebank is None:
+        return None
+    treebank = fulltreebank.getroot()
+    return treebank
+
+
 
 
 def doauchann(intreebank: SynTree) -> SynTree:
@@ -55,6 +101,28 @@ def doauchann(intreebank: SynTree) -> SynTree:
 
     return outtreebank
 
+target_speaker_xpath = """.//alpino_ds[descendant::meta[@name="role" and @value="Target_Child"] or
+                                       descendant::meta[@name="speaker" and @value="CHI"] or
+                                       descendant::meta[@name="speaker" and @value="PMA"]
+                                      ]"""
+
+target_speaker_meta_names = ['childage', 'education',  'group', 'name', 'SES','sex']
+def get_speaker_meta(tb: TreeBank) -> str:
+    """
+    It is presupposed that a treebank contains utterances and age of only a single target speaker
+
+    """
+    #first find a tree from a target speaker
+    speaker_metadata = {}
+    target_speaker_tree = find1(tb, target_speaker_xpath)
+    for meta in target_speaker_meta_names:
+        raw_val = find1(target_speaker_tree, f'.//meta[@name="{meta}"]/@value')
+        if raw_val is None:
+            speaker_metadata[meta]  = ''
+        else:
+            speaker_metadata[meta] = str(raw_val)
+    return speaker_metadata
+
 
 def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
               annotatedfileresults: Optional[AllResults],
@@ -68,6 +136,9 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
     else:
         if not (origtreebank is not None and annotatedfileresults is None):
             pass  # report an error and exit
+
+    # gather the treebank wide metadata that are relevant
+    target_speaker_metadata = get_speaker_meta(correctedtreebank) if correctedtreebank is not None else {}
 
     corr = scp.corr
     themethod = scp.themethod
@@ -107,7 +178,7 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
         for syntree in correctedtreebank:
             uttcount += 1
 
-            mustbedone = get_mustbedone(syntree, targets)
+            mustbedone = get_mustbedone(syntree, targets, scp.themethod)
             if mustbedone:
                 # uttid = getuttid(syntree)
                 # analysedtrees consists of (uttid, syntree) pairs in order
@@ -158,10 +229,32 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
 
     coreresults = exact2results(exactresults)
 
+
     postresults: Dict[ResultsKey, Any] = {}
     allresults = AllResults(uttcount, coreresults, exactresults, postresults, allmatches, infilename,
                             analysedtrees,
-                            allutts, annotationinput)
+                            allutts, annotationinput, speaker_metadata=target_speaker_metadata)
+
+    if correctedtreebank is not None:
+        commwordcounts: List[Tuple[UttId, int]] = get_tb_comm_word_count(correctedtreebank)
+        noncommwordcounts: List[Tuple[UttId, int]] = get_tb_noncomm_word_count(correctedtreebank)
+
+        false_start_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode= false_start_mode)
+        self_correction_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode=self_correction_mode)
+        repetition_word_counts = get_tb_retracing_word_counts(correctedtreebank, mode=repetition_mode)
+    else:
+        settings.LOGGER.error('No corrected treebank found')
+        commwordcounts: List[Tuple[UttId, int]] = []
+        noncommwordcounts: List[Tuple[UttId, int]] = []
+        false_start_word_counts = []
+        self_correction_word_counts = []
+        repetition_word_counts = []
+
+    allresults.commwordcounts = commwordcounts
+    allresults.noncommwordcounts = noncommwordcounts
+    allresults.false_start_word_counts = false_start_word_counts
+    allresults.self_correction_word_counts = self_correction_word_counts
+    allresults.repetition_word_counts = repetition_word_counts
 
     samplesizefunction = getsamplesizefunction(methodname)
     samplesizetuple: SampleSizeTuple = samplesizefunction(allresults)
@@ -174,11 +267,27 @@ def sastacore(origtreebank: Optional[TreeBank], correctedtreebank: TreeBank,
     # we assume the reduction must be done before the postqueries
     allresults = reduceallresults(allresults, samplesizetuple, methodname)
 
+
+
     dopostqueries(allresults, postquerylist, themethod.queries)
+
+
 
     dopostqueries(allresults, formquerylist, themethod.queries)
 
     allresults = find_grammar_errors_in_allresults(allresults)
+
+
+    xmlfilename = ''
+    datasetname = ''
+    select_criterion = hasxsid
+    exactresultsbyuttid = getexactbyutt(allresults.exactresults)
+    if correctedtreebank is not None:
+        allresults.fullsasresults = sample_sas(correctedtreebank,exactresultsbyuttid, select_criterion,
+                             datasetname, xmlfilename, themethod)
+    else:
+        allresults.fullsasresults = []
+    allresults.sasresults = allresults.fullsasresults[:maxutt]
 
     return allresults, samplesizetuple
 

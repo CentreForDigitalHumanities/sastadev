@@ -2,7 +2,8 @@ from math import isnan
 import os
 from collections import Counter
 from sastadev.conf import settings
-from sastadev.constants import (checksuffix, errorsummaryfolder, errorsummarysuffix, intreebanksfolder,
+from sastadev.constants import (checksuffix, errorsummaryfolder, errorsummarysuffix, errors_overview_suffix,
+                                intreebanksfolder,
                                 silverpermfolder as permfolder, resultsfolder)
 from sastadev.counterfunctions import counter2liststr
 from sastadev.xlsx import  getxlsxdata, mkworkbook
@@ -59,7 +60,7 @@ legalmoreorlesses = ['More examples', 'Missed examples']
 comma = ','
 commaspace = ', '
 
-
+empty_user_comments = 3 * ['']
 
 def getallcomments(dataset, sample):
     datasetpath = os.path.join(settings.DATAROOT, dataset)
@@ -93,6 +94,12 @@ def getallcomments(dataset, sample):
         permdatadict, errorsummaryheader = updatepermdict(errorsummaryfullname, permdatadict, sample=sample)
 
 
+    # read the errorsummaryoverview file, add to permadatadict
+    errors_overview_filename = f'{dataset}{errors_overview_suffix}.xlsx'
+    errors_overview_fullname = os.path.join(errorsummarypath, errors_overview_filename)
+    permdatadict, errorsummaryheader = updatepermdict(errors_overview_fullname, permdatadict, sample=sample)
+
+
     # make a copy of the original permfullname if it exists
     if os.path.exists(permfullname):
         savecopy(permfullname, prevsuffix='', prevprefix='previous_')
@@ -122,17 +129,21 @@ def removedelsym(coms: List[str]) -> List[str]:
     return newcoms
 def smartmerge(com1:str, com2:str) -> str:
     rawcom1s = com1.split(commentsep)
-    com1s = [rawcom1.strip() for rawcom1 in rawcom1s]
+    com1s1 = [rawcom1.strip() for rawcom1 in rawcom1s]
+    com1s = [] if com1s1 == [''] else com1s1
     rawcom2s = com2.split(commentsep)
-    com2s = [rawcom2.strip() for rawcom2 in rawcom2s]
+    com2s1 = [rawcom2.strip() for rawcom2 in rawcom2s]
+    com2s = [] if com2s1 == [''] else com2s1
     toremove = [com1[1:] for com1 in com1s if com1.startswith(commentdelsym)] + \
                [com2[1:] for com2 in com2s if com2.startswith(commentdelsym)]
     com1s = removedelsym(com1s)
     com2s = removedelsym(com2s)
     newcoms = [com1 for com1 in com1s if com1 not in toremove]
+
     for com in com2s:
         if com not in newcoms and com not in toremove:
             newcoms.append(com)
+    newcoms = [''] if newcoms == [] else newcoms
     result = commentsep.join(newcoms)
     return result
 
@@ -144,11 +155,11 @@ def mergerows(row1, row2):
         rawel1, rawel2 = eltuple
         el1, el2 = removeduplicates(rawel1), removeduplicates(rawel2)
         if el1.lower() == el2.lower():
-            newel = el2
+            newel = smartmerge(el1, el2)
         elif el2 == '':
-            newel = el1
+            newel = smartmerge(el1, el2)
         elif el1 == '':
-            newel = el2
+            newel = smartmerge(el1, el2)
         else:
             newel = smartmerge(el1, el2)
         newrow.append(newel)
@@ -165,7 +176,7 @@ def updatepermdict(fullname, permdict, sample=None, permfile=False):
     #Voeg silverfulldatadict toe aan permdict
     for key in silverfulldatadict:
         if key not in permdict:
-            permdict[key] = silverfulldatadict[key]
+            permdict[key] = mergerows(empty_user_comments, silverfulldatadict[key])
         elif key in permdict:
             newval = mergerows(permdict[key], silverfulldatadict[key])
             # for i in overwritten:

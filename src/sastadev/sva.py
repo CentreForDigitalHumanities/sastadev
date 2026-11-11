@@ -1,11 +1,12 @@
 import copy
-from typing import List
+from typing import Any, Callable, List, Optional
 
 from lxml import etree
 from sastadev import correctionlabels
 from sastadev.conf import settings
 from sastadev.lexicon import (getinflforms, getwordposinfo, informlexiconpos,
-                              pvinfl2dcoi)
+                              pvinfl2dcoi, tswnouns)
+from sastadev.list_functions import pred, succ
 from sastadev.metadata import bpl_node_nolemma, mkSASTAMeta
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import SynTree, UttId
@@ -13,10 +14,13 @@ from sastadev.tokenmd import TokenListMD
 from sastadev.treebankfunctions import (copymodifynode, find1, getattval,
                                         getdetof, getheadof, getlemma, getnodeyield, gettokenpos_str, getyieldstr,
                                         indextransform, inverted, lbrother, mktoken2nodemap,
-                                        nominal, rbrother, showtree,
+                                        nominal, rbrother, requires_plural_tw, show_node_list, show_nodeyield, showtree,
                                         simpleshow)
 
+gav = getattval
 debug = False
+
+det_pron_vnws = ['je',  'ons', 'jullie', 'hun', 'haar']
 
 nominalpts = ['n', 'vnw', 'tw']
 nominalisablepts = ['adj', 'ww']
@@ -143,6 +147,210 @@ pvnodestringtemplate = """
 precedingjequerytemplate = ".//node[@word='je' and @end='{nounbegin}']"
 
 
+def get_dir_distance(node1, node2, nodelist) -> int:
+    node1_pos = None
+    node2_pos = None
+    for i, node in enumerate(nodelist):
+        if node == node1:
+            node1_pos = i
+        if node == node2:
+            node2_pos = i
+    if node1_pos is not None and node2_pos is not None:
+        result = node2_pos - node1_pos
+    else:
+        result = None
+    return result
+
+
+def findclosest(rawcands: List[SynTree], thepv: SynTree, attvals: dict, nodelist:List[SynTree]) -> Optional[SynTree]:
+    cands = [node for node in rawcands
+             if all([gav(node, att) == val for att,val in attvals.items()])]
+    if cands == []:
+        return None
+    mindiff = 100
+    result = None
+    for cand in cands:
+        dirdiff = get_dir_distance(cand, thepv, nodelist)
+        if dirdiff is not None:
+            diff = abs(dirdiff)
+            if diff < mindiff:
+                mindiff = diff
+                result = cand
+    return result
+
+def get_leftmost(thelist: list, cond: Callable = lambda x: True, sortkey: Callable= lambda x: True) -> Any:
+    sorted_list = sorted(thelist, key= sortkey)
+    for el in sorted_list:
+        if cond(el):
+            return el
+    return None
+
+def filter_subj_candidates(node_list: List[SynTree]) -> List[SynTree]:
+    new_node_list = []
+    for node in node_list:
+        node_pt = gav(node, 'pt')
+        node_succ = succ(node, node_list)
+        node_succ_pt = gav(node_succ, 'pt') if node_succ is not None else ''
+        if node_pt in ['tw', 'adj'] and node_succ_pt == 'n':
+            pass   # we ignore tw's and adjs immediately followed by a noun
+        else:
+            new_node_list.append(node)
+    return new_node_list
+
+def filter_leftmost_candidates(node_list: List[SynTree], pv: SynTree) -> List[SynTree]:
+    new_node_list = []
+    perspro_found = False
+    for node in node_list:
+        node_is_perspro = gav(node, 'vwtype') in ['pers', 'pr'] and gav(node, 'naamval') in ['stan']
+        node_is_nomin = gav(node, 'naamval') == 'nomin'
+        node_precedes_pv = int(gav(node, 'begin')) < int(gav(pv, 'begin'))
+        if node_is_nomin and node_precedes_pv:    # post_pv pronouns must be adjacent to the pv, so will be caught elsewhere
+            return [node]
+        elif node_is_perspro and node_precedes_pv and not perspro_found:
+            perspro_found = True
+            new_node_list = [node]
+        elif not perspro_found:
+            new_node_list.append(node)
+    return new_node_list
+
+
+
+
+def find_best_subject(potsubjs: List[SynTree], thepv: SynTree, nodelist, start_from:int=0, used_subjects=[]) -> Optional[SynTree]:
+    """
+    The  word that is most likely the subject of *thepv* if
+    * if it is behind *thepv* and the distance is 1 and it is nominative and there is no equally distant potsubj not preceded by a pv
+    * otherwise if it is the nominative node that is closest to *thepv*
+    * otherwise if it is the leftmost node to the right of the *start_from*
+
+    hij gaat denk ik naar huis
+    gaat hij denk je naar huis
+    hij gaat ik denk naar huis
+    ik denk dat de man het boek koopt
+    """
+    raw_cands = [node for node in potsubjs
+                 if int(gav(node, 'begin')) >= start_from and not is_a_used_subject(node, used_subjects)]
+    cands = filter_subj_candidates(raw_cands)
+    if cands == []:
+        return None
+    closest_cands = []
+    mindiff = 100
+    for cand in potsubjs:
+        dir_distance = get_dir_distance(thepv, cand, nodelist)
+        if dir_distance is not None:
+            diff = abs(dir_distance)
+            if diff <= mindiff:
+                if diff == mindiff:
+                    closest_cands.append((cand, dir_distance))
+                else:
+                    closest_cands = [(cand, dir_distance)]
+                mindiff = diff
+    filtered_cands = filter_leftmost_candidates(cands, thepv)
+    leftmost_cand = get_leftmost(filtered_cands,
+                                 cond=lambda x: int(gav(x, 'begin')) >= start_from and
+                                                not is_a_used_subject(x, used_subjects),
+                                 sortkey=lambda x: int(gav(x, 'begin')))
+
+    # there can be at  most 2, one before, one after thepv
+    before_tuples = [(node, dd) for node, dd in closest_cands if dd < 0]
+    behind_tuples = [(node, dd) for node, dd in closest_cands if dd > 0]
+    before_tuple = before_tuples[0] if before_tuples else None
+    behind_tuple = behind_tuples[0] if behind_tuples else None
+    before_node = before_tuple[0] if before_tuple else None
+    behind_node = behind_tuple[0] if behind_tuple else None
+    before_is_perspro = (before_node is not None and gav(before_node, 'pt') == 'vnw' and
+                         gav(before_node, 'vwtype') in ['pers', 'pr'])
+    behind_is_perspro = (behind_node is not None and gav(behind_node, 'pt') == 'vnw' and
+                         gav(behind_node, 'vwtype') in ['pers', 'pr'])
+    before_case = gav(before_node, 'naamval')
+    behind_case = gav(behind_node, 'naamval')
+    if before_node is None and behind_node is not None:
+        if not behind_is_perspro:
+            result = behind_node
+        elif behind_tuple[1] == 1 and not is_a_used_subject(behind_node, used_subjects):
+            result = behind_node
+        else:
+            result = None
+    elif before_node is not None and behind_node is None:
+        if before_is_perspro and before_case in ['nomin', 'stan'] and not is_a_used_subject(before_node, used_subjects):
+            result = before_node
+        else:
+            result = leftmost_cand
+    elif before_node is None and behind_node is None:   # should not occur
+        result = None
+        settings.LOGGER.error(f'Error determining before and behind node: {closest_cands}')
+    elif before_node is not None and behind_node is not None:
+        if behind_is_perspro and behind_case in ['nomin', 'stan'] and not is_a_used_subject(behind_node, used_subjects):
+            if before_is_perspro and before_case in ['nomin', 'stan'] and not is_a_used_subject(before_node, used_subjects):
+                result = before_node
+            else:
+                result = behind_node
+        elif before_is_perspro and before_case in ['nomin', 'stan'] and not is_a_used_subject(before_node, used_subjects):
+            result = before_node
+        else:
+            result = leftmost_cand
+    else:
+        #cannot occur
+        result = None
+    return result
+
+def is_a_used_subject(node: SynTree, used_subjects: List[SynTree]) -> bool:
+    node_begin = gav(node, 'begin')
+    result = any([gav(n, 'begin') == node_begin for n in used_subjects])
+    return result
+
+
+def find_best_nominative(potsubjs: List[SynTree], thepv: SynTree, nodelist) -> Optional[SynTree]:
+    """
+    The nominative word that is most likely the subject of *thepv* if
+    * if it is behind *thepv* and the distance is 1 and there is no equally distant potsubj not preceded by a pv
+    * otherwise if it is the node that is closest to *thepv*
+
+    hij gaat denk ik naar huis
+    gaat hij denk je naar huis
+    hij gaat ik denk naar huis
+    """
+    cands = [node for node in potsubjs if gav(node, 'naamval') == 'nomin']
+    if cands == []:
+        return None
+    closest_cands = []
+    mindiff = 100
+    for cand in cands:
+        dir_distance = get_dir_distance(thepv, cand, nodelist)
+        if dir_distance is not None:
+            diff = abs(dir_distance)
+            if diff <= mindiff:
+                if diff == mindiff:
+                    closest_cands.append((cand, dir_distance))
+                else:
+                    closest_cands = [(cand, dir_distance)]
+                mindiff = diff
+
+    # there can be at  most 2, one before, one after thepv
+    beforenodes = [(node, dd) for node, dd in closest_cands if dd < 0]
+    behindnodes = [(node, dd) for node, dd in closest_cands if dd > 0]
+    beforenode = beforenodes[0] if beforenodes else None
+    behindnode = behindnodes[0] if behindnodes else None
+    if beforenode is None and behindnode is not None:
+        result = behindnode[0]
+    elif beforenode is not None and behindnode is None:
+        result = beforenode[0]
+    elif beforenode is None and behindnode is None:   # should not occur
+        result = None
+        settings.LOGGER.error(f'Error determining before and behind node: {closest_cands}')
+    elif beforenode is not None and behindnode is not None:
+        prev_pv = pred(thepv, nodelist)
+        result = behindnode[0] if prev_pv not in potsubjs else beforenode[0]
+    else:
+        #cannot occur
+        result = None
+    return result
+
+
+
+
+
+
 def findfirst(nodelist, att, values):
     '''
 
@@ -206,14 +414,42 @@ def ptsubjcheck(child):
         zijsgnodestring = zijsgnodestringtemplate.format(begin=childbegin, end=childend, rel=childrel)
         zijsgnode = etree.fromstring(zijsgnodestring)
         results.append(zijsgnode)
-    elif childpt in nominalpts and childspecial != "er_loc":
+    elif childpt in nominalpts and childspecial != "er_loc" and childspecial != "er":
+        results.append(child)
+    elif childlemma in tswnouns:
         results.append(child)
     elif childpt in nominalisablepts and getattval(child, 'positie') == 'nom':
         results.append(child)
     return results
 
-
 def getpotsubjs(tree):
+    results = []
+    nodeyield = getnodeyield(tree)
+    for node in nodeyield:
+        if 'pt' in node.attrib:
+            nodept = getattval(node, 'pt')
+            nodecase = getattval(node, 'naamval')
+            nodevwtype = getattval(node, 'vwtype')
+            nodeword = getattval(node, 'word').lower()
+            node_pdtype = getattval(node, 'pdtype')
+            node_lemma = getattval(node, 'lemma')
+            node_rel = getattval(node, 'rel')
+            if nodeword == 'zij':
+                zijnode = getnode(zijsgnodestringtemplate, node)
+                results.append(zijnode)
+            #elif nodeword == 'ze':  # uitgezte want het levert fouten op
+            #    zenode = getnode(zesgnodestringtemplate, node)
+            #    results.append(zenode)
+            elif nodept == 'vnw' and nodevwtype == 'pers' and nodecase == 'obl' and nodeword not in ['je']:
+                pass  # exclude pronouns such as me, hem, mij, etc as subjects
+            elif nodept == 'vnw' and (node_pdtype == 'det' or node_rel == 'det') and node_lemma not in det_pron_vnws:
+                pass
+            else:
+                results += ptsubjcheck(node)
+
+    return results
+
+def old_getpotsubjs(tree):
     results = []
     for child in tree:
         if 'pt' in child.attrib:
@@ -353,7 +589,9 @@ def getpvs(tokensmd: TokenListMD, tree: SynTree, uttid: UttId) -> List[SynTree]:
                                                                    pvagr=pvagr, pvtijd=pvtijd, begin=nounbegin, end=nounend)
                         pvnode = etree.fromstring(pvnodestring)
                         pvs.append(pvnode)
-        return pvs
+        # sort the pvs in the right order
+        sorted_pvs = sorted(pvs, key=lambda pvnode: int(gav(pvnode, 'begin')))
+        return sorted_pvs
 
 
 def zijnimperativeok(vnode):
@@ -458,7 +696,12 @@ def getsvacorrectedutt(snode, thepv, tokens, metadata):
     return results
 
 
-def getsvacorrections(tokensmd: TokenListMD, rawtree: SynTree, uttid: UttId) -> List[TokenListMD]:
+def filter_pvs(raw_pvs: List[SynTree], node_yield: List[SynTree]) -> List[SynTree]:
+    results = [pv for pv in raw_pvs if not(gav(pv, 'word') == 'zeg' and gav(succ(pv, node_yield), 'lemma') == 'maar')]
+    return results
+
+
+def getsvacorrections(tokensmd: TokenListMD, rawtree: SynTree, uttid: UttId, start_from: int = 0, used_subjects=[]) -> List[TokenListMD]:
     '''
 
     :param tokensmd: the input sequence of tokens plus metadata
@@ -505,6 +748,8 @@ def getsvacorrections(tokensmd: TokenListMD, rawtree: SynTree, uttid: UttId) -> 
 
 
     '''
+    overall_results = []
+    new_used_subjects = copy.deepcopy(used_subjects)
     debug = False
     if debug:
         showtree(rawtree, text='rawtree')
@@ -516,12 +761,17 @@ def getsvacorrections(tokensmd: TokenListMD, rawtree: SynTree, uttid: UttId) -> 
         metadata = copy.deepcopy(tokensmd.metadata)
         ltokens = len(tokens)
         newtokens = []
+        nodeyield = getnodeyield(tree)
 
-        pvs = getpvs(tokensmd, tree, uttid)
+        rawpvs1 = getpvs(tokensmd, tree, uttid)
+        rawpvs = filter_pvs(rawpvs1, nodeyield)
+        pvs = [pv for pv in rawpvs if int(gav(pv, 'begin')) >= start_from]
+        if pvs == []:
+            return []
         abnormalobj2matches = tree.xpath(abnormalobj2sentencexpath)
-        if len(pvs) != 1:
-            results = []
-        elif (tree.xpath(normalsentencexpath) != [] and abnormalobj2matches == []) or \
+        # if len(pvs) != 1:
+        #     results = []
+        if (tree.xpath(normalsentencexpath) != [] and abnormalobj2matches == []) or \
                 tree.xpath(normalwhqsentencexpath) != []:
             thesubjs = tree.xpath(subjxpath)
             if thesubjs != []:
@@ -551,9 +801,14 @@ def getsvacorrections(tokensmd: TokenListMD, rawtree: SynTree, uttid: UttId) -> 
             if potsubjs == []:
                 results = []
             else:
-                nominativenode = findfirst(potsubjs, 'naamval', {'nomin'})
-                if nominativenode is not None:
-                    thesubj = nominativenode
+                subject_node = find_best_subject(potsubjs, thepv, nodeyield, start_from=start_from, used_subjects=used_subjects)
+                # if no subject found in abnornalobj2matches try the normal way
+                if subject_node is None and abnormalobj2matches != []:
+                    potsubjs = getpotsubjs(tree)
+                    subject_node = find_best_subject(potsubjs, thepv, nodeyield, start_from=start_from, used_subjects=used_subjects)
+                if subject_node is not None:
+                    thesubj = subject_node
+                    new_used_subjects.append(thesubj)
                 # next left out because dealt with in a different way
                 #   elif pvstype == 'imparative' and zijnimperativeok(thepv) and not modalinv(thepv):
                 #       sunode = findfirst(potsubjs, 'rel', {'su'})
@@ -568,23 +823,85 @@ def getsvacorrections(tokensmd: TokenListMD, rawtree: SynTree, uttid: UttId) -> 
                 #              jenodestring = jenodestringtemplate.format(begin=thepvend, end=thepvend, rel='su' )
                 #              jenode = etree.fromstring(jenodestring)
                 #              thesubj = jenode
+                    thesubjlemma = getattval(thesubj, 'lemma')
+                    if thesubjlemma == 'u':
+                        usgnode = getnode(usgnodestringtemplate, thesubj)
+                        thesubj = usgnode
+                    thesubjpersoon = getattval(thesubj, 'persoon')
+                    if thesubjpersoon == 'persoon' or thesubjpersoon == '':
+                        thesubj = copymodifynode(thesubj, {'persoon': '3'})
+                    thesubjgetal = getattval(thesubj, 'getal')
+                    if thesubjgetal == '':
+                        if requires_plural_tw(thesubj):
+                            thesubj = copymodifynode(thesubj, {'getal': 'mv'})
+                        else:
+                            thesubj = copymodifynode(thesubj, {'getal': 'ev'})
+
+
+                    if phicompatible(thesubj, thepv):
+                        results = []
+                    elif is_zeheb(thesubj, thepv):
+                        results = mk_zeheeft(tokens, thepv, metadata)
+                    else:
+                        results = getsvacorrectedutt(thesubj, thepv, tokens, metadata)
                 else:
-                    sortedpotsubjs = sorted(potsubjs, key=lambda x: getattval(x, 'end'))
-                    thesubj = sortedpotsubjs[0]
-                thesubjlemma = getattval(thesubj, 'lemma')
-                if thesubjlemma == 'u':
-                    usgnode = getnode(usgnodestringtemplate, thesubj)
-                    thesubj = usgnode
-                thesubjpersoon = getattval(thesubj, 'persoon')
-                if thesubjpersoon == 'persoon':
-                    thesubj = copymodifynode(thesubj, {'persoon': '3'})
-                if phicompatible(thesubj, thepv):
                     results = []
-                else:
-                    results = getsvacorrectedutt(thesubj, thepv, tokens, metadata)
+        overall_results += results
+        new_start_from = int(gav(thepv, 'end'))
+        for result in results+[tokensmd]:
+            overall_results += getsvacorrections(result, rawtree, uttid, start_from=new_start_from,
+                                                 used_subjects=new_used_subjects)
 
-        return results
+        return overall_results
 
+
+def is_zeheb(thesubj, thepv) -> bool:
+    thesubj_lemma = gav(thesubj, 'lemma')
+    thepv_word = gav(thepv, 'word')
+    result = thesubj_lemma in ['zij', 'ze'] and thepv_word.lower() == 'heb'
+    return result
+
+def mk_zeheeft(tokens, thepv, metadata):
+    verbose = False
+    wholetree = find1(thepv, './ancestor::alpino_ds')
+    thepvword = getattval(thepv, 'word')
+    wholetreeyieldstr = getyieldstr(wholetree)
+    if verbose:
+        print(gettokenpos_str(wholetree))
+    if wholetree is not None:
+        leaves = getnodeyield(wholetree)
+        token2nodemap = mktoken2nodemap(tokens, wholetree)
+        nodepos2tokenposmap = {int(getattval(n, 'begin')): tokpos for tokpos, n in token2nodemap.items()}
+    else:
+        nodepos2tokenposmap = {}
+        settings.LOGGER.error(f'No wholetree found for {thepvword} with subject {snodeyield} in {wholetreeyieldstr}')
+    newtokens = []
+    newmetadata = copy.deepcopy(metadata)
+    pvbegin = getattval(thepv, 'begin')
+    newpv = 'heeft'
+    ipvbegin = int(pvbegin)
+    if ipvbegin not in nodepos2tokenposmap:
+        settings.LOGGER.error(
+            f'{thepvword} in position {pvbegin} not in {nodepos2tokenposmap} for {wholetreeyieldstr}.\n No '
+            f'correction '
+            f'applied')
+        return []
+    newpos = nodepos2tokenposmap[ipvbegin]
+    newtoken = Token(newpv, newpos)
+    for token in tokens:
+        if token.pos != newpos:
+            newtokens.append(token)
+        else:
+            oldtoken = token
+            newtokens.append(newtoken)
+            meta = mkSASTAMeta(oldtoken, newtoken, name=correctionlabels.grammarerror,
+                               value=correctionlabels.svaerror,
+                               cat=correctionlabels.syntax,
+                               backplacement=bpl_node_nolemma)
+            newmetadata.append(meta)
+
+    results = [TokenListMD(newtokens, newmetadata)]
+    return results
 
 def getpersons(vnode):
     pvagr = getattval(vnode, 'pvagr')
@@ -634,8 +951,11 @@ def phicompatible(snode, vnode):
         return False
     subjnode = snode
     subjnodelemma = getlemma(subjnode)
+    subjnodeword = getattval(subjnode, 'word')
     inversion = inverted(subjnode, vnode)
     if subjnodelemma in ['het', 'u', 'je']:
+        subjgetal = 'ev'
+    elif subjnodelemma in tswnouns and subjnodeword == subjnodelemma:
         subjgetal = 'ev'
     else:
         subjgetal = getattval(subjnode, 'getal')
@@ -668,9 +988,9 @@ def phicompatible(snode, vnode):
         elif subjperson in vnodepersons and not inversion:
             result = True
         elif '2i' in vnodepersons:
-            subjbegin = getattval(subjnode, 'begin')
-            vnodeend = getattval(vnode, 'end')
-            result = subjperson == '2' and '2i' in vnodepersons and subjbegin >= vnodeend and \
+            subjbeginint = int(getattval(subjnode, 'begin'))
+            vnodeendint = int(getattval(vnode, 'end'))
+            result = subjperson == '2' and '2i' in vnodepersons and subjbeginint >= vnodeendint and \
                 subjnodelemma in ['jij', 'je']
         elif 'u' in vnodepersons:
             subjnodelemma = getattval(subjnode, 'lemma')

@@ -194,8 +194,8 @@ def get_annotations(infilename: FileName, allitems: List[str], themethod: Method
     startcol = min([col for col in [firstwordcol, unalignedcol, commentscol, stagescol] if col >=0])
     for row in data:
         if row[uttidcol] != "":
-            # this might go wrong if there is no integer there @@make it robust
-            uttid = str(int(row[uttidcol]))
+            # this might go wrong if there is no integer there @@make it robust: removed int()
+            uttid = str(row[uttidcol])
         thelevel = row[levelcol]
         thelevel = clean(thelevel)
         all_levels.add(thelevel)

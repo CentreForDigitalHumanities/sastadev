@@ -64,7 +64,7 @@ class Human(Animate):
     name: str = "Human"
 
 @dataclass
-class NonHuman(Animate):
+class NonHuman(Animate, NonAnimate):
     name: str = "NonHuman"
 
 @dataclass

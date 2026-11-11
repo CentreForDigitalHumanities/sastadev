@@ -1,18 +1,16 @@
-import os
 from collections import defaultdict
-from typing import Callable, List, Tuple
-
 from Levenshtein import distance
 from lxml import etree
-
+import os
 from sastadev.conf import settings
 from sastadev.constants import outtreebanksfolder
 from sastadev.datasets import infiguresdatasets
 from sastadev.filefunctions import getbasename
-from sastadev.lexicon import known_word
-from sastadev.sastatypes import SynTree, TreeBank
-from sastadev.treebankfunctions import getattval, getmeta, getorigutt, getxsid
+from sastadev.lexicon import validword, known_word
+from sastadev.sastatypes import TreeBank, SynTree
+from sastadev.treebankfunctions import getattval, getorigutt, getmeta, getxsid
 from sastadev.xlsx import mkworkbook
+from typing import Callable, List, Tuple
 
 comma = ','
 
@@ -131,9 +129,12 @@ def findbestwords(wrongword: str, context: List[SynTree], cond: Callable) -> Lis
     bestred = 1
     for wordnode, distance in wntuples:
          word = getattval(wordnode, 'word')
-         red = relativedistance(wrongword, word)
-         if red < redthreshold:
-             rawresults.append((word, red, distance))
+         if word == wrongword:   # we gamble that if the adult says the same word as the child, the word is a real word
+             rawresults.append((word, 0.0, distance))
+         elif known_word(word):                            # otherwise we will correct a wrong word by a wrong word indefinitely
+             red = relativedistance(wrongword, word)
+             if red < redthreshold:
+                 rawresults.append((word, red, distance))
     sortedresults = sorted(rawresults, key=lambda x: (x[1], x[2]))
     if sortedresults != []:
         first = sortedresults[0]

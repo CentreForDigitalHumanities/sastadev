@@ -8,6 +8,7 @@ for this purpose.
 
 
 '''
+import json
 import os
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
@@ -20,6 +21,7 @@ from sastadev.namepartlexicon import (namepart_isa_namepart,
 from sastadev.readcsv import readcsv
 from sastadev.sastatypes import CELEX_INFL, DCOITuple, Lemma, SynTree, WordInfo
 from sastadev.stringfunctions import ispunctuation, strip_accents
+from sastadev.tblex import isalpinonouncompound
 
 alpinoparse = settings.PARSE_FUNC
 space = ' '
@@ -33,7 +35,7 @@ chatspecials = ['xxx', 'yyy']
 
 lexicon = celex
 
-
+spelling_min_frq = 50   # this is the frequency assigned to words that did not occur
 
 #Alpino often analyses certain words as tsw though they should be analysed as nouns
 tswnouns = ['baby', 'jongen', 'juf', 'juffrouw', 'mam', 'mama', 'mamma', 'meisje', 'mens', 'meneer', 'mevrouw',
@@ -54,7 +56,17 @@ valid_ambiguous_words = ['zijn', 'wel', 'niet', 'effe', 'mij', 'drinken', 'dees'
 
 rpronoun_lemmas = ['daar', 'er', 'ergens', 'hier', 'nergens', 'overal', 'waar']
 
-alt_pt_ww_n_pairdict = {'eten': 'voedsel'}
+alt_pt_ww_n_pairdict = {'eten': 'voedsel', 'drinken': 'voedsel'}
+
+hwwilemmas = {'behoren', 'blijven', 'doen', 'gaan', 'hoeven', 'horen', 'komen', 'kunnen',
+              'laten', 'liggen','lopen', 'mogen', 'moeten',
+              'staan', 'willen', 'zijn', 'zitten', 'zullen'}
+
+question_promotors = {'nou', 'nu', 'toch', 'dan'}
+
+adj_e_exceptions = [('onder', 'andere')]
+
+type_I_adj_n_pairs = [('Nederlands', 'elftal'), ('academisch', 'ziekenhuis')]
 
 def initializelexicon(lexiconfilename) -> set:
     lexicon = set()
@@ -96,6 +108,17 @@ def initializelexicondefdict(lexiconfilename) -> Dict[str,List[str]]:
         strippedreplacement = fp[1].strip()
         lexicon[strippedword].append(strippedreplacement)
     return lexicon
+
+def get_tuple_lexicon(lexicon_full_name) -> set:
+    lexicon = set()
+    i_rows = readcsv(lexicon_full_name, header=False)
+    for _, row in i_rows:
+        stripped_row = [el.strip() for el in row]
+        stripped_tuple = tuple(stripped_row)
+        lexicon.add(stripped_tuple)
+    return lexicon
+
+
 
 def isa_namepart(word: str) -> bool:
     '''
@@ -248,71 +271,78 @@ def chatspecial(word: str) -> bool:
     result = word in chatspecials
     return result
 
-
-def known_word(word: str, includealpinonouncompound=True) -> bool:
-    '''
-    a word is considered to be a known_word if it occurs in the word form lexicon,
-    if it is a name part, or if it is a chatspecial item, or in a lexicon with additional words,
-    or  a compound noun recognised as such by Alpino (the latter unless excluded)
-    but not in the nonwordslexicon
-    :param word:
-    :return:
-    '''
-    result = informlexicon(word) or isa_namepart(word) or \
-             chatspecial(word) or word in additionalwordslexicon or \
-             isallersuperlative(word) or issuperadjective(word)
-    if includealpinonouncompound:
-        result = result or isalpinonouncompound(word)
-    result = result and word not in nonwordslexicon
-    return result
-
+# moved to tblex
+# def known_word(word: str, includealpinonouncompound=True) -> bool:
+#     '''
+#     a word is considered to be a known_word if it occurs in the word form lexicon,
+#     if it is a name part, or if it is a chatspecial item, or in a lexicon with additional words,
+#     or  a compound noun recognised as such by Alpino (the latter unless excluded)
+#     but not in the nonwordslexicon
+#     :param word:
+#     :return:
+#     '''
+#     result = informlexicon(word)  or isa_namepart(word) or \
+#              chatspecial(word) or word in additionalwordslexicon or \
+#              word in spellingadditions or isallersuperlative(word) or issuperadjective(word)
+#     if includealpinonouncompound:
+#         result = result or isalpinonouncompound(word)
+#     result = result and word not in nonwordslexicon
+#     return result
+#
 
 comma = ','
 compoundsep = '_'
 
-def validword(wrd: str, methodname: MethodName, includealpinonouncompound=True) -> bool:
-    result = wrd == '' or known_word(wrd, includealpinonouncompound=includealpinonouncompound)
-    if methodname in {tarsp, stap}:
-        result = result and not nochildword(wrd)
-    return result
-
-def validnotalpinocompoundword(wrd: str, methodname: MethodName) -> bool:
-    result = validword(wrd, methodname, includealpinonouncompound=False)
-    return result
+# def validword(wrd: str, methodname: MethodName, includealpinonouncompound=True) -> bool:
+#     result = wrd == '' or known_word(wrd, includealpinonouncompound=includealpinonouncompound)
+#     if methodname in {tarsp, stap}:
+#         result = result and not nochildword(wrd)
+#     return result
+#
+# def validnotalpinocompoundword(wrd: str, methodname: MethodName) -> bool:
+#     result = validword(wrd, methodname, includealpinonouncompound=False)
+#     return result
 
 
 def nochildword(wrd: str) -> bool:
     result = wrd in nochildwords
     return result
 
-def isalpinonouncompound(wrd: str) -> bool:
-    if ispunctuation(wrd):
-        return False
-    fullstr = f'geen {wrd}'  # geen makes it a noun and can combine with uter and neuter, count and mass, sg and plural
-    tree = alpinoparse(fullstr)
-    # find the noun
-    if tree is None:
-        settings.LOGGER.error(f'Parsing {fullstr} failed')
-        return False
-    nounnode = treebankfunctions.find1(tree, './/node[@pt="n"]')
-    if nounnode is None:
-        # settings.LOGGER.error(f'No noun found in {fullstr} parse')
-        return False
-    nounwrd = treebankfunctions.getattval(nounnode, 'word')
-    if nounwrd != wrd:
-        settings.LOGGER.error(f'Wrong noun ({nounwrd}) found in {fullstr} parse')
-        return False
-    nounlemma = treebankfunctions.getattval(nounnode, 'lemma')
-    if compoundsep in nounlemma:
-        parts = nounlemma.split(compoundsep)
-        unknownparts = [part for part in parts if not known_word(part) and part != "DIM"]
-        result = unknownparts == []
-        if not result:
-            settings.LOGGER.error(f'Unknown words ({comma.join(unknownparts)}) found in {fullstr} parse')
-            return False
-        return True
-    else:
-        return False
+# moved to tblex.py
+# def isalpinonouncompound(wrd: str) -> bool:
+#     if ispunctuation(wrd):
+#         return False
+#     fullstr = f'geen {wrd}'  # geen makes it a noun and can combine with uter and neuter, count and mass, sg and plural
+#     tree = alpinoparse(fullstr)
+#     # find the noun
+#     if tree is None:
+#         settings.LOGGER.error(f'Parsing {fullstr} failed')
+#         return False
+#     nounnode = treebankfunctions.find1(tree, './/node[@pt="n"]')
+#     if nounnode is None:
+#         # settings.LOGGER.error(f'No noun found in {fullstr} parse')
+#         return False
+#     nounwrd = treebankfunctions.getattval(nounnode, 'word')
+#     if nounwrd != wrd:
+#         settings.LOGGER.error(f'Wrong noun ({nounwrd}) found in {fullstr} parse')
+#         return False
+#     nounlemma = treebankfunctions.getattval(nounnode, 'lemma')
+#     if compoundsep in nounlemma:
+#         parts = nounlemma.split(compoundsep)
+#         unknownparts = [part for part in parts if not known_word(part) and part != "DIM"]
+#         result = unknownparts == []
+#         if not result:
+#             settings.LOGGER.error(f'Unknown words ({comma.join(unknownparts)}) found in {fullstr} parse')
+#             return False
+#         return True
+#     else:
+#         return False
+
+def tuple_lexicon_2_map(tuple_lexicon: set) -> dict:
+    result = defaultdict(list)
+    for k, v in tuple_lexicon:
+        result[k].append(v)
+    return result
 
 
 def isallersuperlative(wrd:str) -> bool:
@@ -340,7 +370,6 @@ def getinflforms(thesubj: SynTree, thepv: SynTree, inversion: bool) -> List[str]
         results = []
     return results
 
-
 def alldutchwords(correct: str) -> bool:
     newcorrect = correct
     words = newcorrect.split()
@@ -360,17 +389,17 @@ def isvalidtoken(wrd:str) -> bool:
     return result
 
 
+
+lexiconfoldername = 'data/aux_lexicons'
+
 nochildwordsfilename = 'nochildwords.txt'
-nochildwordsfolder = 'data/nochildwords'
-nochildwordsfullname = os.path.join(settings.SD_DIR, nochildwordsfolder, nochildwordsfilename)
+nochildwordsfullname = os.path.join(settings.SD_DIR, lexiconfoldername, nochildwordsfilename)
 nochildwords = initializelexicon(nochildwordsfullname)
 
-lexiconfoldername = 'data/wordsunknowntoalpino'
 wordsunknowntoalpinofilename = 'wordsunknowntoalpino.txt'
 wordsunknowntoalpinofullname = os.path.join(settings.SD_DIR, lexiconfoldername, wordsunknowntoalpinofilename)
 wordsunknowntoalpinolexicondict = initializelexicondefdict(wordsunknowntoalpinofullname)
 
-lexiconfoldername = 'data/filledpauseslexicon'
 
 filledpausesfilename = 'filledpauseslexicon.txt'
 filledpausesfullname = os.path.join(settings.SD_DIR, lexiconfoldername, filledpausesfilename)
@@ -400,18 +429,87 @@ wrongposwordslexiconfilename = 'wrongposwordslexicon.txt'
 wrongposwordslexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, wrongposwordslexiconfilename)
 wrongposwordslexicon = initializelexicon(wrongposwordslexiconfullname)
 
+wrongposlemmaslexiconfilename = 'wrongposlemmaslexicon.txt'
+wrongposlemmaslexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, wrongposlemmaslexiconfilename)
+wrongposlemmaslexicon = initializelexicon(wrongposlemmaslexiconfullname)
+
+adj_no_pp_lexicon_filename = 'adj_no_pp_lexicon.txt'
+adj_no_pp_lexicon_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, adj_no_pp_lexicon_filename)
+adj_no_pp_lexicon = initializelexicon(adj_no_pp_lexicon_fullname)
+
+en_must_do_words_lexicon_filename = 'en_must_do_words_lexicon.txt'
+en_must_do_words_lexicon_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, en_must_do_words_lexicon_filename)
+en_must_do_words_lexicon = initializelexicon(en_must_do_words_lexicon_fullname)
+
+beroepenfilename = 'beroepen.txt'
+beroepenfullname = os.path.join(settings.SD_DIR, lexiconfoldername, beroepenfilename)
+# beroepenlist = readcsv(beroepenfullname)
+#beroepen = {beroep[0] for _, beroep in beroepenlist}
+beroepen = initializelexicon(beroepenfullname)
+
+mass_exceptions_filename = 'mass_exceptions.txt'
+mass_exceptions_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, mass_exceptions_filename)
+mass_exceptions = initializelexicon(mass_exceptions_fullname)
+
+both_exceptions_filename = 'both_count_mass_exceptions.txt'
+both_exceptions_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, both_exceptions_filename)
+both_exceptions = initializelexicon(both_exceptions_fullname)
+
+vz_count_n_combinations_filename = 'vz_count_n_combinations.txt'
+vz_count_n_combinations_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, vz_count_n_combinations_filename)
+vz_count_n_combinations = initializelexicon(vz_count_n_combinations_fullname)
+
+n_v_expressions_filename = 'bare_count_n_v_pairs.txt'
+n_v_expressions_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, n_v_expressions_filename)
+n_v_expression_list = initializelexicon(n_v_expressions_fullname)
+
+acronyms_filename = "acronyms.txt"
+acronyms_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, acronyms_filename)
+raw_acronyms_lexicon = initializelexicon(acronyms_fullname)
+acronyms_lexicon = {entry[0]:entry[1] for entry in raw_acronyms_lexicon}
+
+valid_asta_words_filename = "valid_asta_words.txt"
+valid_asta_words_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, valid_asta_words_filename)
+valid_asta_words_lexicon = initializelexicon(valid_asta_words_fullname)
+
+
 # validnouns is intended for nous  that Alpino assigns frame (both,both, both) but that are valid Dutch words
 validnouns = {'knijper', 'roosvicee'}
 
-lexiconfoldername = 'data/wordsunknowntoalpino'
 lemmalexiconfilename = 'lemmalexicon.txt'
-lemmalexiconfulname = os.path.join(settings.SD_DIR, lexiconfoldername, lemmalexiconfilename)
-lemmalexicon = initializelexicondict(lemmalexiconfulname)
+lemmalexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, lemmalexiconfilename)
+lemmalexicon = initializelexicondict(lemmalexiconfullname)
 
-lexiconfoldername = 'data/wordsunknowntoalpino'
 cardinallexiconfilename = 'cardinalnumerals.tsv'
 cardinallexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, cardinallexiconfilename)
 cardinallexicon = geninitializelexicondict(cardinallexiconfullname, 0)
+
+known_pronunciation_variants_filename = 'known_pronunciation_variants.txt'
+known_pronunciation_variants_fullname = os.path.join(settings.SD_DIR, lexiconfoldername,
+                                                     known_pronunciation_variants_filename)
+known_pronunciation_variants = get_tuple_lexicon(known_pronunciation_variants_fullname)
+known_pronunciation_variants_map = tuple_lexicon_2_map(known_pronunciation_variants)
+
+dat_su_verbs_filename = 'dat_su_verbs.txt'
+dat_su_verbs_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, dat_su_verbs_filename)
+dat_su_verbs = initializelexicon(dat_su_verbs_fullname)
+
+dat_obj1_verbs_filename = 'dat_obj1_verbs.txt'
+dat_obj1_verbs_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, dat_obj1_verbs_filename)
+dat_obj1_verbs = initializelexicon(dat_obj1_verbs_fullname)
+
+predicative_pp_expressions_filename = 'predicative_pp_expressions.txt'
+predicative_pp_expressions_fullname = os.path.join(settings.SD_DIR, lexiconfoldername, predicative_pp_expressions_filename)
+predicative_pp_expressions = initializelexicon(predicative_pp_expressions_fullname)
+
+# put off contains too many wrong words, e.g. so
+# lexiconfoldername = 'data/spellingcorrectorlexicon'
+# spellingcorrectorlexiconfilename = 'nl.json'
+# spellingcorrectorlexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, spellingcorrectorlexiconfilename)
+# with open(spellingcorrectorlexiconfullname, 'r', encoding='utf8') as spellingcorrectorlexiconfile:
+#     raw_spellingcorrectorlexicon = json.load(spellingcorrectorlexiconfile)
+#     spellingcorrectorlexicon = {wrd: frq for wrd, frq in raw_spellingcorrectorlexicon.items() if frq > spelling_min_frq}
+#     del raw_spellingcorrectorlexicon   # we do not need it anymore
 
 
 interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'mama', 'okee', 'hé', 'ah', 'oeh', 'au',
@@ -422,7 +520,7 @@ interjections = ['ja', 'nee', 'kijk', 'oh', 'he', 'hoor', 'hè', 'o', 'hee', 'ma
                  'ma', 'sst', 'och', 'tja', 'lieverd', 'hahaha', 'hoera', 'pap',
                  'echt', 'lalala', 'hopla', 'da', 'pff', 'hai', 'jongens', 'juffrouw', 'jeetje', 'tot', 'ziens', 'hihi',
                  'jonge', 'ohh', 'poeh', 'oef',
-                 'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx', 'dat',
+                 'meisje', 'aaah', 'auw', 'meid', 'niet', 'poe', 'en', 'schat', 'wel', 'ai', 'goed', 'xxxx',
                  'doei', 'tjongejonge', 'ooooh', 'hoewel', 'of',
                  'oke', 'neenee', 'pfff', 'mens', 'ps', 'oow', 'fff', 'juf', 'mevrouw', 'baby', 'dankuwel', 'waw',
                  'welterusten', 'sehhahahaha', 'hihihi', 'aaaah', 'wee', 'shit',
@@ -443,13 +541,80 @@ tsw_non_words = ['ee']
 
 modalverbs = ['hoeven', 'moeten', 'mogen', 'kunnen', 'willen', 'zullen']
 
-preferably_intransitive_verbs = ['gaan', 'slapen', 'rekenen'] + modalverbs
+preferably_intransitive_verbs = ['gaan', 'slapen', 'rekenen', 'zullen']   #   + modalverbs modalverbs removed
 
 kijkvuadverbs = ['eens', 'dan', 'hier', 'zo']
 
 chatcodes = ["xxx", "xx", "yyy", "yy"]
 
+shortrep_exceptions = ['de', 'we', 'ze', 'me', 'je', 'te']
+
+
+hebben_zijn_map = {'hebben': 'zijn', 'gehad': 'geweest', 'hebbend': 'zijnd',
+                   'heb':'ben', 'hebt': 'bent', 'heeft': 'is',
+                   'had': 'was', 'hadden': 'waren'
+                   }
+
+disambig_words = {'gebeurd': {"buiging":"zonder", 'frame': 'verb(zijn,psp,intransitive)', 'infl': 'psp',
+                              'lcat': 'ppart',"lemma": "gebeuren", "pos": "verb", "positie": "vrij",
+                              "postag": "WW(vd,vrij,zonder)", "pt": "ww", "root": "gebeur",
+                              'sc': 'intransitive', 'sense': 'gebeur', "word": "gebeurd", "wvorm": "vd" }}
+
+
+
+detless_count_nouns = ['papa', 'mama', 'oma', 'opa', 'moeder', 'sinterklaas', 'mam'] + \
+                       ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september',
+                        'oktober', 'november', 'december'] + \
+                       ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'] + \
+                       ['morgen', 'overmorgen', 'gisteren'] + \
+                       ['kerstmis', 'pasen', 'pinksteren', 'kerst'] +\
+                       ['eentje'] + \
+                       ['buiten', 'binnen']
+
+predc_detless_count_nouns = ['avond', 'ochtend', 'middag', 'nacht', 'weer']
+
+color_names = ['rood', 'wit', 'blauw', 'oranje', 'zwart', 'geel', 'groen']
+
+chat_xxx_codes = {'xxx', 'yyy', 'www'}
 
 junk = 0
 
 # to have a breakpoint after the last lexicon read
+
+
+
+def known_word(word: str, includealpinonouncompound=True) -> bool:
+    '''
+    a word is considered to be a known_word if it occurs in the word form lexicon,
+    if it is a name part, or if it is a chatspecial item, or in a lexicon with additional words,
+    or  a compound noun recognised as such by Alpino (the latter unless excluded)
+    but not in the nonwordslexicon
+    :param word:
+    :return:
+    '''
+    result = informlexicon(word)  or isa_namepart(word) or \
+             chatspecial(word) or word in additionalwordslexicon or \
+             word in spellingadditions or isallersuperlative(word) or issuperadjective(word)
+    if includealpinonouncompound:
+        result = result or isalpinonouncompound(word)
+    result = result and word not in nonwordslexicon
+    return result
+
+def is_acronym(wrd: str) -> bool:
+    result = wrd in acronyms_lexicon
+    result = result or robust_is_acronym(wrd) or wrd.upper() in acronyms_lexicon
+    return result
+
+def robust_is_acronym(wrd:str) -> bool:
+    result = wrd.lower() not in chat_xxx_codes and len(wrd) >= 1 and wrd[0].isupper() and wrd[-1].isupper()
+    return result
+
+def validword(wrd: str, methodname: MethodName, includealpinonouncompound=True) -> bool:
+    result = wrd == '' or known_word(wrd, includealpinonouncompound=includealpinonouncompound)
+    if methodname in {tarsp, stap}:
+        result = result and not nochildword(wrd)
+    return result
+
+def validnotalpinocompoundword(wrd: str, methodname: MethodName) -> bool:
+    result = validword(wrd, methodname, includealpinonouncompound=False)
+    return result

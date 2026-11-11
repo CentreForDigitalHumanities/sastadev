@@ -1,10 +1,11 @@
 from typing import Callable, Dict, List, Optional
 
 from sastadev.conf import settings
-from sastadev.dedup import getposition
+from sastadev.dedup import getposition, mlux
 from sastadev.macros import expandmacros
 from sastadev.metadata import (longrep, repeated, repeatedseqtoken, repetition,
                                substringrep)
+from sastadev.missing_det import get_missing_det
 from sastadev.normalise_lemma import normaliselemma
 from sastadev.sastatypes import SynTree
 from sastadev.stringfunctions import string2list
@@ -381,4 +382,10 @@ def asta_xxx(stree: SynTree) -> List[SynTree]:
     for node in nodeyield:
         if getattval(node, 'word').lower() in ['xxx', 'yyy', 'www']:
             results.append(node)
+    return results
+
+def asta_dellid(stree: SynTree) -> List[SynTree]:
+    raw_results = get_missing_det(stree)
+    mlux_results = mlux(stree)
+    results = [node for node in raw_results if node not in mlux_results]
     return results

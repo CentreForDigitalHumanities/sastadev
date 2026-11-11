@@ -38,15 +38,16 @@ import copy
 from typing import List
 
 from sastadev.conf import settings
+from sastadev import correctionlabels
 from sastadev.dedup import filledpauseslexicon
-from sastadev.lexicon import getwordinfo, known_word, tswnouns
+from sastadev.lexicon import getwordinfo, question_promotors, tswnouns, known_word
 from sastadev.metadata import (SASTA, Meta, bpl_delete, bpl_none,
                                defaultpenalty, insertion,
                                insertiontokenmapping)
 from sastadev.metadata import modifypenalty as mp
-from sastadev.metadata import smallclause, tokenmapping
+from sastadev.metadata import  mkinsertmeta
 from sastadev.namepartlexicon import namepart_isa_namepart
-from sastadev.sastatoken import Token
+from sastadev.sastatoken import mktokenlist, Token
 from sastadev.sastatypes import SynTree
 from sastadev.tokenmd import TokenListMD
 from sastadev.top3000 import (genlexicon, intransitive, isanimate, ishuman,
@@ -105,6 +106,10 @@ def aanwvnw(node):
     result = getattval(node, 'pt') == 'vnw' and getattval(node, 'vwtype') == 'aanw' and not rpronoun(node)
     return result
 
+def betrvnw(node):
+    result = getattval(node, 'pt') == 'vnw' and getattval(node, 'vwtype') == 'betr' and not rpronoun(node)
+    return result
+
 
 def n(node):
     result = getattval(node, 'pt') == 'n'
@@ -153,6 +158,9 @@ def nomperspro(node):
     result = perspro(node) and lemma in uniquelynominativeperspros
     return result
 
+def vwtype(node) -> str:
+    result = getattval(node, 'vwtype')
+    return result
 
 def inf(node):
     result = getattval(node, 'pt') == 'ww' and getattval(node, 'wvorm') == 'inf'
@@ -257,13 +265,6 @@ def mktoken(node, map):
     return result
 
 
-def mktokenlist(tokens, fpos, inserttokens):
-    resultlist = [token for token in tokens if token.pos <= fpos] + \
-        inserttokens + \
-                 [token for token in tokens if token.pos > fpos]
-    return resultlist
-
-
 def oldmktokenlist(leaves, themap, fpos, inserttokens):
     resultlist = [mktoken(lv, themap) for lv in leaves if bg(lv) <= fpos] + \
         inserttokens + \
@@ -300,18 +301,6 @@ def getauxform(aux: str, node:SynTree) -> str:
             result = 'heeft' if aux == 'hebben' else 'is'
     return result
 
-def mkinsertmeta(inserttokens, resultlist, penalty=defaultpenalty, cat=smallclause):
-    insertposs = [token.pos + token.subpos for token in inserttokens]
-    insertwordlist = [token.word for token in inserttokens]
-    tokenmappinglist = [token.pos if token.subpos == 0 else None for token in resultlist]
-    metadata1 = [Meta(insertion, [insertword], annotatedposlist=[insertpos],
-                 annotatedwordlist=[], annotationposlist=[insertpos],
-                 annotationwordlist=[insertword], cat=smallclause, source=SASTA, penalty=penalty,
-                 backplacement=bpl_delete) for insertword, insertpos in zip(insertwordlist, insertposs)]
-    meta2 = Meta(insertiontokenmapping, tokenmappinglist, cat=tokenmapping, source=SASTA, penalty=0,
-                 backplacement=bpl_none)
-    metadata = metadata1 + [meta2]
-    return metadata
 
 def isfirstsubject(first, second) -> bool:
     if intransitive(second):
@@ -370,6 +359,33 @@ def containsaanhetinf(nodes: List[SynTree]) -> bool:
         if lemma1 == 'aan' and lemma2 == 'het' and pt3 == 'ww' and wvorm3 == 'inf':
             return True
     return False
+
+def containsvzhetinf(nodes: List[SynTree]) -> bool:
+    lnodes = len(nodes)
+    for i in range(lnodes - 2):
+        pt1 = getattval(nodes[i], 'pt')
+        lemma2 = getattval(nodes[i+1], 'lemma')
+        pt3 = getattval(nodes[i+2], 'pt')
+        wvorm3 = getattval(nodes[i+2], 'wvorm')
+        if pt1 == 'vz' and lemma2 == 'het' and pt3 == 'ww' and wvorm3 == 'inf':
+            return True
+    return False
+
+def isbeetje(node: SynTree) -> bool:
+    lemma = getattval(node, 'lemma')
+    graad = getattval(node, 'graad')
+    result = lemma == 'beet' and graad == 'dim'
+    return result
+
+def is_dehet_correction(node: SynTree, metadata: List[Meta]) -> bool:
+    node_pos = int(getattval(node, 'begin'))
+    for meta in metadata:
+        if meta.name == correctionlabels.grammarerror and meta.value == correctionlabels.deheterror and \
+                meta.annotatedposlist == [node_pos]:
+            return True
+    return False
+
+
 
 def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
     '''
@@ -454,7 +470,20 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
         third = reducedleaves[2]
 
     if len(reducedleaves) == 2:
-        if (aanwvnw(first) or knownnoun(first) or perspro(first)) and (predadv(second) or vz(second) or bw(second)):
+        if aanwvnw(first) and bw(second) and lemma(second) in question_promotors and tokens[-1].word == '?':  # dat nou ?
+            bgfirst = bg(first)
+            if bgfirst in themap:
+                fpos = themap[bg(first)].pos - inflate_step
+                inserttokens = [Token('wat', fpos, subpos=5), Token('is' , fpos, subpos=8)]
+                resultlist = mktokenlist(tokens, fpos, inserttokens)
+                metadata += mkinsertmeta(inserttokens, resultlist)
+            else:
+                settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                      f'tokens={str(reducedtokens)}; No insertion done')
+
+        elif (aanwvnw(first) or betrvnw(first) or knownnoun(first) or perspro(first)) and \
+                (predadv(second) or vz(second) or bw(second)) and lemma(second) not in question_promotors and\
+                not is_dehet_correction(first, metadata):  # die af, dit hier
             bgfirst = bg(first)
             if bgfirst in themap:
                 fpos = themap[bg(first)].pos
@@ -465,7 +494,7 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                 settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                       f'tokens={str(reducedtokens)}; No insertion done')
         #elif (aanwvnw(second) or knownnoun(second) or perspro(second) or tw(second)) and predadv(first):
-        elif nomperspro(second) and predadv(first):
+        elif nomperspro(second) and predadv(first):  # hier ik
             bgfirst = bg(first)
             if bgfirst in themap:
                 fpos = themap[bg(first)].pos
@@ -475,7 +504,8 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             else:
                 settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                       f'tokens={str(reducedtokens)}; No insertion done')
-        elif (aanwvnw(first) or knownnoun(first)) and adj(second):
+        elif (aanwvnw(first) or betrvnw(first) or knownnoun(first)) and adj(second) and \
+                not isbeetje(first): # die dicht, deur dicht
             bgfirst = bg(first)
             if bgfirst in themap:
                 fpos = themap[bg(first)].pos
@@ -485,7 +515,7 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             else:
                 settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                       f'tokens={str(reducedtokens)}; No insertion done')
-        elif (aanwvnw(second) or knownnoun(second) or tw(second)) and biglocvz(first):
+        elif (aanwvnw(second) or betrvnw(first) or knownnoun(second) or tw(second)) and biglocvz(first):
             bgfirst = bg(first)
             if bgfirst in themap:
                 fpos = themap[bg(first)].pos
@@ -509,7 +539,7 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             else:
                 settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                       f'tokens={str(reducedtokens)}; No insertion done')
-        elif (aanwvnw(first) or knownnoun(first) or istswnoun(first) or perspro(first)) and inf(second):
+        elif (aanwvnw(first)or betrvnw(first) or knownnoun(first) or istswnoun(first) or perspro(first)) and inf(second):
             firstsubject = isfirstsubject(first, second)
             if firstsubject:
                 bgfirst = bg(first)
@@ -531,7 +561,7 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                 else:
                     settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                           f'tokens={str(reducedtokens)}; No insertion done')
-        elif (aanwvnw(first) or knownnoun(first) or istswnoun(first) or perspro(first)) and pastpart(second):  # ik gedaan
+        elif (aanwvnw(first) or betrvnw(first) or knownnoun(first) or istswnoun(first) or perspro(first)) and pastpart(second):  # ik gedaan
             firstsubject = isfirstsubject(first, second)
             if firstsubject: ## otherwise the structure ppart[obj1 hd/ww] is correct to get VCW as tarsp code
                 bgfirst = bg(first)
@@ -564,7 +594,7 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                                       f'tokens={str(reducedtokens)}; No insertion done')
         elif (isditdat(first) or nomperspro(first)) and \
                 (nominal(second) or  issubstadj(second)) and \
-                not isnominalexception(second):
+                not isnominalexception(second) and not is_dehet_correction(first, metadata):    # @@ exclude dit dat if coming from deze / die, see metadata, e..g deze hok -> dit hok =/=> dit is hok
             bgfirst = bg(first)
             if bgfirst in themap:
                 fpos = themap[bg(first)].pos
@@ -601,19 +631,34 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
             else:
                 settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
                                       f'tokens={str(reducedtokens)}; No insertion done')
-        elif theverb is not None and not nomperspro(first) and canbeinfinitive(getattval(theverb, 'word')) and \
+        elif (theverb is not None and not nomperspro(first)  and \
+                canbeinfinitive(getattval(theverb, 'word')) and \
                 not any([getattval(n, 'lemma') in ['moe', 'moeten'] for n in reducedleaves]) and \
-                not iswhpronoun(first) and not containsaanhetinf(reducedleaves):
-            # die daarin doen tarsp_03, 2
-            bgfirst = bg(first)
-            if bgfirst in themap:
-                fpos = themap[bg(first)].pos - inflate_step
-                inserttokens = [Token('jij', fpos, subpos=5), Token('moet', fpos, subpos=8)]
-                resultlist = mktokenlist(tokens, fpos, inserttokens)
-                metadata += mkinsertmeta(inserttokens, resultlist)
-            else:
-                settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
-                                      f'tokens={str(reducedtokens)}; No insertion done')
+                not iswhpronoun(first) and not containsvzhetinf(reducedleaves)):
+            if (not ishuman(first) or pt(first) not in ['n', 'vnw'] or vwtype(first)  in ['bez']):
+                # die daarin doen tarsp_03, 2
+                bgfirst = bg(first)
+                if bgfirst in themap:
+                    fpos = themap[bg(first)].pos - inflate_step
+                    inserttokens = [Token('jij', fpos, subpos=5), Token('moet', fpos, subpos=8)]
+                    resultlist = mktokenlist(tokens, fpos, inserttokens)
+                    metadata += mkinsertmeta(inserttokens, resultlist)
+                else:
+                    settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                          f'tokens={str(reducedtokens)}; No insertion done')
+            elif vwtype(first) not in ['bez']:
+                # Peter schotel hebben. td27, 41
+                bgfirst = bg(first)
+                if bgfirst in themap:
+                    fpos = themap[bg(first)].pos
+                    insertform = 'willen' if getal(first) == 'mv' else 'wil'
+                    inserttokens = [ Token(insertform, fpos, subpos=5)]
+                    resultlist = mktokenlist(tokens, fpos, inserttokens)
+                    metadata += mkinsertmeta(inserttokens, resultlist)
+                else:
+                    settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                          f'tokens={str(reducedtokens)}; No insertion done')
+
         elif theverb is None and knownnoun(first) and pt(second) == 'bw' and knownnoun(third):
             bgfirst = bg(first)
             if bgfirst in themap:
@@ -645,6 +690,16 @@ def smallclauses(tokensmd: TokenListMD, tree: SynTree) -> List[TokenListMD]:
                 fpos = themap[bg(first)].pos
                 insertform = 'moeten' if getal(first) == 'mv' else 'moet'
                 inserttokens = [Token(insertform, fpos, subpos=5)]
+                resultlist = mktokenlist(tokens, fpos, inserttokens)
+                metadata += mkinsertmeta(inserttokens, resultlist)
+            else:
+                settings.LOGGER.error(f'No entry for {bgfirst} in themap; leaves={gettokenpos_str(tree)}, '
+                                      f'tokens={str(reducedtokens)}; No insertion done')
+        elif (aanwvnw(first) or knownnoun(first)) and pt(second) == 'bw' and adj(third):
+            bgfirst = bg(first)
+            if bgfirst in themap:
+                fpos = themap[bg(first)].pos
+                inserttokens = [Token('is' if getal(first) != 'mv' else 'zijn', fpos, subpos=5)]
                 resultlist = mktokenlist(tokens, fpos, inserttokens)
                 metadata += mkinsertmeta(inserttokens, resultlist)
             else:

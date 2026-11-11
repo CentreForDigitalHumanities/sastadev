@@ -6,7 +6,7 @@ from lxml import etree
 
 from sastadev import compounds
 from sastadev.conf import settings
-from sastadev.lexicon import (filledpauseslexicon, informlexicon)
+from sastadev.lexicon import (filledpauseslexicon, informlexicon, shortrep_exceptions)
 from sastadev.metadata import (filled_pause, fstoken, intj, janeenou, longrep,
                                repeated, repeatedjaneenou, repeatedseqtoken,
                                shortrep, substringrep, unknownsymbol,
@@ -476,7 +476,7 @@ def isnortduplicate(tlist1: List[Nort], tlist2: List[Nort]) -> bool:
             nlcword1 = normalisestring(lcword1)
             nlcword2 = normalisestring(lcword2)
             result = result and ((nlcword1 == nlcword2)
-                                 or nlcword2.startswith(nlcword1))
+                                 or (nlcword1 not in shortrep_exceptions and nlcword2.startswith(nlcword1)))
     return result
 
 
@@ -806,7 +806,7 @@ def getprefixwords2(wlist: List[Nort],
     while tokenctr > 0:
         repctr = tokenctr - 1
         while repctr >= 0 and isnortprefixof(wlist[repctr], wlist[tokenctr]):
-            if cond(wlist[repctr], wlist[tokenctr]):
+            if cond(wlist[repctr], wlist[tokenctr]) and getword(wlist[repctr]) not in shortrep_exceptions:
                 resultlist.append(wlist[repctr])
                 reppos = getposition(wlist[repctr])
                 tokenpos = getposition(wlist[tokenctr])

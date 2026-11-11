@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Callable, Dict, List, Optional, Tuple
 
 from sastadev.allresults import mkresultskey
@@ -8,6 +9,7 @@ from sastadev.sastatypes import (AltCodeDict, ExactResult, ExactResultsDict,
                                  ExactResultsFilter, FileName,
                                  Item_Level2QIdDict, MethodName,
                                  Pattern, QId, Query, QueryDict)
+from sastadev.stringfunctions import nono
 
 lemmaqid = 'A051'
 lexreskey = mkresultskey('A018')
@@ -26,7 +28,7 @@ validmethods = astamethods + stapmethods + tarspmethods
 astalexicalmeasures = [mkresultskey('A018'), mkresultskey('A021')]  # LEX and N
 
 basicpattern: Pattern = '[,;]'
-extendedpattern: Pattern = '[,;/\|]'
+extendedpattern: Pattern = '[,;/|]'
 
 methodseparators = {}
 methodseparators[tarsp] = basicpattern
@@ -39,6 +41,11 @@ tarspauris = 'tarspauris'
 astae = 'astae'
 astafuture = 'astafuture'
 
+validmethodvariantpairs = [(tarsp, tarsp2005), (tarsp, tarsp2017), (tarsp, tarspauris), (stap, ''),
+                           (asta, ''), (asta, astae), (asta, astafuture)]
+
+tarsp_overige_qids = ['T078', 'T079', 'T080', 'T081', 'To82', 'T083', 'T084', 'T085', 'T102', 'T156', 'T166']
+tarsp_into_qids = ['T048']
 
 class SampleSize:
     def __init__(self, maxuttcount=None, maxwordcount=None):
@@ -157,6 +164,25 @@ def treatmethod(methodname: Optional[MethodName], methodfilename: Optional[FileN
                 'Unsupported method specified {}'.format(methodname))
             exit(-1)
     return resultmethodname, resultmethodfilename
+
+def get_method_name_from_qid(rawqueryid: str) -> str:
+    queryid = rawqueryid.lower()
+    if nono(queryid):
+        return ''
+    if queryid[0] == 'a':
+        result = 'ASTA'
+    elif queryid[0] == 's':
+        result = 'STAP'
+    elif queryid[0] == 't':
+        result = 'TARSP'
+    else:
+        result = ''
+    return result
+
+idpat = r'^[TSA][0-9]{3}$'
+
+def well_formed_qid(qid: str) -> bool:
+    return re.match(idpat, qid)
 
 
 

@@ -8,9 +8,9 @@ from typing import List
 
 from sastadev import xlsx
 from sastadev.conf import settings
-from sastadev.methods import Method, defaultfilters, tarsp
+from sastadev.methods import Method, defaultfilters, tarsp, asta, supported_methods
 from sastadev.query import Query, form_process, post_process
-from sastadev.sastatypes import (AltCodeDict, FileName, Item_Level2QIdDict,
+from sastadev.sastatypes import (AltCodeDict, FileName, Item_Level2QIdDict, MethodName,
                                  QId, QueryDict)
 from sastadev.stringfunctions import str2list
 
@@ -60,9 +60,12 @@ def getimplies(str: str) -> List[str]:
     return result
 
 
-def getlistofitems(str: str, sep: str) -> List[str]:
+def getlistofitems(str: str, sep: str, keepcase=False) -> List[str]:
     rawresult = str.split(sep)
-    cleanresult = [w.strip().lower() for w in rawresult]
+    if keepcase:
+        cleanresult = [w.strip() for w in rawresult]
+    else:
+        cleanresult = [w.strip().lower() for w in rawresult]
     if cleanresult == ['']:
         cleanresult = []
     return cleanresult
@@ -133,9 +136,9 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
     header, data = xlsx.getxlsxdata(methodfilename)
 
     idcol, catcol, subcatcol, levelcol, itemcol, altcol, impliescol, \
-    originalcol, pagescol, fasecol, querycol, informcol, screeningcol, processcol, literalcol, starscol, filtercol, \
-    variantscol, unused1col, unused2col, commentscol = \
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+    originalcol, pages2005col, pages2017col, fasecol, querycol, informcol, screeningcol, processcol, literalcol, starscol, filtercol, \
+    variantscol, acqordcol, impliedbycol, unused1col, unused2col, commentscol = \
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23
 
     headerrow = 0
 
@@ -154,7 +157,8 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
             altitems: List[str] = getaltitems(row[altcol])
             implies: List[str] = getimplies(row[impliescol])
             original: bool = getboolean(row[originalcol])
-            pages: str = str(get_pages(row[pagescol]))
+            pages2005: str = str(get_pages(row[pages2005col]))
+            pages2017: str = str(get_pages(row[pages2017col]))
             fase: int = getint(row[fasecol])
             query: str = row[querycol]
             inform: str = row[informcol]
@@ -164,6 +168,8 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
             stars: str = row[starscol].strip()
             filter: str = row[filtercol].strip()
             variants: str = str2list(row[variantscol])
+            acq_order: int = row[acqordcol]
+            implied_by: List[str] = getlistofitems(row[impliedbycol], comma, keepcase=True)
             unused1: str = row[unused1col]
             unused2: str = row[unused2col]
             comments: str = row[commentscol]
@@ -172,9 +178,9 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
                 variant = 'tarsp2017'
             if variant is None or variants == [] or variant in variants:
 
-                queries[id] = Query(id, cat, subcat, level, item, altitems, implies, original, pages, fase, query,
+                queries[id] = Query(id, cat, subcat, level, item, altitems, implies, original, pages2005, pages2017, fase, query,
                                     inform, screening, process, literal,
-                                    stars, filter, variants, unused1, unused2, comments)
+                                    stars, filter, variants, acq_order, implied_by, unused1, unused2, comments)
                 if queries[id].process in [post_process, form_process]:
                     postquerylist.append(id)
                 lcitem = item.lower()
@@ -195,3 +201,9 @@ def read_method(methodname: str, methodfilename: FileName, variant=None) -> Meth
                        methodfilename, defaultfilter)
 
     return themethod
+
+
+def getmethod(methodname: MethodName, variant) -> Method:
+    methodfullname = supported_methods[methodname]
+    method = read_method(methodname, methodfullname, variant=variant)
+    return method

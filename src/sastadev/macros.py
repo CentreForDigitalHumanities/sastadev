@@ -13,9 +13,10 @@ import os.path as op
 import re
 from typing import Dict, List, TextIO
 
+from sastadev.anonymization import sasta_pseudonyms
 from sastadev.conf import settings
 from sastadev.generatemacros import generatemacros
-from sastadev.lexicon import interjections, fillers, tswnouns
+from sastadev.lexicon import interjections, fillers, tswnouns, detless_count_nouns, color_names
 from sastadev.queryconstants import Tarsp_kijkVU, Tarsp_kijkVU1, Tarsp_kijkVU2, Tarsp_kijkVU3
 from sastadev.sastatypes import XpathExpression
 from sastadev.stringfunctions import punctuationchars
@@ -85,7 +86,12 @@ def list2xpath(vlist: List[str], attr: str) -> XpathExpression:
     result = f"({expr})"
     return result
 
+pseudonym_expansion = f'({list2xpath(sasta_pseudonyms, 'word')})'
+definite_nouns = detless_count_nouns + color_names
 tswnounsexpansion = f'(@pt="tsw" and {list2xpath(tswnouns, "lemma")})'
+nountswnounsexpansion = f'(@pt="n" and {list2xpath(tswnouns, "lemma")})'
+definite_nounsexpansion = f'({list2xpath(definite_nouns, 'lemma')})'
+
 interjectionsexpansion = list2xpath(interjections, "lemma")
 fillersexpansion = list2xpath(fillers, "lemma")
 punctuationexpansion = list2xpath(punctuationchars, "lemma")
@@ -98,6 +104,9 @@ for macrofilename in macrofilenames:
     macrofile = open(macrofilename, 'r', encoding='utf8')
     macrodict = readmacros(macrofile, macrodict)
 
+macrodict['pseudonym'] = pseudonym_expansion
+macrodict['definite_noun'] = definite_nounsexpansion
+macrodict['tswnoun_noun'] = nountswnounsexpansion
 macrodict['tswnoun'] = tswnounsexpansion
 macrodict['interjection'] = interjectionsexpansion
 macrodict['filler'] = fillersexpansion

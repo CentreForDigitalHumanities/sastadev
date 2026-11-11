@@ -6,7 +6,7 @@ from sastadev.allresults import AllResults, ResultsKey, mkresultskey
 from sastadev.lexicon import getwordinfo, getwordposinfo
 from sastadev.sastatypes import Position, SynTree, UttId
 from sastadev.stringfunctions import getallrealwords, realwordstring
-from sastadev.treebankfunctions import getattval, getnodeyield
+from sastadev.treebankfunctions import getattval, getnodeyield, mdbasedquery
 
 lpad = 3
 zero = '0'
@@ -45,35 +45,6 @@ formreskey = mkresultskey(formqid)
 specialform = 'Special Form'
 errormarking = 'Error Marking'
 
-#: The variable (constant) *mdnamemdxpathtemplate* is an Xpath template to find
-#: metadata (xmeta) with  name=*mdname* and value=*mdvalue*
-mdnamemdxpathtemplate = """.//xmeta[@name="{mdname}" and @value="{mdvalue}"]"""
-
-mdnameonlyxpathtemplate = """.//xmeta[@name="{mdname}"]"""
-ptposxpathtemplate = './/node[@pt and @begin="{position}"]'
-
-
-def mdbasedquery(stree: SynTree, mdname: str, mdvalue: str) -> List[SynTree]:
-    '''
-    The function *mdbasedquery* searches for metadata in *stree* with name = *mdname*
-    and value = *mdvalue*. It then obtains the position of the node to which the
-    metadata apply, and next finds all nodes with that position as value for its *begin* attribute.
-    '''
-    mdnamemdxpath = mdnameonlyxpathtemplate.format(
-        mdname=mdname)
-    mdnamemds = stree.xpath(mdnamemdxpath)
-    results = []
-    for mdnamemd in mdnamemds:
-        thevaluelist = eval(mdnamemd.attrib['value'])
-        if mdvalue in thevaluelist:
-            annotatedposstr = mdnamemd.attrib['annotatedposlist']
-            if annotatedposstr != '':
-                mdbeginval = annotatedposstr[1:-1]
-                ptposxpath = ptposxpathtemplate.format(position=mdbeginval)
-                newresults = stree.xpath(ptposxpath)
-                results += newresults
-
-    return results
 
 
 def neologisme(stree: SynTree) -> List[SynTree]:

@@ -1,7 +1,7 @@
 import copy
 from lxml import etree
 from sastadev.sastatypes import SynTree, XpathExpression
-from sastadev.treebankfunctions import getattval, hasnominativehead
+from sastadev.treebankfunctions import getattval, find1, hasnominativehead, immediately_precedes
 from typing import Tuple
 
 postnominalmodifier = "Postnominal Modifier Adaptation"
@@ -11,7 +11,10 @@ nonvheadedparentnp = """parent::node[@cat="np" and node[@rel="hd" and @pt!="ww"]
 ppinnpxpath = f""".//node[@cat="pp" and node[@rel="hd" and @lemma!="van" and @lemma!="met" and @lemma!="mee"] and 
                          {nonvheadedparentnp}]"""
 
-modbwinnpxpath = f""".//node[(@lemma="ook" or @lemma="alleen" or @lemma="eerst") and 
+modbwinnpxpath = f""".//node[(@lemma="ook" or @lemma="eerst") and 
+                         {nonvheadedparentnp}]"""
+
+alleenbwinnpxpath = f""".//node[@lemma="alleen" and 
                          {nonvheadedparentnp}]"""
 
 modRinnpxpath = f""".//node[@pt="vnw" and @special="er_loc" and {nonvheadedparentnp}]"""
@@ -24,8 +27,25 @@ def transformbwinnp(instree: SynTree) -> SynTree:
     result = transformmodinnp(instree, modbwinnpxpath)
     return result
 
+def transformalleeninnp(instree: SynTree) -> SynTree:
+    result = transformmodinnp(instree, alleenbwinnpxpath)
+    return result
+
+
 def transformmodRinnp(instree: SynTree) -> SynTree:
     result = transformmodinnp(instree, modRinnpxpath)
+    return result
+
+
+def is_np1v2(np: SynTree, stree: SynTree) -> bool:
+    np_parent = np.getparent()
+    np_parent_cat = getattval(np_parent, 'cat')
+    if np_parent_cat != 'smain':
+        return False
+    pv = find1(np, '../node[@pt="ww" and @rel="hd" and @wvorm="pv"]')
+    if pv is None:
+        return False
+    result = immediately_precedes(np, pv, stree)
     return result
 
 
@@ -36,6 +56,8 @@ def transformmodinnp(instree: SynTree, modxpath: XpathExpression) -> SynTree:
         theparent = ppinnp.getparent()
         grandparent = theparent.getparent()
         grandparentcat = getattval(grandparent, 'cat')
+        thenp_head = find1(theparent, './node[@rel="hd"]')
+        thenp_head_vwtype = getattval(thenp_head, 'vwtype')
         if grandparentcat == 'top':
             # create a new clause node under
             clausebegin = getattval(theparent, 'begin')
@@ -61,7 +83,10 @@ def transformmodinnp(instree: SynTree, modxpath: XpathExpression) -> SynTree:
             #      annotationwordlist=[insertword], cat=postnominalmodifier, source=SASTA, penalty=defaultpenalty,
             #      backplacement=bpl_delete)
             # metadata = [meta1]
-
+        elif grandparentcat == 'smain' and thenp_head_vwtype != 'pers':
+            if not is_np1v2(theparent, stree):
+                theparent.remove(ppinnp)
+                grandparent.append(ppinnp)
         else:
             detach(ppinnp)
             # metadata = []
@@ -84,7 +109,8 @@ def detach(node: SynTree):
     parent_begin = getattval(node, 'begin')
     if node_end == parent_end or node_begin == parent_begin:
         parent.remove(node)
-        therel = 'su' if hasnominativehead(parent) else 'obj1'
+        parent_rel = getattval(parent, 'rel')
+        therel = 'su' if hasnominativehead(parent) else parent_rel
         parent.attrib['rel'] = therel   # @@@ or obj1 if not clearly nominative
 
         # adapt the (begin and ) end of the nodeparent
@@ -128,3 +154,18 @@ def getbeginandend(node: SynTree) -> Tuple[str, str]:
             curend = int(child.attrib['end'])
     return str(curbegin), str(curend)
 
+met_np_pp_xpath = """.//node[@cat="pp" and node[@rel="hd" and @lemma="met"] and node[@cat="np" and node[@cat="pp" or @cat="advp" or @pt="adv"]]]"""
+def transform_met_np_pp(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    met_np_pps = stree.xpath(met_np_pp_xpath)
+    for met_np_pp in met_np_pps:
+        pp = find1(met_np_pp, './node[@pt="np"]/node[@pt="pp"]')
+        if pp is None:
+            return instree
+        pp_parent = pp.getparent()
+        met_np_pp_parent = met_np_pp.getparen()
+        if pp_parent is not None and met_np_pp_parent is not None:
+            pp_parent.remove(pp)
+            met_np_pp_parent.append(pp)
+            pp.set('rel', 'mod')
+    return stree

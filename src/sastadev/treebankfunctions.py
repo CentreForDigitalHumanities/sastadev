@@ -3,6 +3,7 @@ various treebank functions
 
 """
 import functools
+import os
 import re
 # import logging
 from copy import copy, deepcopy
@@ -12,17 +13,20 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from more_itertools import unique_everseen
 from lxml import etree
 
-from sastadev.anonymization import pseudonymre
+import sastadev.anonymization
 # from sastadev.lexicon import informlexiconpos, isa_namepart_uc, informlexicon, isa_namepart
 # import lexicon as lex
 from sastadev.conf import settings
 from sastadev import correctionlabels
-from sastadev.metadata import Meta
+# from sastadev.macros import expandmacros  # causes import problems
+from sastadev.metadata import Meta, bpl_none
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import (FileName, OptPhiTriple, PhiTriple, Position,
                                  PositionMap, PositionStr, Span, SynTree,
                                  UttId)
-from sastadev.stringfunctions import allconsonants
+from sastadev.stringfunctions import allconsonants, string2list
+# from sastadev.toe import getantecedentof
+
 
 # from sastadev.tblex import recognised_wordnode, recognised_lemmanode, recognised_wordnodepos, recognised_lemmanodepos
 
@@ -89,6 +93,8 @@ trueclausecats = ['smain', 'cp', 'rel', 'whrel', 'whsub', 'whq', 'sv1', 'svan']
 complrels = ['su', 'obj1', 'pobj1', 'obj2',
              'se', 'pc', 'vc', 'svp', 'predc', 'ld']
 
+modrels = ['mod', 'predm']
+
 headrels = ['hd', 'crd']
 
 extendedheadrels  = ['hdf']
@@ -124,6 +130,18 @@ sentidxpath = './/sentence/@sentid'
 metaquerytemplate = "//meta[@name='{}']/@value"
 sentencexpathquery = "//sentence/text()"
 
+prefix = 'ancestor::alpino_ds/'   # if the query searches for a cat=top node
+# prefix = ''                       # if the query searches for alpino_ds
+sentencexpath = f'{prefix}descendant::sentence'
+
+parsedasquery = f'{prefix}descendant::xmeta[(@name="parsed_as" or @name="parsed as")]/@value'
+origuttxpath = f'{prefix}descendant::meta[@name="origutt"]/@value'  # this is wrong for getorigutt
+preoriguttxpath = f'{prefix}descendant::meta[@name="pre_origutt"]/@value'
+xsidxpath = f'{prefix}descendant::meta[@name="xsid"]/@value'
+cleanedtokenisationxpath = f'{prefix}descendant::xmeta[@name="cleanedtokenisation"]/@value'
+realwordxpath = """ancestor::alpino_ds/descendant::node[@pt and @pt!='let']"""
+
+
 uniquecounter = 0
 
 countattvalxpathtemplate = 'count(.//node[@{att}="{val}"])'
@@ -132,7 +150,7 @@ countcompoundxpath = 'count(.//node[contains(@lemma, "_")])'
 monthnames = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus',
               'september', 'oktober', 'november', 'december']
 
-origuttxpath = './/meta[@name="origutt"]/@value'
+getorigutt_origuttxpath = './/meta[@name="origutt"]/@value'
 
 
 inflectional_attributes = {'ww': {'buiging', 'getalN',  'pvagr', 'pvtijd', 'wvorm'},
@@ -154,6 +172,7 @@ inflate_start = 10
 #: of the next word node in an inflated tree
 inflate_step = 10
 
+
 def adjacent(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     """
     :param node1:
@@ -166,6 +185,7 @@ def adjacent(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     """
     yieldnodes = getnodeyield(stree)
     for i, n in enumerate(yieldnodes):
+        nword = getattval(n, 'word')
         if yieldnodes[i] == node1:
             prec = yieldnodes[i - 1] if i > 0 else None
             succ = yieldnodes[i + 1] if i < len(yieldnodes) - 1 else None
@@ -174,7 +194,50 @@ def adjacent(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     return False
 
 
+def getcleanedutt(stree: SynTree) -> str:
+    cleanedtokenisations = stree.xpath(cleanedtokenisationxpath)
+    if cleanedtokenisations == []:
+        return ''
+    cleanedtokenisation = cleanedtokenisations[0]
+    tokenlist = string2list(cleanedtokenisation, quoteignore=True)
+    result = space.join(tokenlist)
+    return result
+
+
 def immediately_precedes(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
+    """
+    :param node1:
+    :param node2:
+    :param stree: syntactic structure containing *node1* and *node2*
+    :return: True if *node1* immediately precedes *node2* in *stree*, False otherwise
+
+    The function *immediately_precedes* determines whether *node1* immediately precedes *node1* in syntactic structure *stree*,
+    and it works correctly in inflated syntactic structures. The two nodes can be nodes for words or for word groups
+    """
+
+    yield1 = getnodeyield(node1)
+    yield2 = getnodeyield(node2)
+    result = w_immediately_precedes(yield1[-1], yield2[0], stree)
+    return result
+
+def immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
+    """
+    :param node1:
+    :param node2:
+    :param stree: syntactic structure containing *node1* and *node2*
+    :return: True if *node1* immediately follows *node2* in *stree*, False otherwise
+
+    The function *immediately_follows* determines whether *node1* immediately follows *node1* in syntactic structure *stree*,
+    and it works correctly in inflated syntactic structures. The two nodes can be nodes for words or for word groups.
+    """
+
+    yield1 = getnodeyield(node1)
+    yield2 = getnodeyield(node2)
+    result = w_immediately_follows(yield1[0], yield2[-1], stree)
+    return result
+
+
+def w_immediately_precedes(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     """
     :param node1:
     :param node2:
@@ -193,7 +256,7 @@ def immediately_precedes(node1: SynTree, node2: SynTree, stree: SynTree) -> bool
     return False
 
 
-def immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
+def w_immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     """
     :param node1:
     :param node2:
@@ -203,7 +266,7 @@ def immediately_follows(node1: SynTree, node2: SynTree, stree: SynTree) -> bool:
     The function *immediately_follows* determines whether *node1* immediately follows *node1* in syntactic structure *stree*,
     and it works correctly in inflated syntactic structures. The two nodes must be nodes for words.
     """
-    return immediately_precedes(node2, node1, stree)
+    return w_immediately_precedes(node2, node1, stree)
 
 def is_neut_sg(node: SynTree) -> bool:
     result = getattval(node, 'pt') == 'n' and getattval(node, 'getal') == 'ev' and \
@@ -390,6 +453,7 @@ def lastconstituentof(stree: SynTree) -> SynTree:
     curlastend = 0
     topnodes = stree.xpath('.//node[@cat="top"]')
     topnode = topnodes[0]
+    result = None
     for child in topnode:
         if 'cat' in child.attrib:
             childend = int(getattval(child, 'end'))
@@ -403,6 +467,11 @@ def getsentence(syntree: SynTree, treebank: bool = True) -> Optional[str]:
     prefix = "." if treebank else ""
     thequery = prefix + sentencexpathquery
     result = getqueryresult(syntree, xpathquery=thequery)
+    return result
+
+def getrealwordcount(match: SynTree) -> int:
+    realwordnodes = match.xpath(realwordxpath)
+    result = len(realwordnodes)
     return result
 
 
@@ -473,6 +542,7 @@ def getextendedheadof(node: SynTree) -> SynTree:
         else:
             print('here it goes wrong')
             pass
+            result = None
 
     else:
         result = result1
@@ -616,6 +686,7 @@ def getattval(node: SynTree, att: str) -> str:
     else:
         result = ''
     return result
+gav = getattval
 
 
 def is_number(s: str) -> bool:
@@ -663,7 +734,7 @@ def getuniqueleaves(stree: SynTree) -> List[SynTree]:
         else:
             uttid = getxsid(stree)
             sentence = getsentence(stree)
-            settings.LOGGER.error(f'No leave found for {position} in {uttid}: {sentences}')
+            settings.LOGGER.error(f'No leave found for {position} in {uttid}: {sentence}')
     return leaves
 
 
@@ -739,7 +810,7 @@ def getnodeyield(syntree: SynTree) -> List[SynTree]:
         return []
     else:
         for node in syntree.iter():
-            if node.tag in ['node'] and 'pt' in node.attrib or 'pos' in node.attrib:
+            if node.tag in ['node'] and ('pt' in node.attrib or 'pos' in node.attrib or 'word' in node.attrib):
                 resultlist.append(node)
         sortedresultlist = sorted(resultlist, key=lambda x: int(
             getattval_fallback(x, 'end', '9999')))
@@ -747,7 +818,7 @@ def getnodeyield(syntree: SynTree) -> List[SynTree]:
 
 
 # deze herformuleren in termen van getnodeyield na testen
-def getyield(syntree: SynTree) -> List[str]:
+def old_getyield(syntree: SynTree) -> List[str]:
     resultlist = []
     if syntree is None:
         theyield = []
@@ -768,6 +839,11 @@ def getyield(syntree: SynTree) -> List[str]:
         sortedresultlist = sorted(resultlist, key=lambda x: x[1])
         theyield = [w for (w, _) in sortedresultlist]
     return theyield
+
+def getyield(syntree: SynTree) -> List[str]:
+        sortedresultlist = getnodeyield(syntree)
+        theyield = [getattval(n, 'word') for n in sortedresultlist]
+        return theyield
 
 
 def parent(node: SynTree) -> Optional[SynTree]:
@@ -1164,7 +1240,7 @@ def sasta_pseudonym(node: SynTree) -> bool:
 
     """
     word = getattval(node, 'word')
-    match = pseudonymre.match(word)
+    match = sastadev.anonymization.pseudonymre.match(word)
     result = match is not None
     return result
 
@@ -1350,17 +1426,15 @@ def nodecopy(node: SynTree) -> Optional[SynTree]:
             newnode.remove(ch)
         return newnode
 
-
+# de node zou nooit None mogen zijn maar incidenteel crashte hij daar toch op
 def bareindexnode(node: SynTree) -> bool:
-    result = node.tag == 'node' and terminal(node) and 'index' in node.attrib and \
+    result = node is not None and  node.tag == 'node' and terminal(node) and 'index' in node.attrib and \
         'word' not in node.attrib and 'lemma' not in node.attrib and 'cat' not in node.attrib
     # print(props2str(get_node_props(node)), result, file=sys.stderr)
-    return (result)
+    return result
 
 
 # herdefinieren want met UD hebben terminale nodes wel children (maar geen children met tag=node)
-
-
 def terminal(node: SynTree) -> bool:
     result = isinstance(
         node, etree._Element) and node is not None and len(node) == 0
@@ -1823,7 +1897,7 @@ def nominal(node: SynTree) -> bool:
 
 
 def decomposetree(tree: SynTree) -> Tuple[SynTree, SynTree, SynTree, SynTree, SynTree]:
-    metadata, sentence, comments, nod, parser = None, None, None, None, None
+    metadata, sentence, comments, node, parser = None, None, None, None, None
     for child in tree:
         if child.tag == 'metadata':
             metadata = child
@@ -1922,6 +1996,27 @@ def deletewordnode(tree: SynTree, begin: Position, wordsonly=False) -> Optional[
             wordnodexpath = wordnodemodel.format(str(begin))
         thenode = find1(newtree, wordnodexpath)
         if thenode is not None:
+            # find the associate @@copy it to deletewordnode2
+            associate_node = get_associate(thenode)
+            if associate_node is not None:
+                # add associate metadata
+                annotationposlist = [int(gav(thenode, 'begin'))]
+                annotationwordlist = [gav(thenode, 'word')]
+                annotatedposlist = [int(gav(associate_node, 'begin'))]
+                annotatedwordlist = [gav(associate_node, 'word')]
+                associate_meta = Meta(name=correctionlabels.omitted_node_associate, value = annotationwordlist,
+                                      annotatedposlist=annotatedposlist, annotatedwordlist=annotatedwordlist,
+                                      annotationposlist=annotationposlist, annotationwordlist=annotationwordlist,
+                                backplacement=bpl_none)
+                metadata = find1(newtree, './/metadata')
+                if metadata is None:
+                    metadata = etree.Element('metadata')
+                    newtree.append(metadata)
+                metadata.append(associate_meta)
+            else:
+                thenode_word = gav(thenode, 'word')
+                thenode_pos = gav(thenode, 'end')
+                settings.LOGGER.error(f'No associate node found for {thenode_word} in position {thenode_pos}')
             thenode.getparent().remove(thenode)
         # renumber begins and ends must be done outside this functions when all deletions have been done;
         # updatebeginend(newtree, begin)
@@ -2001,30 +2096,89 @@ def childless(node: SynTree):
     result = children == []
     return result
 
+def get_bare_index_nodes(stree: SynTree, words_only=False) -> List[SynTree]:
+    full_word_index_nodes = stree.xpath('.//node[@word and @index]')
+    bare_index_nodes = stree.xpath('.//node[not(@word) and not(@cat) and @index]')
+    if words_only:
+        full_word_indexes = [gav(n, 'index') for n in full_word_index_nodes]
+        results = [n for n in bare_index_nodes if gav(n, 'index') in full_word_indexes]
+    else:
+        results = bare_index_nodes
+    return results
+
+
+def is_bare_index_node(node: SynTree) -> bool:
+    result = 'word' not in node.attrib and 'cat' not in node.attrib and 'index' in node.attrib
+    return result
+
 
 def deletewordnodes(tree: SynTree, begins: List[Position], wordsonly=False) -> SynTree:
     newtree = deepcopy(tree)
-    newtree = deletewordnodes2(newtree, begins, wordsonly=wordsonly)
+    word_bare_index_nodes = get_bare_index_nodes(newtree, words_only=True)
+    word_bare_indexes = [gav(n, 'index') for n in word_bare_index_nodes]
+    newtree, metadata, omitted_nodes = deletewordnodes2(newtree, begins, wordsonly=wordsonly, word_bare_indexes=word_bare_indexes)
     newtree = adaptsentence(newtree)
-    return newtree
+    return newtree, metadata, omitted_nodes
 
 
-def deletewordnodes2(tree: SynTree, begins: List[Position], wordsonly=False) -> Optional[SynTree]:
+def deletewordnodes2(tree: SynTree, begins: List[Position], wordsonly=False,
+                     word_bare_indexes: List[str]=[]) -> Tuple[Optional[SynTree], List[Meta], List[SynTree]]:
+    result_metadata = []
+    omitted_nodes = []
     if tree is None:
-        return tree
+        return tree, []
     for child in tree:
         if child.tag == 'node':
-            newchild = deletewordnodes2(child, begins, wordsonly=wordsonly)
+            newchild, newchild_metadata, newchild_omitted_nodes = deletewordnodes2(child, begins, wordsonly=wordsonly, word_bare_indexes=word_bare_indexes)
+            result_metadata += newchild_metadata
+            omitted_nodes += newchild_omitted_nodes
+
         else:
             newchild = child
     for child in tree:
         if child.tag == 'node':
             childbegin = getattval(child, 'begin')
             childbeginint = int(childbegin)
-            childisaword = 'word' in child.attrib
-            childmustgo = childisaword if wordsonly else True
+            child_index = gav(child, 'index')
+            # we must delet words
+            child_is_a_word = 'word' in child.attrib
+            childmustgo = child_is_a_word if wordsonly else True
             if childbeginint in begins and childless(child) and childmustgo:
+                associate_node = get_associate(child, begins)
+                # add associate metadata
+                if associate_node is not None:
+                    annotatedposlist = [int(gav(associate_node, 'begin'))]
+                    annotatedwordlist = [gav(associate_node, 'word')]
+                else:
+                    annotatedposlist = ['0']
+                    annotatedwordlist = []
+                annotationposlist = [int(gav(child, 'begin'))]
+                annotationwordlist = [gav(child, 'word')]
+                omitted_pt = gav(child, 'pt')
+                omitted_rel = gav(child, 'rel')
+                omitted_lemma = gav(child, 'lemma')
+                omitted_word = gav(child, 'word')
+                child_copy = deepcopy(child)
+                child_copy.tag = 'omitted_node'   # we must rename it because we do not want found as node by queries
+                omitted_nodes.append(child_copy)
+
+                associate_meta = Meta(name=correctionlabels.omitted_node_associate, value=annotationwordlist,
+                                      annotatedposlist=annotatedposlist, annotatedwordlist=annotatedwordlist,
+                                      annotationposlist=annotationposlist, annotationwordlist=annotationwordlist,
+                                      backplacement=bpl_none, omitted_pt=omitted_pt, omitted_rel=omitted_rel,
+                                      omitted_lemma=omitted_lemma, omitted_word=omitted_word)
+                result_metadata.append(associate_meta)
+
                 tree.remove(child)
+            # we must also delete bare index nodes with a word as antecedent if it is a bigpro,
+            # cf vkltarsp, tarsp_10, 14, 41 and many others tarsp_02, 48; tarsp_03, 2,8,15;
+            # otherwise no we just remove the index for auristrain td06 25,31
+            if is_bare_index_node(child) and childbeginint in begins:
+                if child_index in word_bare_indexes:
+                    if is_bigpro(child):
+                        tree.remove(child)
+                    else:
+                        child.attrib.pop('index')
             # if its children have been deleted earlier
             elif 'cat' in child.attrib and childless(child):
                 tree.remove(child)
@@ -2035,7 +2189,7 @@ def deletewordnodes2(tree: SynTree, begins: List[Position], wordsonly=False) -> 
             (minbegin, maxend) = getbeginend(newchildren)
             tree.attrib['begin'] = minbegin
             tree.attrib['end'] = maxend
-    return tree
+    return tree, result_metadata, omitted_nodes
 
 
 def olddeletewordnodes2(tree: SynTree, begins: List[Position]):
@@ -2063,7 +2217,7 @@ def olddeletewordnodes2(tree: SynTree, begins: List[Position]):
 
 
 def getorigutt(stree: SynTree) -> Optional[str]:
-    origuttlist = stree.xpath(origuttxpath)
+    origuttlist = stree.xpath(getorigutt_origuttxpath)
     if origuttlist == []:
         origutt = None
     else:
@@ -2076,21 +2230,19 @@ def treeinflate(stree: SynTree, start: int = inflate_start, inc: int = inflate_s
     The function *treeinflate* adapts the input tree *stree* in such a way that:
 
     * for word nodes: the int value of the *begin* attribute  (ib) is changed to str(newib = start + ib  *
-    inc), **code stil has to be adapted to this**
+    inc),
     and the value of the *end* attribute to str(newib + 1)
     * for phrasal nodes: new values for *begin* and *end* are computed by the function *getbeginend*
-    * for other nodes: the same as  for word nodes
+    * for other nodes: for newib the same as  for word nodes, ie is stanged into str(newie) with
+     newie = start + (ie-1) * inc + 1
 
     The parameters of this function are:
 
     * stree: input syntactic structure, which is modified
-    * start: not used yet (see below)) (default value = 10)
-    * inc: increment, by default set to 10 (not used yet, see below)
+    * start: int value of begin of the first word (default value inflate_start = 10)
+    * inc: increment, (default value inflate_step = 10 )
 
-    and it returns *None*.
-
-    **Remark** This should be changed for words so that newib = start + (ib * inc) and
-    newie =  newib + 1
+    and it returns *None*. (it modifies the input tree)
 
     """
     # fatstree = deepcopy(stree)
@@ -2103,7 +2255,9 @@ def treeinflate(stree: SynTree, start: int = inflate_start, inc: int = inflate_s
         if stree.tag == 'node':
             ib = int(getattval(stree, 'begin'))
             ie = int(getattval(stree, 'end'))
-            newib = (ib + 1) * 10
+            # newib = (ib + 1) * 10
+            newib = start + ib * inc
+            newie = start + (ie-1) * inc + 1
             stree.attrib['begin'] = str(newib)
             if iswordnode(stree):
                 stree.attrib['end'] = str(newib + 1)
@@ -2112,8 +2266,11 @@ def treeinflate(stree: SynTree, start: int = inflate_start, inc: int = inflate_s
                 stree.attrib['begin'] = b
                 stree.attrib['end'] = e
             else:
-                stree.attrib['begin'] = str((ib + 1) * 10)
-                stree.attrib['end'] = str((ie * 10) + 1)
+                stree.attrib['begin'] = str(newib)
+                stree.attrib['end'] = str(newie)
+
+
+
 
 
 def deflate(stree: SynTree) -> SynTree:
@@ -2355,7 +2512,7 @@ def normalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
 
 def denormalisebeginend2(stree: SynTree, sortedbegins: List[PositionStr]) -> None:
     """
-    adapts the begins and ends of a tree to the sortedbegins: first word will get the first sortedegin, etc
+    adapts the begins and ends of a tree to the sortedbegins: first word will get the first sortedbegin, etc
     :param stree: syntactic structure
     :param sortedbegins: sorted list of begin values of @pt or @pos nodes
     :return: None
@@ -2495,6 +2652,305 @@ def removeskips(fatstree: SynTree, tokenlist: List[Token]) -> SynTree:
             else:
                 wordnode.getparent().remove(wordnode)
     return newfatstree
+
+def writetb(treebankdict, mwetreebankfullname):
+    tb = etree.Element("treebank")
+    for el in treebankdict:
+        tb.append(treebankdict[el])
+    fulltb = etree.ElementTree(tb)
+    mwetreebankpath, mwetreebankfilename = os.path.split(mwetreebankfullname)
+    if not os.path.exists(mwetreebankpath):
+        os.makedirs(mwetreebankpath)
+    fulltb.write(
+        mwetreebankfullname, encoding="UTF8", xml_declaration=False, pretty_print=True
+    )
+
+def getposcat(node: SynTree) -> str:
+    pt = getattval(node,'pt')
+    cat = getattval(node,'cat')
+    pos = getattval(node,'pos')
+    if pt != '':
+        return pt
+    elif cat != '':
+        return cat
+    elif pos != '':
+        return pos
+    else:
+        return ''
+
+def get_associate(node: SynTree, begins: List[Position]) -> Optional[SynTree]:
+    """
+    function to obtain the word node that an omitted word should be marked on. Possibly none is found.
+    If there is none, the marking will be on the whole sentence
+    """
+    node_pt = gav(node, 'pt')
+    node_conjtype = gav(node, 'conjtype')
+    node_rel = gav(node, 'rel')
+    the_head = find1(node, '../node[@rel="hd"]')
+    if node_pt == '':     # only defined for word nodes with a pt attributes
+        return None
+    # if cnj then crd if there is one
+    if gav(node, 'rel') == 'cnj':
+        result = find1(node, "../node[@rel='crd']")
+    # if content word then its governing head, if there is one
+    elif node_pt in openclasspts and the_head is not None:
+        result = the_head
+        if gav(result, 'cat') == 'mwu':
+            result = get_first_word_node_of(result)
+        # if crd then the first word of the first conjunct
+    elif node_pt == "vg" and node_conjtype == 'neven':
+        node_parent = node.getparent()
+        first_conjunct = find1(node_parent, f"./node[@rel='cnj' and @begin = {gav(node_parent, 'begin')}]")
+        result = get_first_word_node_of(first_conjunct) if first_conjunct is not None else None
+    # if function word then the head of its complement if there is one else its governing head
+    elif node_pt == "vz" and node_rel == 'hd':
+        compl = find1(node, '../node[@rel="obj1" or @rel="pobj1"]')
+        if 'cat' in compl.attrib:
+            result = getheadof(compl)
+        else:
+            result = compl
+        if result is None:
+            result = get_first_word_node_of(compl)
+        if gav(result, 'cat') == 'mwu':
+            result = get_first_word_node_of(result)
+    elif node_pt == "vg" and node_conjtype == 'onder':
+        compl = find1(node, '../node[@rel="body"]')
+        if compl is not None:
+            result = get_first_word_node_of(compl)
+        else:
+            result = get_next_word(node)
+        # complements, determiners and modifiers take the head as associate
+    elif node_rel != 'hd' and the_head is not None:
+        compl = the_head
+        result = compl
+        if gav(result, 'cat') == 'mwu':
+            result = get_first_word_node_of(compl)
+    # else None
+    else:
+        result = None
+    # an associate candidate that is going to be deleted itself should not be an associate
+    if result is not None and gav(result, 'begin') in begins:
+        result = None
+    return result
+
+
+def get_next_word(node: SynTree) -> Optional[SynTree]:
+    if 'word' not in node.attrib:
+        return None
+    top_node = find1(node, 'ancestor::alpino_ds')
+    word_nodes = getnodeyield(top_node)
+    for ctr, word_node in enumerate(word_nodes):
+        if word_node == node and ctr < len(word_nodes) - 1:
+            return word_nodes[ctr + 1]
+    return None
+
+
+def get_first_word_node_of(node: SynTree) -> Optional[SynTree]:
+    if 'word' in node.attrib:
+        result = node
+    else:
+        xpathquery = f"./node[@begin = '{gav(node, 'begin')}']"
+        result = find1(node, xpathquery)
+    return result
+
+def get_nodes(stree: SynTree, meta: etree.Element, xpath_cond="", annotation=False) -> List[SynTree]:
+    if annotation:
+        poslist_str = getattval(meta, 'annotationposlist')
+        poslist = eval(poslist_str)
+    else:
+        poslist_str = getattval(meta, 'annotatedposlist')
+        poslist = eval(poslist_str)
+    results = []
+    xpath_cond_str = f'and {xpath_cond}' if xpath_cond != '' else ''
+    for pos in poslist:
+        xpath_query = f'.//node[@word and @begin="{str(pos)}" {xpath_cond_str}]'
+        new_node = find1(stree, xpath_query)
+        if new_node is not None:
+            results.append(new_node)
+    return results
+
+def get_node(stree: SynTree, meta: etree.Element, xpath_cond="", annotation=False) -> SynTree:
+    nodes = get_nodes(stree, meta, xpath_cond=xpath_cond, annotation=annotation)
+    node = nodes[0] if len(nodes) > 0 else None
+    return node
+
+
+#: The variable (constant) *mdnamemdxpathtemplate* is an Xpath template to find
+#: metadata (xmeta) with  name=*mdname* and value=*mdvalue*
+mdnamemdxpathtemplate = """.//xmeta[@name="{mdname}" and @value="{mdvalue}"]"""
+
+mdnameonlyxpathtemplate = """.//xmeta[@name="{mdname}"]"""
+ptposxpathtemplate = './/node[@pt and @begin="{position}"]'
+
+
+def mdbasedquery(stree: SynTree, mdname: str, mdvalue: Optional[str] = None) -> List[SynTree]:
+    '''
+    The function *mdbasedquery* searches for metadata in *stree* with name = *mdname*
+    and value = *mdvalue* (if present). It then obtains the position of the node to which the
+    metadata apply, and next finds all nodes with that position as value for its *begin* attribute.
+    '''
+    mdnamemdxpath = mdnameonlyxpathtemplate.format(
+        mdname=mdname)
+    mdnamemds = stree.xpath(mdnamemdxpath)
+    results = []
+    for mdnamemd in mdnamemds:
+        if mdvalue is not None:
+            valuestr = mdnamemd.attrib['value']
+            thevaluelist = eval(valuestr) if '[' in valuestr else [valuestr]
+            ok = mdvalue in thevaluelist
+        else:
+            ok = True
+        if ok:
+            annotatedposstr = mdnamemd.attrib['annotatedposlist']
+            if annotatedposstr != '':
+                mdbeginval = annotatedposstr[1:-1]
+                ptposxpath = ptposxpathtemplate.format(position=mdbeginval)
+                newresults = stree.xpath(ptposxpath)
+                results += newresults
+
+    return results
+
+
+def get_associate_meta(node: SynTree) -> list:
+    node_begin = gav(node, 'begin')
+    associate_meta_xpath = f"""ancestor::alpino_ds/descendant::xmeta[@name="{correctionlabels.omitted_node_associate}" and 
+                                                                     @annotatedposlist="['{node_begin}']"]"""
+    results = node.xpath(associate_meta_xpath)
+    return results
+
+def get_word(meta: SynTree, attr: str) -> Optional[str]:
+    word_list = eval(gav(meta, attr))
+    word = word_list[0] if word_list != [] else None
+    return word
+
+def show_nodeyield(stree: SynTree) -> str:
+    node_list = getnodeyield(stree)
+    result = show_node_list(node_list)
+    return result
+
+def show_node_list(node_list: List[SynTree]) -> str:
+    show_list = [show_node(n) for n in node_list]
+    result = ', '.join(show_list)
+    return result
+
+def show_node(node: SynTree) -> str:
+    result = f'{gav(node, 'begin')}:{gav(node, 'word')}'
+    return result
+
+def requires_plural_tw(node: SynTree) -> bool:
+    lemma = gav(node, 'lemma')
+    pt = gav(node, 'pt')
+    result = pt == 'tw' and lemma not in ['één', '1']
+    return result
+
+def is_expletive_er(node: SynTree) -> bool:
+    node_lemma = gav(node, 'lemma')
+    node_rel = gav(node, 'rel')
+    node_int_end = int(gav(node, 'end'))
+    subject = find1(node.getparent(), 'node[@rel="su"]')
+    subject_int_begin = int(gav(subject, 'begin')) if subject is not None else 0
+    result = node_lemma == 'er' and (subject is None or node_int_end <= subject_int_begin)
+    return result
+
+
+def omitted_er_is_expletive(meta: SynTree) -> bool:
+    stree = find1(meta, 'ancestor::alpino_ds')
+    hd_node = get_node(stree, meta)
+    if hd_node is None:
+        sentence = getsentence(stree)
+        uttid = getuttid(stree)
+        settings.LOGGER.error(f'No node found for meta {str(meta)} in {sentence} (uttid={uttid}')
+        return False
+    subject = find1(hd_node.getparent(), 'node[@rel="su"]')
+    subject_int_begin = int(gav(subject, 'begin')) if subject is not None else 0
+    omitted_lemma = gav(meta, 'omitted_lemma')
+    annotationposlist = eval(gav(meta, 'annotationposlist'))
+    er_int_end = int(annotationposlist[0]) if annotationposlist != [] else 1000
+    cond1 = omitted_lemma == 'er'
+    cond2 = subject is None or er_int_end <= subject_int_begin
+    result = cond1 and cond2
+    return result
+
+
+def isdet(node) -> bool:
+    nodept = getattval(node, 'pt')
+    nodepdtype = getattval(node, 'pdtype' )
+    result = nodept in ['lw'] or (nodept in  ['vnw'] and nodepdtype in ['det'])
+    return result
+
+
+def contentword(node) -> bool:
+    nodept = getattval(node, 'pt')
+    result = nodept in ['n', 'ww', 'adj', 'bw']
+    return result
+
+
+
+
+
+
+def get_omitted_phrases(stree: SynTree, cond: Callable) -> List[SynTree]:
+    results = []
+    omitted_nodes = stree.xpath(f'.//omitted_node')
+    for omitted_node in omitted_nodes:
+        if cond(omitted_node):
+            results.append(omitted_node)
+    return results
+
+def find_omitted_phrase(ww: SynTree, cond: Callable) -> List[SynTree]:
+    results = []
+    stree =  find1(ww, './/ancestor::alpino_ds')
+    associate_metadata = stree.xpath(f'.//xmeta[@name="{correctionlabels.omitted_node_associate}"]')
+    ww_begin_int = int(gav(ww, 'begin'))
+    for associate_meta in associate_metadata:
+        annotated_poslist = eval(gav(associate_meta, 'annotatedposlist'))
+        if ww_begin_int in annotated_poslist:
+            annotation_poslist = eval(gav(associate_meta, 'annotationposlist'))
+            newcond = lambda x: cond(x) and int(gav(x, 'begin')) in annotation_poslist
+            results = get_omitted_phrases(stree, newcond)
+    return results
+
+
+dependent_verb_xpath1 = """../node[@rel="vc" and (@cat="inf" or @cat="ppart")]/node[@rel="hd" and @pt="ww"]"""
+dependent_verb_xpath2 = """../node[@rel="vc" and @cat="ti"]/node[@cat="inf"]/node[@rel="hd" and @pt="ww"]"""
+def get_ww_dependent_verbs(ww: SynTree) -> List[SynTree]:
+    dependent_verbs = ww.xpath(dependent_verb_xpath1)
+    dependent_verbs += ww.xpath(dependent_verb_xpath2)
+    results = dependent_verbs
+    for dependent_verb in dependent_verbs:
+        rec_dependent_verbs = get_ww_dependent_verbs(dependent_verb)
+        results += rec_dependent_verbs
+    return results
+
+bigpro_cond = """(@rel="su" and not(@cat) and not(@pt) and not(@word) and not(@pos) and parent::node[@cat="inf" or @cat="ppart"])"""
+self_bigpro_xpath = f'self::node[{bigpro_cond}]'
+def is_bigpro(node: SynTree) -> bool:
+    result = node.xpath(self_bigpro_xpath) != []
+    return result
+
+
+def getmarkeduttbypositions(syntree: SynTree, thepositions: List[int]) -> str:
+    thewordlist = getyield(syntree)
+    themarkedyield = getmarkedyield(thewordlist, thepositions)
+    yieldstr = space.join(themarkedyield)
+    return yieldstr
+
+
+
+def switch_nodes(instree: SynTree, node_pos1: int, node_pos2: int) -> SynTree:
+    stree = deepcopy(instree)
+    node1 = find1(stree, f'.//node[@pt and @begin="{str(node_pos1)}"]')
+    node2 = find1(stree, f'.//node[@pt and @begin="{str(node_pos2)}"]')
+    if node1 is None or node2 is None:
+        xsid = getxsid(stree)
+        yieldstr = getyieldstr(stree)
+        settings.LOGGER.error(f'Node(s) to be switched not found in {xsid}: {yieldstr}')
+        return instree
+    node1.set('begin', str(node_pos2))
+    node1.set('end', str(node_pos2 + 1))
+    node2.set('begin', str(node_pos1))
+    node2.set('end', str(node_pos1 + 1))
+    return stree
 
 if __name__ == '__main__':
     # test()

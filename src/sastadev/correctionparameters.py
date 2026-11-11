@@ -12,3 +12,5 @@ class CorrectionParameters:
     thissamplecorrections: dict
     treebank: TreeBank
     contextdict : dict
+    children_correctionsdict: dict
+    adult_correctionsdict : dict

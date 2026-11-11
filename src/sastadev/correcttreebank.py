@@ -6,24 +6,29 @@ from lxml import etree
 
 from sastadev.adapt_pt import adapt_pt
 from sastadev.basicreplacements import ervzvariantsdict, is_er_pronoun, is_pronominal_adverb
+from sastadev.CHAT_correct import correct_dis_dit, correct_chat
 from sastadev.cleanCHILDEStokens import cleantext, bare_angled_brackets
 from sastadev.conf import settings
+from sastadev.displaytree import printtree
 from sastadev import correctionlabels
 from sastadev.correctionparameters import CorrectionParameters
 from sastadev.corrector import (Correction, getcorrections,
                                 mkuttwithskips)
 from sastadev.celexlexicon import celex2dcoi
 from sastadev.lexicon import getwordposinfo,nochildwords
-from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, bpl_none, bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, insertion,
+from sastadev.metadata import (Meta, bpl_delete, bpl_indeze, bpl_node, bpl_node_nolemma, bpl_none,
+                               bpl_replacement, bpl_word, bpl_wordlemma, bpl_word_delprec, bpl_paspast,
+                               bpl_switch_order,
+                               insertion,
                                EXTRAGRAMMATICAL
                                )
-from sastadev.methods import Method
+from sastadev.methods import Method, asta, tarsp, stap
 from sastadev.parse_criteria import compute_penalty, criteria, isvalidword
-from sastadev.postnominalmodifiers import transformbwinnp, transformppinnp, transformmodRinnp
 from sastadev.sastatoken import Token, insertinflate, tokenlist2stringlist, tokenlist2string
 from sastadev.sastatypes import (AltId, CorrectionMode, ErrorDict, MetaElement,
                                  MethodName, Position, PositionStr,
                                  SynTree, Targets, Treebank, UttId)
+from sastadev.stringfunctions import separate_punctuation
 from sastadev.syllablecount import countsyllables
 from sastadev.targets import get_mustbedone
 from sastadev.tblex import isrealwordnode
@@ -33,14 +38,13 @@ from sastadev.treebankfunctions import (adaptsentence, add_metadata, attach_meta
                                         getptsubclass,
                                         getsentid, getsentence, gettokenpos_str, gettokposlist, getxsid,
                                         getyield, is_infl_different, mkattrib, myfind,
-                                        showflatxml,
-                                        showtree, simpleshow, subclasscompatible, transplant_node,
+                                        showflatxml, show_nodeyield,
+                                        showtree, simpleshow, subclasscompatible, switch_nodes, transplant_node,
                                         treeinflate, treewithtokenpos,
                                         updatetokenpos)
-from sastadev.treetransform import adaptlemmas, transformtagcomma, transformtreeld, transformtreenogeen, \
-    transformtreenogde, transformhwwwithsvp
-from sastadev.eenbeetje import transform_eenbeetje
+from sastadev.treetransform import (adaptlemmas, dotreetransformations)
 
+gav = getattval
 ampersand = '&'
 
 corr0, corr1, corrn = '0', '1', 'n'
@@ -61,7 +65,7 @@ ParsedCorrection = Tuple[List[str], SynTree, List[Meta]]
 TupleNint = Tuple[19 * (int,)]
 
 
-smartreplacepairs = [('me', 'mijn'), ('ze', 'zijn')]
+smartreplacepairs = [('me', 'mijn'), ('ze', 'zijn'), ('me', 'we'), ('gaat', 'laat')]
 smartreplacedict = {w1: w2 for w1, w2 in smartreplacepairs}
 
 
@@ -201,11 +205,47 @@ def adaptpv(node):
         node.attrib['postag'] = 'WW(pv,tgw,mv)'
 
 
-def get_newnode_from_celex(word: str, node:SynTree) -> Optional[SynTree]:
+def wrong_get_newnode_from_celex(word: str, node:SynTree) -> Optional[SynTree]:
     """
     check whether word has a pt equal to the node's pt in CELEX. If so, create a node for one of them with
     DCOI-properties derived from the CELEX properties. If the inflectional properties differ, return it as the
     result. In all other cases, return None . Example word=pas, node for past
+
+    modification: we first see if there is a candidate that satisfies the criteria and has the same emma, otherwise we take the ones with a different lemma
+    :param word:
+    :param node:
+    :return:
+    """
+    nodept = getattval(node, 'pt')
+    nodelemma = getattval(node, 'lemma')
+    wordinfos = getwordposinfo(word, nodept)
+    same_lemma_wordinfos = [wordinfo for wordinfo in wordinfos if wordinfo[3] == nodelemma]
+    for wordinfo in same_lemma_wordinfos:
+        (pt, dehet, infl, lemma) = wordinfo
+        dcoi_infl = celex2dcoi(word, infl, lemma)
+        if is_infl_different(dcoi_infl, node.attrib):
+            newnodeattrib = mkattrib(word, lemma, pt, dcoi_infl)
+            newnode = etree.Element('node', attrib=newnodeattrib)
+            return newnode
+    # if no node has been returned yet we try all other cases
+    diff_lemma_wordinfos = [wordinfo for wordinfo in wordinfos if wordinfo[3] != nodelemma]
+    for wordinfo in diff_lemma_wordinfos:
+        (pt, dehet, infl, lemma) = wordinfo
+        dcoi_infl = celex2dcoi(word, infl, lemma)
+        if is_infl_different(dcoi_infl, node.attrib):
+            newnodeattrib = mkattrib(word, lemma, pt, dcoi_infl)
+            newnode = etree.Element('node', attrib=newnodeattrib)
+            return newnode
+
+    return None
+
+
+def get_newnode_from_celex(word: str, node: SynTree) -> Optional[SynTree]:
+    """
+    check whether word has a pt equal to the node's pt in CELEX. If so, create a node for one of them with
+    DCOI-properties derived from the CELEX properties. If the inflectional properties differ, return it as the
+    result. In all other cases, return None . Example word=pas, node for past
+
     :param word:
     :param node:
     :return:
@@ -263,17 +303,21 @@ def smartreplace(node: SynTree, word: str, method: Method) -> SynTree:
     newnodept = getattval(newnode, 'pt')
     nodept = getattval(node, 'pt')
     nodelemma = getattval(node, 'lemma')
+    nodeword = getattval(node, 'word')
     newnodelemma = getattval(newnode, 'lemma')
     if isvalidword(word, mn) and \
             (issamewordclass(node, newnode) or is_pronadv_dempro(node, newnode)) and \
-            not isrobustnoun(newnode) and \
-            newnodelemma not in nochildwords:
+            not isrobustnoun(newnode) and gav(newnode, 'pvagr') != 'conj' and \
+            newnodelemma not in nochildwords and (word, nodeword) not in smartreplacepairs:
         result = newnode
+        result.set('original_lemma', nodelemma)
         if nodept == 'ww' and '_' in nodelemma and newnodelemma in nodelemma and '_' not in newnodelemma:
             # e.g. nodelemma == 'op_hebben', newnodelemma='hebben'
             cpseppos = nodelemma.find('_')
             prt = nodelemma[:cpseppos]
             result.set('lemma', f'{prt}_{newnodelemma}')
+        elif nodept == 'vz':  # we keep the lemma of replacer for adpositions
+            result.set('lemma', nodelemma)
         result.set('begin', getattval(node, 'begin'))
         result.set('end', getattval(node, 'end'))
         result.set('rel', getattval(node, 'rel'))
@@ -283,12 +327,13 @@ def smartreplace(node: SynTree, word: str, method: Method) -> SynTree:
             adaptpv(result)
     else:
         result = copy(node)
-        result.attrib['word'] = word
+        result.set('word', word)
         nodept = getattval(node, 'pt')
+        result.set('original_lemma', newnodelemma)
         if is_er_pronoun(nodelemma) and word not in ervzvariantsdict:
-            result.attrib['lemma'] = word
+            result.set('lemma', word)
         elif '_' in node.attrib['lemma'] and countsyllables(word) == 1 and nodept == 'n':
-            result.attrib['lemma'] = word
+            result.set('lemma', word)
     return result
 
 
@@ -353,8 +398,9 @@ def correcttreebank(treebank: Treebank, targets: Targets, correctionparameters: 
             uttid = getxsid(stree)
             uttno = find1(stree, './/metadata/meta[@name="uttno"]/@value')
             # print(uttid)
-            mustbedone = get_mustbedone(stree, targets)
+            mustbedone = get_mustbedone(stree, targets, correctionparameters.method)
             if mustbedone:
+                # print(uttid)
                 # to implementf
                 sentence = getsentence(stree)
                 newstree, orandalts = correct_stree(stree, corr, correctionparameters)
@@ -550,10 +596,10 @@ def getuitloopnodes(nodes: List[SynTree], metadata:List[Meta]) -> List[SynTree]:
     return sortedresults
 
 def getomittedwordbegins(metalist: List[Meta]) -> List[Position]:
-    from sastadev.CHAT_Annotation import omittedword
+    from sastadev.CHAT_Annotation import CHAT_omittedword
     results = []
     for meta in metalist:
-        if meta.name == omittedword:
+        if meta.name == CHAT_omittedword:
             results += meta.annotatedposlist
     return results
 
@@ -569,20 +615,28 @@ def cleantextdone(metadataelement):
 def bare_angled_brackets_replace_tree(stree: SynTree) -> SynTree:
     """
     reparses the cleaned utterance if the original utterance contains bare angled brackets
-    needed because of an inconsistency between the the two methods of cleaning used (in SASTA v. SASTADEV)
+    needed because of an inconsistency between the two methods of cleaning used (in SASTA v. SASTADEV)
     :param stree:
     :return: possibly modified syntactic structure
     """
     origutt = getorigutt(stree)
     if origutt is None:
-        origutt = getsentence(stree)
-    if origutt is None:
-        return(stree)
+        return stree
+    metadata = find1(stree, './/metadata')
     cleanutt, chatmetadata = cleantext(origutt, False, tokenoutput=False)
+    # surround punctuation by spaces because Alpino does it incorrectly
+    cleanutt = separate_punctuation(cleanutt)
     if any([meta.name == bare_angled_brackets for meta in chatmetadata]):
         newstree = settings.PARSE_FUNC(cleanutt)
+        if newstree is None:
+            newstree = stree
+        else:
+            # append the original metadata no do not check
+            # newstree.append(metadata)
+            pass
     else:
         newstree = stree
+
     return newstree
 
 
@@ -694,17 +748,8 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
 
     # Step 3
     # tree transformations
-    if correctionparameters.method.name in ['tarsp', ' stap']:
-        stree = transformtagcomma(stree)
-        stree = transformtreeld(stree)
-        stree = transformppinnp(stree)
-        stree = transformbwinnp(stree)
-        stree = transformmodRinnp(stree)
-        stree = transformtreenogeen(stree)
-        stree = transformtreenogde(stree)
-        stree = transform_eenbeetje(stree)
-        stree = transformhwwwithsvp(stree)
-        # stree = nognietsplit(stree)  # put off because it should not be done
+    if True:   # correctionparameters.method.name in [tarsp, stap]:
+        stree = dotreetransformations(stree, correctionparameters.method.name)
 
     # Step 4
     # adapt lemmas for words of which we know Alpino does it wrong
@@ -733,6 +778,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     if lmetadatalist == 0:
         settings.LOGGER.error('Missing metadata in utterance {}'.format(uttid))
         origmetadata = None
+        origmetadatalist = []
     else:
         if lmetadatalist > 1:
             settings.LOGGER.error(
@@ -744,13 +790,35 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     # allmetadata += origmetadata
     # clean in the tokenized manner
 
-    cleanutttokens, chatmetadata = cleantext(origutt, False, tokenoutput=True)
+    # correct wrong repetitions
+    revised_utt = correct_chat(origutt)
+    if revised_utt != origutt:
+        repetition_metadata = [Meta('CHAT_correction', 'repetition_correction', cat='CHAT', source='SASTA')]
+        origutt_meta = find1(origmetadata, './/meta[@name="origutt"]')
+        if origutt_meta is not None:
+            pre_origmeta = etree.Element('meta',
+                                         {'name':'preorigutt', 'value': gav(origutt_meta, 'value'), 'type': 'text'})
+            new_origmeta = etree.Element('meta', {'name':'origutt', 'value': revised_utt, 'type': 'text'})
+            origmetadata.remove(origutt_meta)
+            origmetadata.extend([pre_origmeta, new_origmeta])
+        else:
+            pass  # give warning
+    else:
+        repetition_metadata = []
+
+    cleanutttokens, chatmetadata = cleantext(revised_utt, False, tokenoutput=True)
+    # improve wrong CHAT annotations
+    newutt, correction_metadata = correct_dis_dit(revised_utt, chatmetadata)
+    cleanutttokens, chatmetadata = cleantext(newutt, False, tokenoutput=True)
+
     # if not cleantextdone(origmetadata):  # otherwise we get double metadata for cleantext maar werkt niet goed
     #    allmetadata += chatmetadata
-    allmetadata += chatmetadata
+    allmetadata += chatmetadata + [meta for meta in correction_metadata if meta not in chatmetadata] + repetition_metadata
     # cleanutttokens = sasta_tokenize(cleanutt)
     cleanuttwordlist = [t.word for t in cleanutttokens]
     cleanutt = space.join(cleanuttwordlist)
+
+
 
     # get corrections, given the inflated stree
     # Step 6
@@ -828,6 +896,10 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                     showtree(fatnewstree)
                 # etree.dump(fatnewstree)
 
+                # do tree transformations
+                if correctionparameters.method.name in [tarsp, stap]:
+                    fatnewstree = dotreetransformations(fatnewstree, correctionparameters.method.name)
+
         else:
             # make sure to include the xmeta from CHAT cleaning!! variable allmetadata, or better metadata but perhaps rename to chatmetadata
             fatnewstree = add_metadata(fatstree, chatmetadata)
@@ -898,8 +970,20 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                 contextoldnode = contextualise(oldnode, newnode)
                 if curbackplacement == bpl_node_nolemma:
                     newnodelemma = getattval(newnode, 'lemma')
+                    oldnodelemma = getattval(oldnode, 'lemma')
+                    contextoldnode.set('original_lemma', oldnodelemma)
                     contextoldnode.set('lemma', newnodelemma)
                 thetree = transplant_node(newnode, contextoldnode, thetree)
+        elif curbackplacement == bpl_paspast:
+            nodeend = meta.annotationposlist[-1] + 1
+            newnode = myfind(
+                thetree, './/node[@pt and @end="{}"]'.format(nodeend))
+            if newnode is not None:
+                newnode.set('pvagr', 'ev')
+        elif curbackplacement == bpl_switch_order:
+            pos1 = meta.annotatedposlist[0]
+            pos2 = meta.annotatedposlist[1]
+            thetree = switch_nodes(thetree, pos1, pos2)
         elif curbackplacement == bpl_replacement:
             # showtree(fatstree, 'fatstree')
             if len(meta.annotationposlist) > 1:
@@ -928,6 +1012,9 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
                     newnodeparent = newnode.getparent()
                     newnodeparent.remove(newnode)
                     newnodeparent.append(substnode)
+                    # adapt the sentence here
+                    thetree = adaptsentence(thetree)
+
             # showtree(thetree, 'thetree after smart replace')
 
         elif curbackplacement in [bpl_word, bpl_wordlemma]:
@@ -952,7 +1039,8 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
             if curbackplacement == bpl_wordlemma:
                 if newnode is not None and oldnode is not None:
                     if 'lemma' in newnode.attrib and 'lemma' in oldnode.attrib:
-                        newnode.attrib['lemma'] = oldnode.attrib['lemma']
+                        newnode.set('original_lemma', gav(newnode,'lemma'))
+                        newnode.set('lemma', gav(oldnode, 'lemma'))
                         thetree = adaptsentence(thetree)
                     else:
                         if 'lemma' not in oldnode.attrib:
@@ -979,7 +1067,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
             pass
         elif curbackplacement == bpl_delete:
             orignodebegin = str(meta.annotatedposlist[-1])
-            # just gather the begin sof the nodes to be deleted
+            # just gather the begins of the nodes to be deleted
             nodes2deletebegins.append(orignodebegin)
         elif curbackplacement == bpl_indeze:
             nodebegin = meta.annotatedposlist[-1]
@@ -1002,7 +1090,18 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         showtree(thetree, text='thetree before deletion:')
 
     nodes2deleteintbegins = [int(b) for b in nodes2deletebegins]
-    thetree = deletewordnodes(thetree, nodes2deleteintbegins, wordsonly=True)
+    thetree1, deletion_metadata, omitted_nodes = deletewordnodes(thetree, nodes2deleteintbegins, wordsonly=True)
+
+    # add the omitted_nodes as a new type of metadata
+    omitted_nodes_element = find1(thetree1, './/omitted_nodes')
+    if omitted_nodes_element is None:
+        omitted_nodes_element = etree.Element('omitted_nodes')
+    for omitted_node in omitted_nodes:
+        omitted_nodes_element.append(omitted_node)
+
+    thetree = deepcopy(thetree1)
+    thetree.append(omitted_nodes_element)
+
 
     if debug:
         showtree(thetree, text='thetree after deletion:')
@@ -1015,7 +1114,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
         meta.annotationwordlist for meta in newcorrection2 if meta.name == 'cleanedtokenpositions']
     cleantokpos = cleantokposlist[0] if cleantokposlist != [] else []
     insertbegins = [
-        meta.annotatedposlist for meta in newcorrection2 if meta.name == insertion]
+        meta.annotatedposlist for meta in newcorrection2 if meta.name in correctionlabels.insertion_meta_names]
     flatinsertbegins = [str(v) for el in insertbegins for v in el]
     purenodes2deletebegins = [
         str(v) for v in nodes2deletebegins if str(v) not in flatinsertbegins]
@@ -1051,6 +1150,9 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     for meta in newcorrection2:
         metadata.append(meta.toElement())
 
+    for meta in deletion_metadata:
+        metadata.append(meta.toElement())
+
     if debug:
         streesentlist = getyield(fatstree)
         fulltreesentlist = getyield(fulltree)
@@ -1074,19 +1176,7 @@ def correct_stree(stree: SynTree,  corr: CorrectionMode, correctionparameters: C
     # etree.dump(fulltree, pretty_print=True)
 
     # Step 17
-    # tree transformations
-    if correctionparameters.method.name in ['tarsp', ' stap']:
-        fulltree = transformtagcomma(fulltree)
-        fulltree = transformtreeld(fulltree)
-        fulltree = transformppinnp(fulltree)
-        fulltree = transformbwinnp(fulltree)
-        fulltree = transformmodRinnp(fulltree)
-        fulltree = transformtreenogeen(fulltree)
-        fulltree = transformtreenogde(fulltree)
-        fulltree = transform_eenbeetje(fulltree)
-        fulltree = transformhwwwithsvp(fulltree)
-
-        # fulltree = nognietsplit(fulltree) # put off because it should not be done
+    # tree transformations moved to directly after the parsing of the candidates
 
     # adapt lemmas for words of which we know Alpino does it wrong
     fulltree = adaptlemmas(fulltree)

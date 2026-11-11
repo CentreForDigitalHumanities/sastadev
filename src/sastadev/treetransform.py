@@ -1,15 +1,23 @@
 import copy
+from sastadev.basicreplacements import get_pronadv_head_lemma
 from sastadev.conf import settings
-from sastadev.lexicon import compoundsep, lemmalexicon
+from sastadev.eenbeetje import transform_eenbeetje
+from sastadev.generatemacros import tarsp_wvzexceptions
+from sastadev.lexicon import adj_no_pp_lexicon, compoundsep, disambig_words, lemmalexicon
 from sastadev.macros import expandmacros
-from sastadev.treebankfunctions import find1, getattval, getbeginend, getnodeyield, getyield, \
-    immediately_precedes, iswordnode, showtree
+from sastadev.methods import MethodName, tarsp
+from sastadev.postnominalmodifiers import transformbwinnp, transformppinnp, transformmodRinnp, transform_met_np_pp, \
+    transformalleeninnp
+from sastadev.treebankfunctions import clausebodycats, find1, getattval, getbeginend, getnodeyield, getyield, \
+    immediately_precedes, iswordnode, showtree, treeinflate, getposcat
 from sastadev.sastatypes import SynTree
 from sastadev.tblex import is_rpronoun
 from lxml import etree
 from typing import List
 
 space = ' '
+
+gav = getattval
 
 tagcommaclausexpath = """.//node[@cat="smain" and 
                           node[@pt="n" and @end = ancestor::alpino_ds/descendant::node[@lemma="," ]/@begin and 
@@ -36,6 +44,15 @@ smainwithverbxpath = """.//node[@cat="smain" and node[@rel="hd" and @pt="ww" and
 hwwwithsvpxpath = expandmacros(""".//node[@pt="ww" and %hwwwithsvp%  and not(%hwwwithsvpexception%) and 
                      ../node[@rel="svp" and  @pt="vz"] and 
                      ../node[@rel="mod" and %Rpronoun%]]""")
+
+bare_obj2_xpath = expandmacros("""//node[@rel="obj2" and 
+       (not(@cat) or @cat!="pp") and 
+       (not(@case) or @case="stan") and
+       ../node[@rel="hd" and @pt="ww" and @wvorm="pv"] and 
+       not(../node[@rel="su"]) and 
+       not(../node[@rel="obj1"]) and
+	   not(%basicimperative%)
+	   ]""")
 
 def transformtreeld(stree:SynTree) -> SynTree:
     debug = False
@@ -182,6 +199,16 @@ def nognietsplit(stree: SynTree) -> SynTree:
     return newstree
 
 
+gaan_predc_xpath = """.//node[@rel='predc' and ../node[@rel="hd" and @lemma="gaan"]]"""
+def transform_gaan_predc(instree:SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    predcs = stree.xpath(gaan_predc_xpath)
+    for predc in predcs:
+        predc.set('rel', 'mod')
+    return stree
+
+
+
 def adaptlemmas(stree: SynTree) -> SynTree:
     newlemmafound = False
     newstree = copy.deepcopy(stree)
@@ -279,5 +306,314 @@ def transformhwwwithsvp(stree: SynTree) -> SynTree:
             pp.append(vz)
             candparent.append(pp)
     return newstree
+
+# jij zelf opspspliten
+
+def getendof(nodes: List[SynTree]) -> str:
+    sortednodes =  sorted(nodes, key=lambda n: int(gav(n, 'end')))
+    if sortednodes == []:
+        return '0'
+    else:
+        return gav(sortednodes[-1], 'end')
+
+pronzelfxpath = './/node[@cat="np"   and node[@rel="mod" and @lemma="zelf"] ]'
+
+def splitpronzelf(stree: SynTree) -> SynTree:
+    newtree = copy.deepcopy(stree)
+    zelfnps = newtree.xpath(pronzelfxpath)
+    if zelfnps == []:
+        return stree
+    for zelfnp in zelfnps:
+        zelfnpparent = zelfnp.getparent()
+        for child in zelfnp:
+            if gav(child, 'lemma') == 'zelf':
+                zelfnp.remove(child)
+                zelfnp.set('end', getendof([ch for ch in zelfnp]))
+                zelfnpparent.append(child)
+                child.set('rel', 'predm')
+    return newtree
+
+
+# move PP out of predc/ap
+
+predc_ap_with_pp_xpath = './/node[@cat="ap" and @rel="predc" and node[@cat="pp"]]'
+def transform_ppinap(stree: SynTree) -> SynTree:
+    newstree = copy.deepcopy(stree)
+    predc_ap_with_pp_nodes = newstree.xpath(predc_ap_with_pp_xpath)
+    if predc_ap_with_pp_nodes == []:
+        return stree
+    for apnode in predc_ap_with_pp_nodes:
+        apnodeparent = apnode.getparent()
+        for child in apnode:
+            if gav(child, 'cat') == 'pp':
+                apnode.remove(child)
+                apnodeparent.append(child)
+                child.set('rel', 'mod')
+    return newstree
+
+def get_end(stree: SynTree) -> str:
+    nodeyield = getnodeyield(stree)
+    lastwordnode = nodeyield[-1] if nodeyield != [] else None
+    if lastwordnode is not None:
+        result = gav(lastwordnode, 'end')
+    else:
+        result = '-1'
+    return result
+
+np_rel_avn_xpath = """.//node[@cat="np" and @rel="--" and
+    node[@pt="n" and @rel="hd"] and
+    node[@cat="rel" and @rel="mod" and
+        node[@pt="vnw" and @rel="rhd" and (@lemma="die" or @lemma="dat")] and
+        node[@cat="ssub" and @rel="body" and
+            node[@pt="ww" and @rel="hd"]]]]
+			"""
+
+
+def transform_rel2avn(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    np_nodes = stree.xpath(np_rel_avn_xpath)
+    for np_node in np_nodes:
+        np_parent = np_node.getparent()
+        rel_node = find1(np_node, """./node[@cat="rel" and @rel="mod"]""")
+        if rel_node is None:
+            return instree
+        np_node.remove(rel_node)
+        du_node = etree.Element('node', {'cat': ' du', 'rel':'--' })
+        np_parent.append(du_node)
+        np_node.set('rel', 'sat')
+        np_node_end = get_end(np_node)
+        np_node.set('end', np_node_end)
+        du_node.append(np_node)
+        rel_node.set('rel', 'nucl')
+        du_node.append(rel_node)
+        du_node.set('begin', gav(np_node, 'begin'))
+        du_node.set('end', gav(rel_node, 'end'))
+    return stree
+
+adj_pp_xpath = """.//node[@cat="ap" and node[@rel="hd" and @pt="adj"] and node[@cat="pp" or (@pt="bw" and starts-with(@frame,"er_adverb"))]]"""
+def transform_adj_pp(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    ap_nodes = stree.xpath(adj_pp_xpath)
+    for ap_node in ap_nodes:
+        ap_hd_node = find1(ap_node, """./node[@rel="hd"]""")
+        if ap_hd_node is not None:
+            hd_lemma = gav(ap_hd_node, 'lemma')
+            if hd_lemma in adj_no_pp_lexicon:
+                ap_parent = ap_node.getparent()
+                ap_parent_cat = gav(ap_parent, 'cat')
+                pp_node = find1(ap_node, """./node[@cat="pp" or (@pt="bw" and starts-with(@frame,"er_adverb")) and @rel="mod"]""")
+                if pp_node is not None:
+                    if ap_parent_cat not in clausebodycats:
+                        ap_begin, ap_end = getbeginend(ap_node)
+                        ap_node_rel = gav(ap_node, 'rel')
+                        new_parent = etree.Element('node',
+                                                   {'cat': 'du', 'rel': ap_node_rel,
+                                                    'begin': ap_begin, 'end': ap_end})
+                        ap_parent.remove(ap_node)
+                        new_parent.append(ap_node)
+                        ap_node.remove(pp_node)
+                        ap_new_begin, ap_new_end = getbeginend(ap_node)
+                        new_parent.append(pp_node)
+                        ap_parent.append(new_parent)
+                        ap_node.set('rel', 'dp')
+                        ap_node.set('begin', ap_new_begin)
+                        ap_node.set('end', ap_new_end)
+                        pp_node.set('rel', 'dp')
+                    else:
+                        new_parent = ap_parent
+                        ap_node.remove(pp_node)
+                        ap_new_begin, ap_new_end = getbeginend(ap_node)
+                        new_parent.append(pp_node)
+                        ap_node.set('begin', ap_new_begin)
+                        ap_node.set('end', ap_new_end)
+    return stree
+
+dp_dp_rel_avn_xpath = """.//node[count(node[@rel="dp"]) > 1 and node[@cat="np" and @rel="dp" and
+    node[@pt="n" and @rel="hd"] and
+    node[@cat="rel" and @rel="mod" and
+        node[@pt="vnw" and @rel="rhd" and (@lemma="die" or @lemma="dat")] and
+        node[@cat="ssub" and @rel="body" and
+            node[@pt="ww" and @rel="hd"]]]]]"""
+
+dp_np_rel_xpath = """./node[@cat="np" and @rel="dp" and
+                            node[@pt="n" and @rel="hd"] and
+                            node[@cat="rel" and @rel="mod"]
+                            ]"""
+
+
+def follows(node1: SynTree, node2: SynTree) -> bool:
+    node2_end = gav(node2, 'end')
+    node1_begin = gav(node1, 'begin')
+    result = int(node1_begin) >= int(node2_end)
+    return result
+
+def transform_dp_dp_rel2avn(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    dp_dp_parents = stree.xpath(dp_dp_rel_avn_xpath)
+    result = instree
+    for dp_dp_parent in dp_dp_parents:
+        dp_np = find1(dp_dp_parent, dp_np_rel_xpath)
+        if dp_np is None:
+            return instree
+        dp2s = [child for child in dp_dp_parent if child != dp_np and
+                                                  gav(child, 'rel') == 'dp' and
+                                                  follows(child, dp_np)]
+        dp2 = dp2s[0] if dp2s != [] else None
+        relclause = find1(dp_np, """./node[@cat="rel" and @rel="mod"]""")
+        if dp2 is not None and relclause is not None:
+            stree_tokens = getyield(stree)
+            dp_np.remove(relclause)
+            dp_np_tokens = getyield(dp_np)
+            relclause_tokens = getyield(relclause)
+            l_dp_np_tokens = len(dp_np_tokens)
+            todo_tokens = stree_tokens[l_dp_np_tokens:]
+            todo_str = space.join(todo_tokens)
+            new_tree = settings.PARSE_FUNC(todo_str)
+            treeinflate(new_tree, start=l_dp_np_tokens, inc=1)
+            new_smain = find1(new_tree, './node[@cat="top"]/node[@cat="smain" ]')
+            top_node = find1(stree, './node[@cat="top" and @rel="top"]')
+            if new_smain is not None and top_node is not None:
+                for child in top_node:
+                    top_node.remove(child)
+                du_node = etree.Element('node',
+                                        {'cat':"du", 'rel': '--',
+                                               'begin':gav(top_node, 'begin'),
+                                               'end':gav(top_node, 'end')})
+                new_smain.set('rel', 'nucl')
+                dp_np.set('rel', 'sat')
+                dp_np.set('end', str(l_dp_np_tokens))
+                du_node.append(dp_np)
+                du_node.append(new_smain)
+                top_node.append(du_node)
+                result = stree
+            else:
+                result = instree
+        else:
+            result = instree
+    return result
+
+
+
+wrong_sep_wws = ['uit_zijn', 'af_moeten']  # removed 'aan_gaan'
+sep_ww_xpath = f""".//node[@pt="ww" and contains(@lemma,'_' )]"""
+def transform_sep_ww(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    sep_wws = stree.xpath(sep_ww_xpath)
+    for sep_ww in sep_wws:
+        sep_ww_lemma = gav(sep_ww, 'lemma')
+        if  sep_ww_lemma in wrong_sep_wws:
+            particle_node = find1(sep_ww, '../node[@pt and @rel="svp"]')
+            if particle_node is not None:
+                sep_pos = sep_ww_lemma.index('_')
+                newlemma = sep_ww_lemma[sep_pos + 1:]
+                sep_ww.set('lemma', newlemma)
+                particle_node.set('rel', 'ld')
+    return stree
+
+
+erazxpath = """.//node[@lemma="er" and ../node[@pt="vz" and @vztype="fin"]]"""
+az_xpath = """.//node[@pt="vz" and @vztype="fin"]"""
+def transform_er_az(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    er_az_nodes = stree.xpath(erazxpath)
+    az_nodes = stree.xpath(az_xpath)
+    for er_az_node in er_az_nodes:
+        for az_node in az_nodes:
+            if immediately_precedes(er_az_node, az_node, stree):
+                er_az_parent = er_az_node.getparent()
+                er_az_parent.remove(er_az_node)
+                er_az_parent.remove(az_node)
+                pp_node = etree.Element('node', {'cat': 'pp', 'rel': 'mod',
+                                                 'begin': gav(er_az_node, 'begin'),'end': gav(az_node, 'end')})
+                er_az_node.set('rel', 'obj1')
+                pp_node.append(er_az_node)
+                az_node.set('rel', 'hd')
+                pp_node.append(az_node)
+                er_az_parent.append(pp_node)
+    return stree
+
+def transform_w_vz(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    verbs = stree.xpath('.//node[@pt="ww"]')
+    for verb in verbs:
+        verb_lemma = gav(verb, 'lemma')
+        pc = find1(verb, '../node[@rel="pc"]')
+        if pc is not None:
+            pc_vz_lemma = get_pc_head_lemma(pc)
+            if (verb_lemma,pc_vz_lemma) in tarsp_wvzexceptions:
+                pc.set('rel', 'ld')
+    return stree
+
+def get_pc_head_lemma(pc: SynTree) -> str:
+    pc_poscat = getposcat(pc)
+    if pc_poscat == 'pp':
+        pc_vz = find1(pc, './node[@rel="hd" and @pt="vz"]')
+        if pc_vz is not None:
+            result = gav(pc_vz, 'lemma')
+        else:
+            result = ''
+    elif pc_poscat == 'bw':
+        pc_lemma = gav(pc, 'lemma')
+        result = get_pronadv_head_lemma(pc_lemma)
+        if result is None:
+            result = ''
+    else:
+        result = ''
+    return result
+
+
+def transform_wrong_words(instree: SynTree) -> SynTree:
+    '''
+    replaces nodes for words with the wrong properties by the right properties
+    e.g. gebeurd as vd of beuren is replaced by gebeurd as vd of gebeuren
+    '''
+    stree = copy.deepcopy(instree)
+    word_nodes = stree.xpath('.//node[@word]')
+    for word_node in word_nodes:
+        word = gav(word_node, 'word')
+        if word in disambig_words:
+            new_features = disambig_words[word]
+            for feature_name in new_features:
+                if feature_name in word_node.attrib:
+                    word_node.attrib[feature_name] = new_features[feature_name]
+
+    return stree
+
+def transform_bare_obj2(instree: SynTree) -> SynTree:
+    stree = copy.deepcopy(instree)
+    bare_obj2 = find1(stree, bare_obj2_xpath)
+    if bare_obj2 is not None:
+        bare_obj2.set('rel', 'su')
+    return stree
+
+
+def dotreetransformations(fulltree: SynTree, method_name: MethodName) -> SynTree:
+    fulltree = transformtagcomma(fulltree)
+    fulltree = transformtreeld(fulltree)
+    fulltree = transformppinnp(fulltree)
+    fulltree = transformbwinnp(fulltree)
+    if method_name in [tarsp]:
+        fulltree = transformalleeninnp(fulltree)
+    fulltree = transformmodRinnp(fulltree)
+    fulltree = transformtreenogeen(fulltree)
+    fulltree = transformtreenogde(fulltree)
+    fulltree = transform_eenbeetje(fulltree)
+    fulltree = transformhwwwithsvp(fulltree)
+    fulltree = splitpronzelf(fulltree)
+    fulltree = transform_ppinap(fulltree)
+    fulltree = transform_rel2avn(fulltree)
+    fulltree = transform_adj_pp(fulltree)
+    fulltree = transform_dp_dp_rel2avn(fulltree)
+    fulltree = transform_sep_ww(fulltree)
+    fulltree = transform_er_az(fulltree)
+    fulltree = transform_w_vz(fulltree)
+    fulltree = transform_wrong_words(fulltree)
+    # fulltree = transform_bare_obj2(fulltree)
+    # fulltree = transform_met_np_pp(fulltree)  # not needed already covered
+    # fulltree = transform_gaan_predc(fulltree) put off because it should be covered already in STAP at least
+    # stree = nognietsplit(stree)  # put off because it should not be done
+    return fulltree
+
+
 
 

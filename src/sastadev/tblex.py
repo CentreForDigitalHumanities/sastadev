@@ -2,20 +2,25 @@
 The module *tblex* contains functions that require functions
 from the lexicon module and from the treebankfunctions module
 """
-
+from sastadev.conf import settings
 import sastadev.lexicon as lex
+# from sastadev.lexicon import (informlexicon, isa_namepart, chatspecial, additionalwordslexicon, spellingadditions, \
+#     isallersuperlative, issuperadjective, nonwordslexicon, acronyms_lexicon)
 from sastadev.queryconstants import Tarsp_kijkVU
 from sastadev.sastatypes import SynTree
-from sastadev.treebankfunctions import (all_lower_consonantsnode, getattval, getnodeyield,
-                                        is_duplicate_spec_noun, iscompound,
-                                        isdiminutive, isnumber,
-                                        issubstantivised_verb, sasta_long,
-                                        sasta_pseudonym, short_nucl_n,
-                                        spec_noun)
+from sastadev.stringfunctions import compoundsep, ispunctuation
+import sastadev.treebankfunctions as tbf
+# from sastadev.treebankfunctions import (all_lower_consonantsnode, find1, getattval, getnodeyield,
+#                                         is_duplicate_spec_noun, iscompound,
+#                                         isdiminutive, isnumber,
+#                                         issubstantivised_verb, sasta_long,
+#                                         sasta_pseudonym, short_nucl_n,
+#                                         spec_noun)
 from typing import List, Tuple
 
 comma = ','
-
+alpinoparse = settings.PARSE_FUNC
+gav = tbf.getattval
 
 def recognised_wordnodepos(node: SynTree, pos: str) -> bool:
     '''
@@ -41,11 +46,12 @@ def recognised_wordnodepos(node: SynTree, pos: str) -> bool:
     * the node is a node for a name part, as determined by the function *lex.isa_namepart*
 
 
+
     '''
-    word = getattval(node, 'word')
+    word = tbf.getattval(node, 'word')
     lcword = word.lower()
     result = lex.informlexiconpos(word, pos) or lex.informlexiconpos(lcword, pos) or \
-        iscompound(node) or isdiminutive(node) or lex.isa_namepart_uc(word)
+        tbf.iscompound(node) or tbf.isdiminutive(node) or lex.isa_namepart_uc(word)   ## is_acronym left out here
     return result
 
 
@@ -72,15 +78,16 @@ def recognised_wordnode(node: SynTree) -> bool:
     * the node is a node for a name part, as determined by the function *lex.isa_namepart*
 
 
+
     '''
 
-    word = getattval(node, 'word')
+    word = tbf.getattval(node, 'word')
     lcword = word.lower()
     result = lex.informlexicon(word) \
         or lex.informlexicon(lcword) \
-        or iscompound(node) \
-        or isdiminutive(node) \
-        or lex.isa_namepart(word)
+        or tbf.iscompound(node) \
+        or tbf.isdiminutive(node) \
+        or lex.isa_namepart(word)   ## is_acronym left out here, not used by young children, asta has its own function
     return result
 
 
@@ -90,7 +97,7 @@ def recognised_lemmanode(node: SynTree) -> bool:
     the lexicon  (as determined by the function *lex.informlexicon*).
 
     '''
-    lemma = getattval(node, 'lemma')
+    lemma = gav(node, 'lemma')
     result = lex.informlexicon(lemma)
     return result
 
@@ -101,7 +108,7 @@ def recognised_lemmanodepos(node: SynTree, pos: str) -> bool:
     the lexicon with part of speech *pos* (as determined by * lex.informlexiconpos*).
 
     '''
-    lemma = getattval(node, 'lemma')
+    lemma = gav(node, 'lemma')
     result = lex.informlexiconpos(lemma, pos)
     return result
 
@@ -117,10 +124,10 @@ def asta_recognised_lexnode(node: SynTree) -> bool:
     .. autofunction:: sastadev.treebankfunctions::issubstantivised_verb
 
     '''
-    if issubstantivised_verb(node):
+    if tbf.issubstantivised_verb(node):
         result = False
     else:
-        result = getattval(node, 'pt') == 'ww'
+        result = gav(node, 'pt') == 'ww'
     return result
 
 
@@ -155,6 +162,10 @@ def asta_recognised_nounnode(node: SynTree) -> bool:
 
        .. autofunction:: sastadev.tblex::recognised_lemmanodepos(node, pos)
 
+    * or the lemma of the node is an acronym (function *is_acronym*)
+
+       .. autofunction:; sastadev.tblex::is_acronym
+
     However, the node should:
 
     * neither consist of lower case consonants only, as determined by *all_lower_consonantsnode*:
@@ -167,24 +178,27 @@ def asta_recognised_nounnode(node: SynTree) -> bool:
 
     '''
 
-    if issubstantivised_verb(node):
+    lemma = gav(node, 'lemma')
+    if tbf.issubstantivised_verb(node):
         pos = 'ww'
     else:
         pos = 'n'
-    result = sasta_pseudonym(node)
-    result = result or spec_noun(node)
-    result = result or is_duplicate_spec_noun(node)
-    result = result or sasta_long(node)
+    result = tbf.sasta_pseudonym(node)
+    result = result or tbf.spec_noun(node)
+    result = result or tbf.is_duplicate_spec_noun(node)
+    result = result or tbf.sasta_long(node)
     result = result or recognised_wordnodepos(node, pos)
     result = result or recognised_lemmanodepos(node, pos)
-    result = result and not (all_lower_consonantsnode(node))
-    result = result and not (short_nucl_n(node))
+    result = result or lex.is_acronym(lemma)
+    result = result or lemma in lex.valid_asta_words_lexicon
+    result = result and not (tbf.all_lower_consonantsnode(node))
+    result = result and not (tbf.short_nucl_n(node))
     result = result and not iscardinal(node)
     return result
 
 
 def iscardinal(node):
-    word = getattval(node, 'word')
+    word = gav(node, 'word')
     wordlc = word.lower()
     if wordlc == '':
         result = False
@@ -195,16 +209,19 @@ def iscardinal(node):
     return result
 
 def asta_recognised_wordnode(node: SynTree) -> bool:
-    result = sasta_pseudonym(node)
-    result = result or spec_noun(node)
-    result = result or is_duplicate_spec_noun(node)
-    result = result or sasta_long(node)
+    word = gav(node, 'word')
+    result = tbf.sasta_pseudonym(node)
+    result = result or tbf.spec_noun(node)
+    result = result or tbf.is_duplicate_spec_noun(node)
+    result = result or tbf.sasta_long(node)
     result = result or recognised_wordnode(node)
     result = result or recognised_lemmanode(node)
-    result = result or isnumber(node)
-    result = result or lex.isa_namepart(getattval(node, 'word'))
-    result = result and not (all_lower_consonantsnode(node))
-    result = result and not (short_nucl_n(node))
+    result = result or tbf.isnumber(node)
+    result = result or lex.isa_namepart(word)
+    result = result or lex.is_acronym(word)
+    result = result or word in lex.valid_asta_words_lexicon
+    result = result and not (tbf.all_lower_consonantsnode(node))
+    result = result and not (tbf.short_nucl_n(node))
     return result
 
 
@@ -220,9 +237,9 @@ def get_aanloop_and_core(nodes: List[SynTree]) -> Tuple[List[SynTree], List[SynT
     corenodes = []
 
     if len(nodes) > 3 and \
-           getattval(nodes[0], 'word').lower() == 'kijk' and \
-           getattval(nodes[1], 'word').lower() in ['eens', 'maar', 'nou', 'hier', 'daar'] and \
-           getattval(nodes[2], 'word').lower() == comma:
+           tbf.getattval(nodes[0], 'word').lower() == 'kijk' and \
+           tbf.getattval(nodes[1], 'word').lower() in ['eens', 'maar', 'nou', 'hier', 'daar'] and \
+           tbf.getattval(nodes[2], 'word').lower() == comma:
         aanloopnodes = nodes[0:3]
         corenodes = nodes[3:]
     elif len(nodes) >= 2:
@@ -230,9 +247,9 @@ def get_aanloop_and_core(nodes: List[SynTree]) -> Tuple[List[SynTree], List[SynT
         for node in nodes:
             if commafound:
                 break
-            if getattval(node, 'lemma').lower() in lex.allfillers:
+            if tbf.getattval(node, 'lemma').lower() in lex.allfillers:
                 aanloopnodes.append(node)
-            elif getattval(node, 'lemma').lower() == comma:
+            elif tbf.getattval(node, 'lemma').lower() == comma:
                 aanloopnodes.append(node)
                 commafound = True
             else:
@@ -249,7 +266,7 @@ def get_aanloop_and_core(nodes: List[SynTree]) -> Tuple[List[SynTree], List[SynT
 NodeList = List[SynTree]
 
 
-def nodesplit(nodelist: List[SynTree], sep=lambda n: getattval(n, 'lemma') == comma, sepinclude=True) -> List[NodeList]:
+def nodesplit(nodelist: List[SynTree], sep=lambda n: tbf.getattval(n, 'lemma') == comma, sepinclude=True) -> List[NodeList]:
     resultlists = []
     currentlist = []
     for node in nodelist:
@@ -275,7 +292,7 @@ def getaanloop_core_uitloop(stree: SynTree) -> Tuple[List[NodeList], NodeList, L
     * a core
     * zero or more uitloops
     """
-    nodeyield = getnodeyield(stree)
+    nodeyield = tbf.getnodeyield(stree)
     sentparts = nodesplit(nodeyield)
     aanloops = []
     uitloops = []
@@ -301,15 +318,15 @@ def getaanloop_core_uitloop(stree: SynTree) -> Tuple[List[NodeList], NodeList, L
 def canbeaanloop(nodes: List[SynTree]) -> bool:
     prevnode = None
     for node in nodes:
-        nodept = getattval(node, 'pt')
-        nodelemma = getattval(node, 'lemma')
-        nodeword = getattval(node, 'word')
+        nodept = tbf.getattval(node, 'pt')
+        nodelemma = tbf.getattval(node, 'lemma')
+        nodeword = tbf.getattval(node, 'word')
         if nodept == 'ww' and nodeword.lower() != 'kijk':
             return False
         elif nodeword.lower() == 'kijk':
             prevnode = node
             continue
-        elif nodelemma in lex.kijkvuadverbs and getattval(prevnode, 'word').lower() == 'kijk':
+        elif nodelemma in lex.kijkvuadverbs and tbf.getattval(prevnode, 'word').lower() == 'kijk':
             prevnode = node
             continue
         elif nodelemma in lex.interjections:
@@ -321,7 +338,7 @@ def canbeaanloop(nodes: List[SynTree]) -> bool:
         elif nodelemma in lex.tswnouns:
             prevnode = node
             continue
-        elif nodept == 'n' and getattval(node, 'ntype') == 'eigen':
+        elif nodept == 'n' and tbf.getattval(node, 'ntype') == 'eigen':
             prevnode = node
             continue
         elif nodelemma.lower() in lex.allfillers:
@@ -336,13 +353,13 @@ def canbeaanloop(nodes: List[SynTree]) -> bool:
     return True
 
 def canbeuitloop(nodes: List[SynTree]) -> bool:
-    realnodes = [node for node in nodes if getattval(node, 'pt') != 'let']
+    realnodes = [node for node in nodes if tbf.getattval(node, 'pt') != 'let']
     if len(realnodes) > 4:
         return False
     for i, node in enumerate(nodes):
-        nodept = getattval(node, 'pt')
-        nodelemma = getattval(node, 'lemma')
-        nodeword = getattval(node, 'word')
+        nodept = tbf.getattval(node, 'pt')
+        nodelemma = tbf.getattval(node, 'lemma')
+        nodeword = tbf.getattval(node, 'word')
         if nodept == 'ww'  and nodeword.lower() != 'kijk':
             return False
         elif nodelemma == 'hè' or nodelemma == 'he':   # we wnat to keep these in the core
@@ -361,14 +378,44 @@ def tarsp_kijkvu(node: SynTree) -> bool:
 
 
 def isrealwordnode(node: SynTree) -> bool:
-    nodept = getattval(node, 'pt')
-    nodelemma = getattval(node, 'lemma')
+    nodept = tbf.getattval(node, 'pt')
+    nodelemma = tbf.getattval(node, 'lemma')
     result = 'word' in node.attrib and nodept != 'let' and (nodept != "tsw" or nodelemma in lex.tswnouns) and \
               len(nodelemma) != 1 and nodelemma not in lex.chatcodes and nodelemma not in lex.fillers and \
              not tarsp_kijkvu(node)
     return result
 
 def is_rpronoun(node: SynTree) -> bool:
-    nodelemma = getattval(node, 'lemma')
+    nodelemma = tbf.getattval(node, 'lemma')
     result = nodelemma in lex.rpronoun_lemmas
     return result
+
+def isalpinonouncompound(wrd: str) -> bool:
+    if ispunctuation(wrd):
+        return False
+    fullstr = f'geen {wrd}'  # geen makes it a noun and can combine with uter and neuter, count and mass, sg and plural
+    tree = alpinoparse(fullstr)
+    # find the noun
+    if tree is None:
+        settings.LOGGER.error(f'Parsing {fullstr} failed')
+        return False
+    nounnode = tbf.find1(tree, './/node[@pt="n"]')
+    if nounnode is None:
+        # settings.LOGGER.error(f'No noun found in {fullstr} parse')
+        return False
+    nounwrd = tbf.getattval(nounnode, 'word')
+    if nounwrd != wrd:
+        settings.LOGGER.error(f'Wrong noun ({nounwrd}) found in {fullstr} parse')
+        return False
+    nounlemma = tbf.getattval(nounnode, 'lemma')
+    if compoundsep in nounlemma:
+        parts = nounlemma.split(compoundsep)
+        unknownparts = [part for part in parts if not lex.known_word(part) and part != "DIM"]
+        result = unknownparts == []
+        if not result:
+            settings.LOGGER.error(f'Unknown words ({comma.join(unknownparts)}) found in {fullstr} parse')
+            return False
+        return True
+    else:
+        return False
+

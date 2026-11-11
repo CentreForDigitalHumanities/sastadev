@@ -1,4 +1,5 @@
 import re
+from editdistance import distance
 import unicodedata
 from collections import Counter
 from typing import Any, Callable, List, Match, Optional, Sequence, Set
@@ -10,6 +11,9 @@ slash = '/'
 tab = '\t'
 comma = ','
 underscore = '_'
+schwa = 'ə'
+
+compoundsep = underscore
 
 punctuationchars = """`!()-{}[]:;"'<>,.“?"""  # should actually use unicode categories
 
@@ -31,6 +35,9 @@ circumflexvowels = 'âêîôû\u0177'
 
 digits = '0123456789'
 consonants = 'bcdfghjklmnpqrstvwxz\u00E7'  # \u00E7 is c cedilla
+obstruents = 'bdkpqt'
+fricatives = 'fgsvz'
+
 dutch_base_vowels = barevowels + aiguvowels + \
                     gravevowels + tremavowels + circumflexvowels
 vowels = dutch_base_vowels
@@ -72,7 +79,7 @@ def simple_tokenise(sent: str) -> List[str]:
 
     cleansent = ''
     for c in sent:
-        if c in punctuationchars:
+        if c in punctuationchars and c !="'":
             cleansent += f' {c} '
         else:
             cleansent += c
@@ -106,6 +113,14 @@ def star(str: str) -> str:
 
 def ispunctuation(wrd: str) -> bool:
     result = wrd in punctuationchars
+    return result
+
+def skipjoin(strings: List[str], sep: str=' ') -> str:
+    """
+    joins the strings into a single string with separator sep but ignores empty strings
+    """
+    cleanstrings = [string for string in strings if string != '']
+    result = sep.join(cleanstrings)
     return result
 
 def alt(strlist: Sequence[str], grouped: bool = True) -> str:
@@ -392,6 +407,9 @@ def endsinschwa(word: str) -> bool:
         result = False
     return result
 
+def endsinschwa_n(word: str) -> bool:
+    result = word[-1] == 'n' and endsinschwa(word[:-1])
+    return result
 
 def isdiphthong(d: str) -> bool:
     '''
@@ -548,6 +566,10 @@ def remove_underscore(lemma: str) -> str:
     newlemma = ''.join(lemmaparts)
     return newlemma
 
+def remove_spaces(wrd: str) -> str:
+    return ''.join(wrd.split())
+
+
 def normalise_word(wrd: str) -> str:
     cleanwrd = wrd.lower()
     cleanwrd = strip_accents(cleanwrd)
@@ -563,5 +585,146 @@ def lpad(id: str, size:int = 3, sym: str= '0') -> str:
     return properid
 
 
+class SmartSortKey:
+    tpl: tuple
+    def __init__(self, tpl: tuple) -> None:
+        self.tpl = tpl
+    def __lt__(self, other) -> bool:
+        self0 = self.tpl[0]
+        other0 = other.tpl[0]
+        if self.tpl == () and other.tpl != ():
+            return True
+        if self.tpl != () and other.tpl == ():
+            return False
+        if self0 == other0:
+            result = SmartSortKey(self.tpl[1:]) < SmartSortKey(other.tpl[1:])
+            return result
+        if intre.match(self0) and intre.match(other0):
+            return int(self0) < int(other0)
+        else:
+            return self0 < other0
+
+
+intpattern = r'[0-9]+'
+intre = re.compile(intpattern)
+def smartsortkey(wrd:str) -> SmartSortKey:
+    """
+    Turns a string into a tuple of strings  :
+    number parts of the string lead to  a new tuple element for sorting purposes
+'   :param wrd: input str
+    """
+    smartkeylist = []
+    intmatches = intre.finditer(wrd)
+    start = 0
+    for intmatch in intmatches:
+        intstart = intmatch.start()
+        intto = intmatch.end()
+        if wrd[start:intstart] != '':
+            smartkeylist.append(wrd[start:intstart])
+        smartkeylist.append(wrd[intstart:intto])
+        start = intto
+    if wrd[start:] != '':
+        smartkeylist.append(wrd[start:])
+    result = SmartSortKey(tuple(smartkeylist))
+    return result
+
+
+def sf(number):
+    if isinstance(number, float) or isinstance(number, int):
+        result = '{0:.1f}'.format(number)
+    else:
+        result = number
+    return result
+
+def is_interpunction_sequence(wrd: str) -> bool:
+    for c in wrd:
+        if not ispunctuation(c):
+            return False
+    return True
+
+punc_seqs = ['??', '?!?', '...', 'aaa']
+def testpuncs():
+    for punc_seq in punc_seqs:
+        result = is_interpunction_sequence(punc_seq)
+        if result:
+            print(f'YES: {punc_seq}')
+        else:
+            print(f'NO: {punc_seq}')
+
+
+small_roman_numbers = {1: 'i', 2: 'ii', 3: 'iii', 4:'iv', 5:'v', 6: 'vi', 7: 'vii', 8: 'viii', 9: 'ix', 10: 'x'}
+
+def show_roman(i: int, upper_case=True) -> str:
+    if i in small_roman_numbers:
+        baseresult = small_roman_numbers[i]
+    else:
+        baseresult = str(i)
+    if upper_case:
+        result = baseresult.upper()
+    else:
+        result = baseresult
+    return result
+
+def coord(wlist: List[str], conjunct:str, sep:str = ", ") -> str:
+    if len(wlist) == 0:
+        result = ''
+    elif len(wlist) == 1:
+        result = wlist[0]
+    else:
+        part1 = sep.join(wlist[:-1])
+        part2 = f' {conjunct} {wlist[-1]}'
+        result = part1 + part2
+    return result
+
+def conj(wlist: List[str], conjunct='en') -> str:
+    result = coord(wlist, conjunct)
+    return result
+
+def disj(wlist: List[str], conjunct='of') -> str:
+    result = coord(wlist, conjunct)
+    return result
+
+def relative_edit_distance(wrd1: str, wrd2:str) -> float:
+    ed = distance(wrd1, wrd2)
+    maxlen  = max(len(wrd1), len(wrd2))
+    result = ed / maxlen
+    return result
+
+def separate_punctuation(sent: str) -> str:
+    result = ''
+    for c in sent:
+        if c in punctuationchars and c !="'":
+            result += f' {c} '
+        else:
+            result += c
+    return result
+
+def ends_in_fricative(wrd:str) -> bool:
+    result = (wrd != '' and wrd[-1] in fricatives) or \
+             (len(wrd) > 1 and wrd[-2:] == 'ch')
+    return result
+
+def starts_with_fricative(wrd:str) -> bool:
+    result = (wrd != '' and wrd != wrd[0] in fricatives) or \
+             (len(wrd) > 1 and  wrd[:2] == 'ch')
+    return result
+
+def is_t_elision(wrong_word:str, correction: str, next_word:str) -> bool:
+
+    result =  (correction == f'{wrong_word}t' and
+            (wrong_word[-1] in obstruents or ends_in_fricative(wrong_word)) and
+        starts_with_fricative(next_word)
+    )
+    return result
+
+
+def token_normalise(utt: str) -> str:
+    tokens = simple_tokenise(utt)
+    result = space.join(tokens)
+    return result
+
+
 if __name__ == '__main__':
     test()
+    # testpuncs()
+

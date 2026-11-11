@@ -9,12 +9,15 @@ it provides the function *getdehetwordinfo*:
 '''
 #from __future__ import annotations
 
+import copy
 from typing import List, Tuple
 
 from sastadev import lexicon, treebankfunctions
 from sastadev.conf import settings
 from sastadev.sastatypes import WordInfo
 
+
+wordinfo_exceptions = {'Efteling': [('n', '1', 'e', 'Efteling')], 'efteling': [('n', '1', 'e', 'Efteling')]}
 
 def getalpinowordinfo(word: str) -> List[WordInfo]:
     '''
@@ -45,8 +48,25 @@ def getalpinowordinfo(word: str) -> List[WordInfo]:
         else:
             return []
 
+def filter_wordinfos(wordinfos: List[WordInfo], dehet=None) -> List[WordInfo]:
+    # if dehet==de and any of the alternatives is a de-word but no diminutive singular, we keep only these
+    filtered_wordinfos = []
+    if dehet == lexicon.de:
+        filtered_wordinfos = [wordinfo for wordinfo in wordinfos if wordinfo[1] == lexicon.de and wordinfo[2] != 'de']
+    # if dehet==het and any of the alternatives is a het-word or a de-word and  diminutive singular, we keep only these
+    if dehet == lexicon.het:
+        filtered_wordinfos = [wordinfo for wordinfo in wordinfos if
+                              (wordinfo[1] == lexicon.het or
+                               (wordinfo[1] == lexicon.de and wordinfo[2] == 'de')) and
+                              wordinfo[2] in ['e', 'de']]
+    if filtered_wordinfos == []:
+        filtered_wordinfos = copy.deepcopy(wordinfos)
+    return filtered_wordinfos
 
-def getdehetwordinfo(wrd: str) -> Tuple[List[WordInfo], str]:
+
+
+
+def getdehetwordinfo(wrd: str, dehet=None) -> Tuple[List[WordInfo], str]:
     '''
     The function *getdehetwordinfo*  determines the properties of the input string *word* by first looking in the
     lexicon. It only includes properties if the word is a noun.
@@ -58,16 +78,17 @@ def getdehetwordinfo(wrd: str) -> Tuple[List[WordInfo], str]:
     .. autofunction:: sastadev.alpino::getalpinowordinfo
     '''
 
-    wordinfos = lexicon.getwordinfo(wrd)
+    wordinfos = []
+    if wrd in wordinfo_exceptions:
+        wordinfos = wordinfo_exceptions[wrd]
+        source = 'exceptions'
+
+    if wordinfos == []:
+        wordinfos = lexicon.getwordinfo(wrd)
 
     # we only want to consider nouns or words of unknown word class (such as kopje in CELEX)
-    wordinfos = [wordinfo for wordinfo in wordinfos if wordinfo[0] in ['n', 'None']]
-    # if any of the alternatives is a de-word but no diminutive singular, we keep only these
-    dewordinfos = [wordinfo for wordinfo in wordinfos if wordinfo[1] == lexicon.de and wordinfo[2] != 'de']
-    if dewordinfos != []:
-        wordinfos = dewordinfos
-    #if any([wordinfo[1] == lexicon.de for wordinfo in wordinfos]):
-    #    wordinfos = []
+    raw_wordinfos = [wordinfo for wordinfo in wordinfos if wordinfo[0] in ['n', 'None']]
+    wordinfos = filter_wordinfos(raw_wordinfos, dehet=dehet)
 
     # if not found yet we check with Alpino
     if wordinfos != []:

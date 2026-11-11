@@ -25,6 +25,7 @@ tarsp_wvzexceptions: Set[StrPair] = {('hebben', 'van'),  # hebben can occur with
                                      ('lukken', 'in'), \
                                      ('passen', 'bij'), \
                                      ('vallen', 'vanaf'),
+                                     ('zien', 'in'),    # ik zag er allemaal boekjes in
                                      # next list derived from CHILDES via Paqu
                                      # query: https://paqu.let.rug.nl:8068/?db=childesdutch&word=&rel=pc&hword=&postag=vz&hpostag=ww&meta=&sn=10
                                      # and manual filtering see file Tarsp_wrongpcs.txt in the lassy folder
@@ -40,6 +41,7 @@ tarsp_wvzexceptions: Set[StrPair] = {('hebben', 'van'),  # hebben can occur with
                                      ('eten', 'van'),
                                      ('gaan', 'aan'),
                                      ('gaan', 'om'),
+                                     ('gaan', 'op'),
                                      ('gaan', 'overheen'),
                                      ('gaan', 'tussendoor'),
                                      ('gaan', 'voor'),
@@ -90,36 +92,39 @@ Tarsp_WVz_exception_basemodel: str = """(@pt="ww"  and @rel ="hd" and @lemma="{w
             ]
  )"""
 
-pc_vc_exception_basemodel: str = """( @rel="pc" and node[@rel = "hd" and @lemma="{vz}"] and ../node[@rel="hd" and @pt="ww" and @lemma="{ww}"] )"""
+pc_vc_exception_basemodel: str = """( @rel="pc" and (node[@rel = "hd" and @lemma="{vz}"] or 
+                                                   ( @lemma="er{rvz}" or @lemma="daar{rvz}" or @lemma="hier{rvz}" )) and 
+                                     ../node[@rel="hd" and @pt="ww" and @lemma="{ww}"] )"""
 
 macrodef_model: str = '{name} = """{exp}"""\n'
 
+
+def getrvz(vz:str) -> str:
+    if vz == 'tot':
+        rvz = 'toe'
+    elif vz == 'met':
+        rvz = 'mee'
+    else:
+        rvz = vz
+    return rvz
 
 def generatemacros() -> Dict[str, str]:
     newmacros: Dict[str, str] = {}
     newparts: List[str] = []
     for (ww, vz) in tarsp_wvzexceptions:
-        if vz == 'tot':
-            rvz = 'toe'
-            newpart = Tarsp_WVz_exception_basemodel.format(ww=ww, vz=rvz, rvz=rvz)  # voor : hij werkte er niet mee
-            newparts.append(newpart)
-        elif vz == 'met':
-            rvz = 'mee'
-            newpart = Tarsp_WVz_exception_basemodel.format(ww=ww, vz=rvz, rvz=rvz)  # voor : hij kwam er niet toe
-            newparts.append(newpart)
-        else:
-            rvz = vz
+        rvz = getrvz(vz)
         newpart = Tarsp_WVz_exception_basemodel.format(ww=ww, vz=vz, rvz=rvz)
         newparts.append(newpart)
-    partsor = ' or '.join(newparts)
+    partsor = ' or \n'.join(newparts)
     newmacro = "( {} )".format(partsor)
     newmacros['Tarsp_WVz_exception'] = newmacro
 
     newparts = []
     for (ww, vz) in tarsp_wvzexceptions:
-        newpart = pc_vc_exception_basemodel.format(ww=ww, vz=vz)
+        rvz = getrvz(vz)
+        newpart = pc_vc_exception_basemodel.format(ww=ww, vz=vz, rvz=rvz)
         newparts.append(newpart)
-    partsor = ' or '.join(newparts)
+    partsor = ' or \n'.join(newparts)
     newmacro = "( {} )".format(partsor)
     newmacros['Tarsp_pc_vc_exception'] = newmacro
     return newmacros

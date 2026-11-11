@@ -152,10 +152,10 @@ def dcoiphi2celexpv(thesubj: SynTree, thepv: SynTree, inversion: bool) -> str:
 celex2dcoimap: Dict[str, Dict[str, str]] =\
     {'a': {'pvtijd': 'conj', 'pvagr': 'ev', 'wvorm': 'pv'},
      'te1': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
-     'te2': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
+     'te2': {'pvtijd': 'tgw', 'pvagr': 'met-t', 'wvorm': 'pv'},
      'te2t': {'pvtijd': 'tgw', 'pvagr': 'met-t', 'wvorm': 'pv'},
-     'te3': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
-     'te3t': {'pvtijd': 'tgw', 'pvagr': 'met-t', 'wvorm': 'pv'},
+     'te3': {'pvtijd': 'tgw', 'pvagr': 'met-t', 'wvorm': 'pv'}, # all 3rd person tgw are te3
+     'te3t': {'pvtijd': 'tgw', 'pvagr': 'met-t', 'wvorm': 'pv'}, # te3t des not occur
      'te2I': {'pvtijd': 'tgw', 'pvagr': 'ev', 'wvorm': 'pv'},
      'tm': {'pvtijd': 'tgw', 'pvagr': 'mv', 'wvorm': 'pv'},
      've': {'pvtijd': 'verl', 'pvagr': 'ev', 'wvorm': 'pv'},

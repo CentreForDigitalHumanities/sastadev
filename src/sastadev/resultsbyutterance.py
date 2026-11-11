@@ -5,17 +5,21 @@ The module *resultsbyutterance* provides functions to compute the results and th
 from collections import Counter, defaultdict
 from typing import Dict, List, Tuple
 
-from sastadev.allresults import AllResults
+from sastadev.allresults import AllResults, getexactbyutt
 from sastadev.conf import settings
 from sastadev.methods import Method
 from sastadev.query import query_inform, query_exists
 from sastadev.rpf1 import getscores
 from sastadev.sastatypes import ExactResultsDict, GoldResults, QId, ResultsDict, Table, UttId
+from sastadev.stringfunctions import smartsortkey
 
 silverf1col = 21
 
 comma = ','
 space = ' '
+
+mluqid = 'A029'
+sszqid = 'A045'
 
 notapplicable = (0.0, 0.0, 0.0)
 
@@ -94,9 +98,11 @@ def mkscoresbyuttrows(allresults: AllResults, bronzerefscores: ResultsDict, silv
     resultsuttids = {uttid for uttid in resultsbyutt}
     bronzeuttids = {uttid for uttid in bronzebyutt}
     silveruttids = {uttid for uttid in silverbyutt}
-    alluttids = resultsuttids.union(bronzeuttids.union(silveruttids))
-    alluttidlist = list(alluttids)
-    sortedalluttidlist = sorted(alluttidlist, key=lambda x: int(x))
+    # alluttids = resultsuttids.union(bronzeuttids.union(silveruttids))
+    # alluttidlist = list
+    alluttids = [uttid for uttid in allresults.allutts]
+    alluttidlist = alluttids
+    sortedalluttidlist = sorted(alluttidlist, key=lambda x: smartsortkey(str(x)))
     bronze_intersections = {uttid: bronzebyutt[uttid] & resultsbyutt[uttid] for uttid in alluttids}
     bronze_ref_minus_inter = {uttid: bronzebyutt[uttid] - bronze_intersections[uttid] for uttid in alluttids}
     bronze_results_minus_inter = {uttid: resultsbyutt[uttid] - bronze_intersections[uttid] for uttid in alluttids}
@@ -158,7 +164,14 @@ def counter2itemlist(scores: Counter, method: Method) -> List[str]:
     for reskey in scores:
         qid = reskey[0]
         thequery = method.queries[qid]
-        theitem = thequery.item if reskey[0] == reskey[1] else f'{thequery.item}={reskey[1]}'
+        if reskey[0] == mluqid:
+            theitem = 'MLUX'
+        elif reskey[0] == sszqid:
+            theitem = 'SSZX'
+        elif reskey[0] == reskey[1]:
+            theitem = thequery.item
+        else:
+            theitem = f'{thequery.item}={reskey[1]}'
         sublist = scores[reskey] * [theitem]
         resultlist += sublist
     sortedresultlist = sorted(resultlist)
@@ -169,19 +182,12 @@ def counter2str(scores: Counter, method: Method) -> str:
     result = comma.join(resultlist)
     return result
 
-def getexactbyutt(exactresults: ExactResultsDict):
-    resultdict = defaultdict(list)
-    for qid in exactresults:
-        for (uttid, position) in exactresults[qid]:
-            resultdict[uttid].append((qid, position))
-    return resultdict
-
 def exactbyuttdict2table(exactbyuttdict) -> Table:
     table = []
     for uttid in exactbyuttdict:
         newrow = [uttid, str(exactbyuttdict[uttid])]
         table.append(newrow)
-    sortedtable = sorted(table, key=lambda row: int(row[0]))
+    sortedtable = sorted(table, key=lambda row: smartsortkey(str(row[0])))
     return sortedtable
 
 def table2exactbyuttdict(table: Table) -> dict:
@@ -193,3 +199,12 @@ def table2exactbyuttdict(table: Table) -> dict:
             # report an error
             pass
     return resultdict
+
+def getsastable(allresults: AllResults) -> Table:
+    sastuples = allresults.sasresults
+    table = []
+    for uttid, sasresultlist in sastuples:
+        for sasresult in sasresultlist:
+            newrow = [uttid, sasresult.message, comma.join(sasresult.suggestedcodes)]
+            table.append(newrow)
+    return table

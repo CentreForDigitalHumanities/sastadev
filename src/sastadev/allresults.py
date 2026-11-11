@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import Any, Callable, Counter, Dict, List, Tuple, Union
 
+from sastadev.sas_meta import SAS_Meta, SAS_Result
 from sastadev.sastatypes import (ExactResult, ExactResults, FileName, Matches,
                                  QId, Query, ResultsCounter, ResultsKey, SynTree, UttId,
                                  UttWordDict)
@@ -47,7 +48,10 @@ def getqueryid(reskeystr: str) -> QId:
 
 
 class AllResults:
-    def __init__(self, uttcount, coreresults, exactresults, postresults, allmatches, filename, analysedtrees, allutts, annotationinput=False):
+    def __init__(self, uttcount, coreresults, exactresults, postresults, allmatches, filename,
+                 analysedtrees, allutts, annotationinput=False, sasresults=[], fullsasresults=[],
+                 commwordcounts=[], noncommwordcounts=[], speaker_metadata={}, false_start_word_counts=[],
+                 self_correction_word_counts=[], repetition_word_counts=[]):
         self.uttcount: int = uttcount
         self.coreresults: Dict[ResultsKey, ResultsCounter] = coreresults
         self.exactresults: ExactResultsDict = exactresults
@@ -57,6 +61,14 @@ class AllResults:
         self.analysedtrees: List[Tuple[UttId, SynTree]] = analysedtrees
         self.allutts: UttWordDict = allutts
         self.annotationinput: bool = annotationinput
+        self.sasresults: List[SAS_Result] = sasresults
+        self.fullsasresults: List[SAS_Result] = fullsasresults
+        self.commwordcounts: List[Tuple[UttId, int]] = commwordcounts
+        self.noncommwordcounts: List[Tuple[UttId, int]] = noncommwordcounts
+        self.false_start_word_counts: List[Tuple[UttId, int]] = false_start_word_counts
+        self.self_correction_word_counts: List[Tuple[UttId, int]] = self_correction_word_counts
+        self.repetition_word_counts: List[Tuple[UttId, int]] = repetition_word_counts
+        self.speaker_metadata: Dict[str, str] = speaker_metadata
 
 
 CoreQueryFunction = Callable[[SynTree], List[SynTree]]
@@ -97,3 +109,11 @@ def matches2exactresults(matchesdict: MatchesDict) -> ExactResultsDict:
 def getposition(node: SynTree) -> int:
     result = int(gav(node, 'begin')) + 1
     return result
+
+def getexactbyutt(exactresults: ExactResultsDict):
+    resultdict = defaultdict(list)
+    for qid in exactresults:
+        for (uttid, position) in exactresults[qid]:
+            resultdict[uttid].append((qid, position))
+    return resultdict
+

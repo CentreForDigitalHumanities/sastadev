@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from sastadev.correctionlabels import casevariant, regionalform, grammar
 from sastadev.deregularise import correctinflection
@@ -21,13 +21,17 @@ dp3 = mp(130)  # dp + 3
 dp2 = mp(120)  # dp + 2
 pron = 'Pronunciation'
 orth = 'Orthography'
+infaltform = 'Informal alterative form'
+infgram = 'Informal grammatical variant'
 infpron = 'Informal Pronunciation'
 initdev = 'Initial Devoicing'
 codared = 'Coda Reduction'
 apomiss = 'Missing Apostrophe'
+apotoomuch = "Wrong superfluous apostrophe"
 addschwa = 'Schwa addition'
 onsetred = 'Onset Reduction'
 d_er = 'd-onset on er'
+r0_er = 'r dropped in er'
 spellerr = 'Spelling Error'
 varpron = 'Alternative Pronunciation'
 pronerr = 'Wrong Pronunciation'
@@ -71,7 +75,10 @@ avoidambiguity = 'Avoiding ambiguity'
 wwnambiguity = 'Verb - Noun ambiguity'
 pnnambiguity = 'Person name - combined surname ambiguity'
 ww_vnw_ambiguity = 'Verb - Pronoun ambiguity'
+spellingerror = 'Spelling Errror'
 
+
+special_replacements = {'weg': 'ervandoor', 'val': 'valt', 'kom': 'komt'}
 
 def combine(strlist: List[str]) -> str:
     return ampersand.join(strlist)
@@ -97,6 +104,21 @@ def is_pronominal_adverb(raw_wrd: str) -> bool:
     result = result1 or result2
     return result
 
+def get_pronadv_head_lemma(raw_wrd: str) -> Optional[str]:
+    wrd = raw_wrd.lower()
+    if is_er_pronoun(wrd):
+        raw_lemma = wrd[2:]
+    elif wrd[:4] in ['daar', 'hier', 'waar'] and wrd[4:] in Rvzlist:
+        raw_lemma = wrd[4:]
+    else:
+        return None
+    if raw_lemma == 'mee':
+        lemma = 'met'
+    elif raw_lemma == 'toe':
+        lemma = 'tot'
+    else:
+        lemma = raw_lemma
+    return lemma
 
 
 #: The constant *ervzvariants* contains a list of 6-tuples (type *BasicReplacement*)
@@ -109,10 +131,11 @@ def is_pronominal_adverb(raw_wrd: str) -> bool:
 ervzvariants: List[BasicReplacement] = \
     [('der' + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
     [("d'r" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
-    [("e'" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
+    [("e'" + vz, 'er' + vz, pron, varpron, r0_er, dp) for vz in Rvzlist] + \
     [("d'" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
     [("dr" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
-    [("e" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist]
+    [("de" + vz, 'er' + vz, pron, varpron, d_er, dp) for vz in Rvzlist] + \
+    [("e" + vz, 'er' + vz, pron, varpron, r0_er, dp) for vz in Rvzlist]
 
 ervzvariantsdict = {tpl[0]: tpl for tpl in ervzvariants }
 
@@ -276,13 +299,20 @@ basicreplacementlist: List[BasicReplacement] = [('as', 'als', pron, infpron, cod
                                                 ('poppe', 'pop', pron, wrongpron, emphasis, dp),
                                                 ('lus', 'lust', pron, infpron, codared, dp),
                                                 ('mij', 'mijn', pron, infpron, codared, dp),
-                                                ('drinken', 'voedsel',  avoidambiguity, wwnambiguity, wwnambiguity, dp ),
+                                                ('zijn', "z'n", avoidambiguity, avoidambiguity, ww_vnw_ambiguity, dp),
+                                                ('mijnes', 'mijne', grammar, infgram, infaltform ,dp),
+                                                ('jouwes', 'jouwe', grammar, infgram, infaltform ,dp),
                                                 ('heelboel', 'heleboel', pron, infpron, schwadrop, dp),
                                                 ('jou', 'jouw', pron, infpron, codared, -dp), # Td 22, 30 ik wil ook keer naar jou huis find criterion
                                                 ('hun', 'zij', grammar, regionalform, casevariant, mp(0) ),
-                                                ('zijn', "z'n", avoidambiguity, avoidambiguity, ww_vnw_ambiguity, dp),
                                                 ('teefee', 'tv', pron, infpron, vzdevoicing, dp),
                                                 ('itte', 'eerst', pron, wrongpron, codared, dp),
+                                                ('allemaal', ' veel', grammar, alpino_unknown_word, '', dp),
+                                                ("'em", "'m", orth, spellerr, spellingerror, -dp),
+                                                ('der', 'er', pron, infpron,d_er, dp),
+                                                ("'ie", 'ie', orth, typo, apotoomuch, -dp)
+                                                # ("k", "'k'", orth, spellerr, apomiss, -dp ) # Alpino takes care of this
+                                                # ("pas", "past", pron, infpron, codared, -dp) # moved to correrctor
                                                 # ('kijke', 'kijk', pron, infpron, emphasis, dp), # TD05, 32 moved to disambuguationdict
                                                 # ('geel', 'mooi', avoidambiguity, adjnambiguity, dp), #TD05, 24
                                                 # ('Roy', 'Jan', avoidambiguity, pnnambiguity, dp)
@@ -359,6 +389,8 @@ basicexpansionlist: List[BasicExpansion] = \
      ('das', ['dat', 'is'], pron, infpron, contract, dp),
      ("di's", ['dit', 'is'], pron, infpron, contract, dp),
      ("da's", ['dat', 'is'], pron, infpron, contract, dp),
+     ("hij's", ['hij', 'is'], pron, infpron, contract, dp),
+     ("zij's", ['zij', 'is'], pron, infpron, contract, dp),
      ('tis', ['dit', 'is'], pron, infpron, contract, dp),
      ('waas', ['waar', 'is'], pron, infpron, contract, dp),
      ('is-t-ie', ['is', 'ie'], pron, infpron, t_ie, dp),
@@ -399,6 +431,9 @@ knownreplacements: List[KnownReplacement] = [
     ('ze', "z'n", pron, infpron, fndrop, bpl_word),
     ('desu', 'deze', pron, infpron, zdev, bpl_word),
     ('mij', 'mijn', pron, infpron, fndrop, bpl_word),
+    ('zijn', "z'n", avoidambiguity, avoidambiguity, ww_vnw_ambiguity, dp),
+    ('jou', 'jouw', pron, infpron, codared, -dp),  # Td 22, 30 ik wil ook keer naar jou huis find criterion
+    ('allemaal', ' veel', grammar, alpino_unknown_word, '', dp)
 
 ]
 
@@ -420,7 +455,7 @@ def getmeta4CHATreplacements(wrongword: str, correctword: str) -> KnownReplaceme
     return result
 
 
-#: dttp = default token tree predicate
+#: dtp = default token tree predicate
 def dtp(token, tree): return True
 
 
@@ -454,13 +489,13 @@ def welnietttp(token: Token, stree: SynTree) -> bool:
 #: **Remark** Currently no distinction is made between singular *count* and singular *mass* nouns: they are both replaced by the same word. This may have to be adapted.
 disambiguation_replacements: List[Tuple[TokenTreePredicate, List[str], str]] = \
     [(dtp, ['huis', 'water', 'paard', 'werk', 'stuur', 'feest', 'snoep', 'geluid',
-                                      'kwartet', 'kruis'], 'gas'),
+                                      'kwartet', 'kruis', 'bad', 'punt'], 'gas'),  # I added punt which is het and de word
      (dtp, ['toren', 'fiets', 'puzzel', 'boom', 'vis', 'melk', 'zon', 'pot', 'klok',
             'school', 'boer', 'lepel', 'jas', 'tuin', 'fles', 'lucht', 'emmer', 'maan', 'kachel',
             'kwak', 'verf', 'hop', 'kam', 'spiegel', 'klap', 'stal', 'lijm', 'lift', 'kat',
             'wagen', 'schep', 'kus', 'wind', 'borstel', 'duim', 'strik', 'klik', 'pleister',
             'stok', 'knoop', 'rits', 'knikker', 'put', 'boor', 'plons', 'beurt', 'toeter', 'poot',
-            'punt', 'post', 'gom', 'tap', 'kraanwagen', 'drup', 'wieg', 'kriebel', 'pit', 'zaag',
+             'post', 'gom', 'tap', 'kraanwagen', 'drup', 'wieg', 'kriebel', 'pit', 'zaag',
             'slof', 'deuk', 'hark', 'jeuk', 'stift', 'aard', 'hamster', 'kiek', 'haak', 'schroef',
             'tape', 'vorm', 'klem', 'mot', 'druppel', 'knor'], 'teil'),
      (dtp, ['bomen', 'kussen', 'kaarten', 'beesten', 'weken', 'huizen', 'apen', 'poten',
@@ -471,28 +506,54 @@ disambiguation_replacements: List[Tuple[TokenTreePredicate, List[str], str]] = \
      (dtp, ['Roy'], 'Jan'),
      # (dtp, ['kijke'], 'he'),
      (dtp, ['surf'], 'turf'),
+     (dtp, ['gevallen'], 'gedonderd'),
+     (dtp, ['gebeurd'], 'geschied'),
      # (dtp, ['weg'], 'boven'),  # disprefer 'weg' as noun, prefer it as an adverb problematic because weg is often
      # an svp
      # (dtp, ['zijn'], "z'n"),
      (welnietttp, ['wel', 'niet'], 'ietsjes')  # find a different adverb that does not get inside constituents (ietsjes?)
      ]
 
+adult_disambiguation_replacements: List[Tuple[TokenTreePredicate, List[str], str]] = \
+    [
+       # (dtp, ['gebeurd'], 'geschied')  # put off dealt with differently
+    ]
 
-def getdisambiguationdict() -> Dict[str, Tuple[TokenTreePredicate, str]]:
+def getdisambiguationdict(replacements) -> Dict[str, Tuple[TokenTreePredicate, str]]:
     '''
     :return: a dictionary with words as key and a tuple of a condition and a replacement as values
 
     The function *getdisambiguationdict* creates a dictionary with word:(cond, replacement)
-    items. It selects its content from the constant *disambiguation_replacements*:
+    items. It selects its content from the variabl *replacements*:
 
     .. autodata:: sastadev.basicreplacements::disambiguation_replacements
          :no-value:
     '''
     disambiguationdict = {}
-    for cond, ws, repl in disambiguation_replacements:
+    for cond, ws, repl in replacements:
         for w in ws:
             disambiguationdict[w] = cond, repl
     return disambiguationdict
+
+
+#: The constant *disambiguationdict* contains words that should be replaced by a
+#: different word to avoid unwanted readings of the original word, for young children. It is filled by a
+#: call to the function *getdisambiguationdict* from the module *basicreplacements*, applied to *disambiguation_replacements*.
+#:
+#: .. autofunction:: sastadev.basicreplacements::getdisambiguationdict
+#:
+disambiguationdict = getdisambiguationdict(disambiguation_replacements)
+
+#: The constant *adult_disambiguationdict* contains words that should be replaced by a
+#: different word to avoid unwanted readings of the original word, for adult speakers. It is filled by a
+#: call to the function *getdisambiguationdict* from the module *basicreplacements*, applied to *adult-disambiguation_replacements*.
+#:
+#: .. autofunction:: sastadev.basicreplacements::getdisambiguationdict
+#:
+adult_disambiguationdict = getdisambiguationdict(adult_disambiguation_replacements)
+
+
+
 
 # next replaced by wordsunknowntoalpino lexicon
 #parsereplacementslist =  [('smarties', 'toffees', alpino_unknown_word, -2*dp),

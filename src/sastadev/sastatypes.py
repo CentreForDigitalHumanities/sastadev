@@ -64,6 +64,8 @@ MetaElement = etree.Element
 ExactResult = Tuple[UttId, Position]
 ExactResults = List[ExactResult]
 ExactResultsDict = Dict[ResultsKey, ExactResults]  # qid
+QIdPos = Tuple[QId, Position]
+ExactResultsUttIdDict = Dict[UttId, List[QIdPos]]
 SampleName = str
 AllExactResultsDict = Dict[SampleName, ExactResultsDict]
 Gender = str
@@ -76,6 +78,7 @@ OptPhiTriple: TypeAlias = Optional[PhiTriple]
 PositionMap: TypeAlias = Dict[Position, Position]
 QueryDict: TypeAlias = Dict[QId, Query]
 QIdCount: TypeAlias = Dict[QId, int]
+Row = List[Any]
 MethodName: TypeAlias = str  # perhaps in the future NewType('MethodName', str)
 FileName: TypeAlias = str  # perhaps in the future NewType('FileName', str)
 ReplacementMode: TypeAlias = int
@@ -101,6 +104,9 @@ XpathExpression = str
 MethodVariant = str
 DataSetName = str
 HeadedTable = Tuple[Header, Table]
+
+
+
 # moved the following to allresults.py
 # CoreQueryFunction = Callable[[SynTree], List[SynTree]]
 # PostQueryFunction = Callable[[SynTree, allresults.AllResults], List[SynTree]]

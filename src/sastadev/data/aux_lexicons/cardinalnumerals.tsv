@@ -32250,6 +32250,8 @@ miljoenduizend	1000000000	False		None
 miljoenduizenden	1000000000	False		None
 duizendduizendduizend	1000000000	False		None
 duizendduizendduizenden	1000000000	False		None
+eenduizend	1000	False		None
+tweeduizend	2000	False		None
 drieduizend	3000	False		None
 drieduizenden	3000	False		None
 vierduizend	4000	False		None

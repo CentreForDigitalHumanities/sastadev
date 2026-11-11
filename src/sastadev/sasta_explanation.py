@@ -12,7 +12,7 @@ from sastadev.auchannsettings import settings as auchannsettings
 from sastadev.chatundo import chatundo
 from sastadev.cleanCHILDEStokens import cleantext
 from sastadev.conf import settings as sdsettings
-from sastadev.lexicon import alldutchwords, known_word, allfillers
+from sastadev.lexicon import alldutchwords, allfillers, known_word
 from sastadev.metadata import (MetaValue, bpl_replacement, fromElement,
                                mkSASTAMeta)
 from sastadev.sastatok import gettokensplusxmeta
@@ -20,7 +20,7 @@ from sastadev.sastatok import gettokensplusxmeta
 # import find1, iswordnode, getattval
 from sastadev.sastatoken import Token
 from sastadev.sastatypes import SynTree
-from sastadev.stringfunctions import simple_tokenise
+from sastadev.stringfunctions import simple_tokenise, token_normalise
 from sastadev.tokenmd import TokenListMD
 from sastadev import correctionlabels
 
@@ -41,6 +41,7 @@ CHAT_explanation = 'Explanation'
 explannwordlistxpath = f'.//xmeta[@name="{CHAT_explanation}"]/@annotationwordlist'
 explannposlistxpath = f'.//xmeta[@name="{CHAT_explanation}"]/@annotationposlist'
 explanationtierxpath = './/meta[@name="explanation"]'
+xinttierxpath = './/meta[@name="xint"]'
 
 interpunction = '.,;?!'
 
@@ -62,7 +63,7 @@ def explanationasreplacement(tokensmd: TokenListMD, tree: SynTree) -> Optional[T
     xtokens, xmetalist = gettokensplusxmeta(tree)
     explanations = [xm for xm in xmetalist if xm.name == 'Explanation']
     newtokens = copy.deepcopy(xtokens)
-    newmetadata = origmetadata # + xmetalist  # leaving xmetalist out alone does not avoid unnecessary duplications
+    newmetadata = copy.deepcopy(origmetadata) # + xmetalist  # leaving xmetalist out alone does not avoid unnecessary duplications
     for explanation in explanations:
         newwordlist = explanation.annotationwordlist
         oldwordlist = explanation.annotatedwordlist
@@ -180,10 +181,17 @@ def finaltokenmultiwordexplanation(tree: SynTree) -> Optional[str]:
             prefixwordlist + finalexpl.annotationwordlist + postexplanationwords)
         # print(settings.replacements)
         resultalignment = align_words(utt, expl, auchannsettings)
-        result = str(resultalignment)
+        resultalignmentstr = str(resultalignment)
+
+        # @@add the check for a proper alignment
+        # check for proper alignment  (no words split up into multiple words)
+        alignment_ok = is_proper_alignment(utt, expl, resultalignmentstr)
+        if not alignment_ok:
+            result = None
+        else:
+            result = resultalignmentstr
     else:
         result = None
-        # report an error
 
     return result
 
@@ -277,6 +285,26 @@ def getexplanationfromexplanationtier(stree: SynTree) -> Optional[str]:
             pass
         return dutchexplanations[0]
 
+
+def getexplanationfromxinttier(stree: SynTree) -> Optional[str]:
+    dutchexplanations = []
+    expltiers = stree.xpath(xinttierxpath)
+    for expltier in expltiers:
+        raw_expltiervalue = tbf.getattval(expltier, 'value')
+        expltiervalue = token_normalise(raw_expltiervalue)
+        dutchexplanation = get_dutch_explanation(expltiervalue)
+        if dutchexplanation is not None:
+            dutchexplanations.append(dutchexplanation)
+    if dutchexplanations == []:
+        return None
+    else:
+        if len(dutchexplanations) > 1:
+            # issue a warning
+            pass
+        return dutchexplanations[0]
+
+
+
 explanation_variants = ['probable meaning: ', 'probable meaning ', 'meaning: ', 'meaning ']
 sorted_explanation_variants = sorted(explanation_variants, key= lambda x: len(x), reverse=True)
 def get_dutch_explanation(explanation: str) -> Optional[str]:
@@ -286,8 +314,8 @@ def get_dutch_explanation(explanation: str) -> Optional[str]:
             remainder = explanation[len(variant):]
             remainder = re.sub(r'([\.\?!,;])', r' \1 ', remainder)
     if remainder == '':
-        return None
-    elif alldutchwords(remainder):
+        remainder = explanation
+    if alldutchwords(remainder):
         return remainder
     else:
         return None
@@ -319,7 +347,7 @@ def is_proper_alignment(utterance: str, raw_explanation: str, alignment: str) ->
         result1 = False
     if applied_alignment != explanation:
         # issue a warning
-        sdsettings.LOGGER.info(f'Improper alignment (aply): <{applied_alignment}> != <{explanation}>')
+        sdsettings.LOGGER.info(f'Improper alignment (apply): <{applied_alignment}> != <{explanation}>')
         result2 = False
 
     result = result1 and result2
@@ -358,8 +386,18 @@ def finalexplanation_adapttree(tree: SynTree) -> SynTree:
     # @@TODO: Unfinished@@
     #    alignment = finaltokenmultiwordexplanation(tokensmd,tree)
     alignment = finaltokenmultiwordexplanation(tree)
+
+    # if needed get it from the explanation tier
     if alignment is None:
         explanationstr = getexplanationfromexplanationtier(tree)
+        if explanationstr is not None:
+            nodeyield = tbf.getnodeyield(tree)
+            tokenlist = [Token(tbf.getattval(node, 'word'), i+1) for i, node in enumerate(nodeyield)]
+            alignment = get_tier_alignment(tokenlist, explanationstr)
+
+    # if needed get it from the xint tier
+    if alignment is None:
+        explanationstr = getexplanationfromxinttier(tree)
         if explanationstr is not None:
             nodeyield = tbf.getnodeyield(tree)
             tokenlist = [Token(tbf.getattval(node, 'word'), i+1) for i, node in enumerate(nodeyield)]

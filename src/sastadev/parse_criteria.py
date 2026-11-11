@@ -1,58 +1,33 @@
-from typing import Callable, List, Tuple
-
 from Levenshtein import distance
-
-from sastadev.basicreplacements import basicreplacements
+from sastadev.basicreplacements import basicreplacements, disambiguationdict, adult_disambiguationdict, knownreplacementsdict
 from sastadev.conf import settings
-from sastadev.corrector import disambiguationdict, initialmaarvgxpath
-from sastadev.lexicon import (
-    de,
-    dets,
-    nochildword,
-    preferably_intransitive_verbs,
-    tsw_non_words,
-    validnouns,
-    validword,
-    wordsunknowntoalpinolexicondict,
-    wrongposwordslexicon,
-)
+from sastadev.corrector import (initialmaarvgxpath)
+from sastadev.find_ngram import findmatches, ngram24
+from sastadev.lexicon import de, dets, nochildword, preferably_intransitive_verbs, tsw_non_words, validnouns, \
+    validword, \
+    wordsunknowntoalpinolexicondict, wrongposlemmaslexicon, wrongposwordslexicon
 from sastadev.macros import expandmacros
-from sastadev.metadata import (
-    ADULTSPELLINGCORRECTION,
-    ALLSAMPLECORRECTIONS,
-    BASICREPLACEMENTS,
-    CHILDRENSPELLINGCORRECTION,
-    CONTEXT,
-    HISTORY,
-    THISSAMPLECORRECTIONS,
-    Meta,
-    defaultpenalty,
-    replacementsubsources,
-)
-from sastadev.methods import Method, asta, supported_methods, tarsp, tarsp2017
+from sastadev.metadata import (Meta,  defaultpenalty,
+                               ADULTSPELLINGCORRECTION, ALLSAMPLECORRECTIONS, BASICREPLACEMENTS, CONTEXT,
+                               HISTORY, CHILDRENSPELLINGCORRECTION, THISSAMPLECORRECTIONS, replacementsubsources
+                               )
+from sastadev.methods import Method, asta, tarsp, supported_methods, tarsp2017
 from sastadev.predcvagreement import get_predc_v_mismatches
 from sastadev.readmethod import read_method
+
 from sastadev.sastatypes import (
-    MethodName,
-    Penalty,
-    SynTree,
-)
+                                 MethodName, Penalty,
+                                 SynTree, )
 from sastadev.semantic_compatibility import semincompatiblecount
 from sastadev.stringfunctions import digits, ispunctuation
 from sastadev.sva import phicompatible
-from sastadev.treebankfunctions import (
-    clausecats,
-    countav,
-    find1,
-    getattval,
-    getcompoundcount,
-    getnodeyield,
-    getsentence,
-    getxsid,
-    getyield,
-    is_neut_sg,
-    isdefdet,
-)
+from sastadev.treebankfunctions import (clausecats, countav,
+                                          find1,
+                                        getattval,
+                                        getcompoundcount, getnodeyield,
+                                         getsentence,  getxsid,
+                                        getyield, isdefdet, is_neut_sg)
+from typing import Callable, List, Tuple
 
 
 class Criterion():
@@ -189,10 +164,23 @@ def get_de_plus_neuter_nodes(tree: SynTree, mds: List[Meta], method: Method = de
     return found_nodes
 
 
+def get_de_adj_neuter_n_nodes(stree: SynTree) -> List[SynTree]:
+    word_nodes = getnodeyield(stree)
+    matches = findmatches(ngram24, word_nodes)
+    match_begins = [match[0] for match in matches]
+    results = []
+    for word_ctr, word_node in enumerate(word_nodes):
+        if word_ctr in match_begins:
+            results.append(word_node)
+    return results
+
+
 def getdeplusneutcount(
     tree: SynTree, mds: List[Meta], method: Method = defaultmethod) -> int:
     de_plus_neuter_nodes = get_de_plus_neuter_nodes(tree, mds, method)
-    return len(de_plus_neuter_nodes)
+    de_adj_neuter_n_nodes = get_de_adj_neuter_n_nodes(tree)
+    result = len(de_plus_neuter_nodes) + len(de_adj_neuter_n_nodes)
+    return result
 
 
 validwords = {"z'n", 'dees', 'cool', "'k"}
@@ -213,10 +201,12 @@ def isvalidword(w: str, mn: MethodName, includealpinonouncompound=True) -> bool:
 
 
 def get_ambiguous_word_nodes(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> List:
-    if method.name == asta:
-        return []
     nodes = getnodeyield(tree)
-    ambiguous_word_nodes = [node for node in nodes if getattval(node, 'word').lower() in disambiguationdict]
+    if method.name == asta:
+        ambiguous_word_nodes = [node for node in nodes
+                                if getattval(node, 'word').lower() in adult_disambiguationdict]
+    else:
+        ambiguous_word_nodes = [node for node in nodes if getattval(node, 'word').lower() in disambiguationdict]
     return ambiguous_word_nodes
 
 def countambigwords(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> int:
@@ -230,15 +220,33 @@ def getunknownwordcount(tree: SynTree, mds: List[Meta] = [], methodname: str='')
     unknownwords += [w for w in words if not isvalidword(w.lower(), methodname) ]
     return len(unknownwords)
 
-wrongposwordxpathtemplate = './/node[@lemma="{word}" and @pt="{pos}"]'
+# wrongposwordxpathtemplate = './/node[@word="{word}" and @pt="{pos}"]'
+# wrongposlemmaxpathtemplate = './/node[@lemma="{word}" and @pt="{pos}"]'
+# def old_get_wrong_pos_word_nodes(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> List:
+#     wrong_pos_words = []
+#     for word, pos in wrongposwordslexicon:
+#         wrong_pos_word_xpath = wrongposwordxpathtemplate.format(word=word, pos=pos)
+#         matches = tree.xpath(wrong_pos_word_xpath)
+#         for match in matches:
+#             wrong_pos_words.append(match)
+#     return wrong_pos_words
+
 def get_wrong_pos_word_nodes(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> List:
+    wordnodes = tree.xpath('.//node[@word]')
     wrong_pos_words = []
-    for word, pos in wrongposwordslexicon:
-        wrong_pos_word_xpath = wrongposwordxpathtemplate.format(word=word, pos=pos)
-        matches = tree.xpath(wrong_pos_word_xpath)
-        for match in matches:
-            wrong_pos_words.append(match)
+    for wordnode in wordnodes:
+        lemma = getattval(wordnode, 'lemma')
+        word = getattval(wordnode, 'word')
+        pos = getattval(wordnode, 'pt')
+        lcword = word.lower()
+        if (lemma, pos) in wrongposlemmaslexicon:
+            wrong_pos_words.append(wordnode)
+        if (word, pos) in wrongposwordslexicon:
+            wrong_pos_words.append(wordnode)
+        if (lcword, pos) in wrongposwordslexicon:
+            wrong_pos_words.append(wordnode)
     return wrong_pos_words
+
 
 def getwrongposwordcount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
     wrong_pos_word_matches = get_wrong_pos_word_nodes(tree)
@@ -251,7 +259,7 @@ def getsucount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
 
 # d_hyphen_xpath = './/node[@rel="--" and @pt and @pt!="let"]'
 # revised to:
-d_hyphen_xpath = """.//node[@rel="--" and @pt!="let"  and @pt!="tsw" and @word!="kijk" and 
+d_hyphen_xpath = """.//node[@rel="--" and @pt!="let"  and @pt!="tsw" and @word!="kijk" and @word!="alsjeblieft" and
                  ancestor::node[@cat="top" and count(node[(@pt!="let" and @pt!="tsw" and @word!="kijk") or @cat]) > 1 
                  ]]"""
 def get_double_hyphen_nodes(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> List:
@@ -314,12 +322,12 @@ def getbadcatcount(tree: SynTree, mds: List[Meta] = [], method: Method = default
 
 #: this is actually valid for all pts except let
 noun_1_character_xpath = './/node[@pt!="let"  and string-length(@word)=1]'
-
+c1_exceptions = ['u', 'k']
 def get_single_character_noun_nodes(
     tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> List:
     raw_single_character_noun_nodes = tree.xpath(noun_1_character_xpath)
     single_character_noun_nodes = [nd for nd in raw_single_character_noun_nodes if getattval(nd, 'word') not in
-                                       digits]
+                                       digits and getattval(nd, 'word') not in c1_exceptions ]
     return single_character_noun_nodes
 
 def getnoun1c_count(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> int:
@@ -453,11 +461,13 @@ def getnotknownbyalpinocount(tree: SynTree, mds: List[Meta] = [], method: Method
 
 def get_basic_replacement_nodes(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> List:
     word_nodes = tree.xpath(words_xpath)
-    basic_replacement_nodes = [
-        node
-        for node in word_nodes
-        if getattval(node, "word").lower() in basicreplacements
-    ]
+    basic_replacement_nodes = []
+    for node in word_nodes:
+        nodeword = getattval(node, "word").lower()
+        if nodeword in basicreplacements:
+            pairs = [(nodeword, replword[0]) for replword in basicreplacements[nodeword]]
+            if all([pair not in knownreplacementsdict for pair in pairs]):
+                basic_replacement_nodes.append(node)
     return basic_replacement_nodes
 
 def getbasicreplaceecount(tree: SynTree, mds: List[Meta] = [], method: Method = defaultmethod) -> int:
@@ -490,7 +500,7 @@ def gettotaleditdistance(tree: SynTree, metadata: List[Meta], method: Method = d
     for meta in metadata:
         fullsource = meta.source
         mainsource, subsource = splitsource(fullsource)
-        if subsource in replacementsubsources and \
+        if subsource in replacementsubsources and subsource != BASICREPLACEMENTS and\
                 len(meta.annotationwordlist) == 1 and \
                 len(meta.annotatedwordlist) == 1:
             correctword = meta.annotationwordlist[0]
@@ -521,6 +531,15 @@ def get_predc_v_mismatch_count(tree: SynTree, mds: List[Meta] = [], method: Meth
     predc_v_mismatches = get_predc_v_mismatches(tree)
     return len(predc_v_mismatches)
 
+predmxpath = './/node[@rel="predm"]'
+
+def getpredmcount(tree: SynTree, mds: List[Meta] = [], methodname: str='') -> int:
+    predms = getpredm(tree)
+    return len(predms)
+
+def getpredm(tree):
+    predms = tree.xpath(predmxpath)
+    return predms
 
 def compute_penalty(nt: SynTree, md: List[Meta], method: Method = defaultmethod) -> Penalty:
     totalpenalty = 0
@@ -565,6 +584,7 @@ criteria = [
     Criterion("Predc - V mismatches", get_predc_v_mismatch_count, negative, "Number of mismatches between "
                                                                             "nominal predicate and copular verb"),
     Criterion("Wrong Adj-Noun agreement", get_e_adj_neut_noun_count, negative, "Adj-Noun agreement Error"),
+    Criterion("basicreplaceecount", getbasicreplaceecount, negative, "Number of words from the basic replacements"),
     Criterion('ReplacementPenalty', getreplacementpenalty, negative, 'Plausibility of the replacement'),
     Criterion('Total Edit Distance', gettotaleditdistance, negative, "Total of the edit distances for all replaced words"),
     # Criterion('Subcatscore', getsubcatprefscore, positive,
@@ -574,8 +594,9 @@ criteria = [
     Criterion("topclause", gettopclause, positive, "Single clause under top"),
     Criterion("complsucount", getcomplsucount, negative, ""),
     Criterion("badcatcount", getbadcatcount, negative, "Count of bad categories: du that contains a node with relation dp"),
-    Criterion("basicreplaceecount", getbasicreplaceecount, negative, "Number of words from the basic replacements"),
     Criterion("hyphencount", gethyphencount, negative, "Number of words that contain hyphens"),
+    Criterion('predmcount', getpredmcount, negative,
+                            "Count of number of occurrences of nodes with relation 'predm'"),
     Criterion("subjunctivecount", getsubjunctivecount, negative, "Number of subjunctive verb forms"),
     Criterion("smainsucount", countsmainsu, positive, "Count of smain nodes that contain a subject"),
     Criterion("dimcount", getdimcount, positive, "Number of words that are diminutives"),

@@ -112,7 +112,9 @@ def impwi(syntree: SynTree, nodecounts: Set[int]) -> List[SynTree]:
     The function impwi finds nodes for imperative clauses in *syntree* with the number of nodes equal to one of the  integers in the *nodecounts* set
     '''
     results = []
-    cands = syntree.xpath(impquery)
+    syntreeparent = syntree.getparent()
+    startnode =  syntreeparent if syntreeparent is not None and syntreeparent.tag != 'treebank' else syntree
+    cands = startnode.xpath(impquery)
     ok = True
     for cand in cands:
         hds = cand.xpath('node[@rel="hd"]')
@@ -175,4 +177,12 @@ def bbx(syntree: SynTree) -> List[SynTree]:
         results = syntree.xpath(bbx_xpath)
     else:
         results = []
+    return results
+
+def imperatives(stree: SynTree) -> List[SynTree]:
+    results1 = wx(stree)
+    results2 = wxy(stree)
+    results3 = wxyz(stree)
+    results4 = wxyz5(stree)
+    results = results1 + results2+ results3 + results4
     return results

@@ -1,0 +1,234 @@
+ABP	Algemeen Burgerlijk Pensioenfonds 
+ABW	Algemene Bijstandswet 
+AKW	Algemene Kinderbijslagwet 
+AMA	Alleenstaande Minderjarige Asielzoeker 
+AMVB	Algemene Maatregel van Bestuur 
+AMW	Algemeen Maatschappelijk Werk 
+ANW	Algemene Nabestaandenwet 
+AOW	Algemene Ouderdomswet 
+APB	Algemene Politieke Beschouwingen 
+ARBVO	Arbeidsvoorziening 
+AWBZ	Algemene Wet Bijzondere Ziektekosten 
+AWF	Algemeen Werkloosheidsfonds 
+AZ	Ministerie van Algemene Zaken 
+BANS	Bestuursakkoord nieuwe stijl 
+BBP	Bruto Binnenlands Product 
+BEW	Bevordering Eigen Woningbezit 
+BIKK	Bijdrage in de Kosten van de Kortingen 
+BKZ	Budgettair Kader Zorg 
+BLS	Baten-lastenstelsel 
+BNP	Bruto Nationaal Product 
+BSE	Bovine Spongiforme Encephalopathie 
+BTW	Belasting Toegevoegde Waarde 
+BUZA	Ministerie van Buitenlandse Zaken 
+BVE	Beroepsonderwijs en Volwasseneneducatie 
+BZK	Ministerie van Binnenlandse Zaken en Koninkrijksrelaties 
+CAO	Central orgaan Opvang Asielzoekers 
+CAO	Collectieve Arbeidsovereenkomst 
+CARDS	Community Assistance to Reconstruction Development and stabilisation 
+CBS	Centraal Bureau voor de Statistiek 
+CDM	Clean Development Mechanism 
+CDV	Competitieve Dienstverlening 
+CEP	Centraal Economisch Plan 
+CFI	Centrale Financiën Instellingen 
+CJIB	Centraal Justitieel Incassobureau 
+COBA	Interdepartementale Commissie voor Ontwikkeling van de Beleidsanalyse 
+CPB	Centraal Planbureau 
+CRIEM	Criminaliteit in relatie tot etnische minderheden 
+CVA	Cerebro Vasculair Accident.
+CWI	Centra voor Werk en Inkomen 
+DBC	Diagnose-behandelcombinaties 
+DGW&T	Directie Gebouwen Werken & Terreinen 
+DJI	Dienst Justitiële Inrichtingen 
+DNB	De Nederlandsche Bank 
+DTC's	Dutch Treasury Certificates 
+DTO	Defensie Telematica Organisatie 
+EBRD	European Bank for Reconstruction and Development 
+EC	Europese Commissie 
+ECU	European Currency Unit 
+EET	Economie, ecologie en technologieprogramma 
+EHS	Ecologische Hoofdstructuur 
+EIA	Energie-investeringsaftrek 
+EIB	Europese Investeringsbank 
+EIF	European Investment Fund 
+EK	Eerste Kamer der Staten-Generaal 
+EKI	Exportkredietverzekering en Investeringsgaranties 
+EMU	Economische en Monetaire Unie 
+EOF	Europees Ontwikkelingsfonds 
+EP	Europees Parlement 
+EPK	Energieprestatiekeuring 
+ESCB	Europees Stelsel van Centrale Banken 
+ESF	Europees Sociaal Fonds 
+ESR	Europees systeem van nationale en regionale rekeningen 
+EU	Europese Unie 
+EUR	Euro 
+EVC	Elders verworven competenties 
+EVDB	Europees Veiligheids- en Defensiebeleid 
+EWLW(-banen)	Extra Werkgelegenheid voor Langdurig Werklozen; ook wel instroom- en doorstroombanen 
+EZ	Ministerie van Economische Zaken 
+FARBO	Faciliteit willekeurige afschrijving arbo-bedrijfsmiddelen 
+FES	Fonds Economische Structuurversterking 
+FIDO	Financiering Decentrale Overheden 
+FOR	Fiscale Oudedagsreserve 
+FTE's	Full-time equivalents 
+FV	Financiële Vooruitzichten 
+FWI	Fonds voor werk en inkomen 
+GAVI	Global Alliance for Vaccines and Immunisation 
+GEF	Global Environmental Facility 
+GF	Gemeentefonds  
+GGZ	Geestelijke Gezondheidszorg 
+GOM	Garantiefaciliteit Opkomende Markten 
+GVI	Gezinsvoogdij-instellingen 
+HAVO	Hoger algemeen voortgezet onderwijs
+HBO	Hoger Beroepsonderwijs 
+HGIS	Homogene groep Internationale Samenwerking 
+HO	Hoger onderwijs
+HPIC	Heavely Indebted Poor Countries 
+HSL	Hoge Snelheidslijn 
+I/D-banen	Instroom- en Doorstroombanen 
+IB	Inkomstenbelasting 
+IC	Intensive Care
+IBO	Interdepartementaal Beleidsonderzoek 
+ICT	Informatie- en Communicatietechnologie 
+IDA	International Development Association 
+IHS	Individuele Huursubsidie 
+IMF	Internationaal Monetair Fonds 
+IND	Immigratie- en Naturalisatiedienst 
+INTERREG	Programma voor transnationale samenwerking op het gebied van de ruimtelijke ordening 
+IPO	Interprovinciaal Overleg 
+IS	Internationale Samenwerking 
+ISF	Infrastructuurfonds 
+ISV	Investeringen stedelijke vernieuwing 
+IW&V	Inspectie Gezondheidsbescherming, Waren en Veterinaire Zaken  
+JI	Joint Implementation 
+KLPD	Korps Landelijke Politiediensten 
+KNMI	Koninklijk Nederlands Meteorologisch Instituut 
+KPN	Koninklijke PTT Nederland 
+KSG	Koninklijke Schelde Groep 
+LB	Loonbelasting 
+LEF	Landbouw Egalisatiefonds 
+LISV	Landelijk instituut voor Sociale Verzekeringen 
+LNV	Ministerie van Landbouw Natuurbeheer en Visserij 
+LVB	Licht Verkennings- en Bewakingsvoertuig 
+LWOO	Leerwegondersteunend onderwijs
+MBO	Middelbaar beroepsonderwijs
+MDW	Marktwerking, Deregulering en Wetgevingskwaliteit 
+MEAO	
+MEV	Macro-Economische Verkenning 
+MIA	Milieu-investeringsaftrek 
+MIF	Multilateraal Investeringsfonds voor Latijns Amerika 
+MIT	Meerjarenprogramma Infrastructuur en Transport 
+MKB	Midden- en Kleinbedrijf 
+MKZ	Mond- en klauwzeer 
+MLO	Microlastenontwikkeling 
+MRB	Motorrijtuigenbelasting 
+NAFTA	North American Free Trade Organisation 
+NIB	Nationale Investeringsbank 
+NIO	Nationale Investeringsbank voor Ontwikkelingslanden 
+NLG	Nederlandse Gulden 
+NMP	Nationaal Milieubeleidsplan  
+NNI	Netto Nationaal Inkomen 
+NOB	Nederlands OmroepproduktieBedrijf 
+NOC/NSF	Nederlands Olympisch Comité/Nederlandse Sport Federatie 
+NS	Nederlandse Spoorwegen 
+NVM	Nederlandse Vereniging van Makelaars 
+NVVP	Nationaal Verkeer en Vervoersplan 
+NWI	Niet-Winstbeogende Instelling 
+NWO	Nederlandse organisatie voor wetenschappelijk onderzoek 
+O&S-fonds	Ontwikkelings- en Saneringsfonds 
+OCenW	Ministerie van Onderwijs Cultuur en Wetenschappen 
+ODA	Official Development Aid 
+OECD (OESO)	Organization for Economic Co-Operation and Development 
+OEEI	Onderzoeksprogramma Economische Effecten Infrastructuur 
+OLAF	Office Européen de Lutte Anti-Fraude 
+OM	Openbaar Ministerie 
+OOW	Overheidspersoneel Onder Werknemersverzekeringen 
+OPL	Overige Publiekrechtelijke Lichamen 
+OV	Openbaar Vervoer 
+OZB	Onroerende-zaakbelastingen 
+PF	Provinciefonds 
+PGB	Persoonsgebonden budget 
+PO	Primair Onderwijs 
+PO	Primair onderwijs
+PPS	Publiek Private Samenwerking 
+PRO	Praktijkonderwijs
+PSA	Public Service Agreements 
+PhD	
+RA	Regeerakkoord 
+RAD	Rijksarchiefdienst 
+RBG	Rijksbegroting 
+RBV	Regeling Beëindiging Veehouderijtakken 
+RDR	Rijksdienst voor Radiocommunicatie 
+REA	Reïntegratie arbeidsgehandicapten 
+RGD	Rijksgebouwendienst 
+RIB	Railinfrabeheer 
+RIO	Regionaal Indicatie Orgaan 
+RIVM	Rijksinstituut voor Volksgezondheid en Milieu 
+RSP	Regeling schoonmaakdiensten particulieren 
+RVD	Rijksvoorlichtingsdienst 
+RVV	Rijksdienst voor de keuring van Vee en Vlees 
+S&O	Speur- en Ontwikkelingswerk  
+SBO	Speciaal basisonderwijs
+SCP	Sociaal en Cultureel Planbureau 
+SENO	Stichting Economische Samenwerking Nederland Opkomende Markten 
+SER	Sociaal Economische Raad 
+SGR	Structuurfonds Groene Ruimte 
+SHORAD	Short Range Air Defence 
+SIOD	Sociale Inlichtingen- en Opsporingsdienst 
+SO	Speciaal onderwijs
+SPAK	Specifieke Afdrachtskorting  
+SUWI	Structuur Uitvoering Werk en Inkomen 
+SZA	Sector Sociale Zekerheid en Arbeidsmarkt 
+SZW	Ministerie van Sociale Zaken en Werkgelegenheid 
+TIA	ransient Ischaemic Attack 
+TK	Tweede Kamer der Staten-Generaal 
+TNO	Nederlandse organisatie voor toegepast natuurwetenschappelijk onderzoek 
+TPG	TNT Post Group 
+TTO	Tweetalig onderwijs
+UMTS	Universal Mobile Telecommunications System 
+UNMEE	United Nations 
+VAMIL	Vervroegde Afschrijving Milieu-investeringen 
+VAVO	Voortgezet algemeen volwassenonderwijs
+VBTB	Van beleidsbegroting tot beleidsverantwoording 
+VIJNO	Vijfde Nota Ruimtelijke Ordening 
+VINEX	Vierde Nota Ruimtelijke Ordening Extra 
+VMBO	Voorbereidend Middelbaar Beroepsonderwijs 
+VN	Verenigde Naties 
+VNG	Vereniging van Nederlandse Gemeenten 
+VO	Voortgezet Onderwijs 
+VO	Voortgezet onderwijs
+VOB	voorontwerp van begroting 
+VROM	Ministerie van Volkshuisvesting, Ruimtelijke Ordening en Milieubeheer 
+VSN	Verenigd Streekvervoer Nederland 
+VSO	Voortgezet speciaal onderwijs
+VT	Verticale Toelichting 
+VUNK	Nota «Van uitgaven naar kosten» 
+VUT	Vervroegde Uittreding  
+VVE	Vroeg- en voorschoolse educatie 
+VVTV	Voorlopige Vergunning tot Verblijf 
+VWO	Voorbereidend wetenschappelijk onderwijs
+VWS	Ministerie van Volksgezondheid, Welzijn en Sport 
+VenW	Ministerie van Verkeer en Waterstaat 
+Vpb	Vennootschapsbelasting  
+WAO	Wet op de Arbeidsongeschiktheidsverzekering 
+WAZ	Wet Arbeidsongeschiktheidsverzekering Zelfstandigen 
+WBO	Woning Behoeften Onderzoek 
+WIW	Wet Inschakeling Werkzoekenden  
+WKA	Wet Koppeling met afwijkingsmogelijkheid 
+WO	Wetenschappelijk onderwijs
+WOZ	Wet Waardering Onroerende Zaken 
+WRR	Wetenschappelijke Raad voor het Regeringsbeleid 
+WSF	Wet op de Studiefinanciering  
+WSW	Wet Sociale Werkvoorziening  
+WTO	World Trade Organization 
+WTS	Wet Tegemoetkoming Schade bij rampen 
+WTZ	Wet Tarieven Ziektekosten 
+WVG	Wet Voorzieningen Gehandicapten 
+WW	Werkloosheidswet  
+Wajong	Wet Arbeidsongeschiktheidsvoorziening Jonggehandicapten 
+XTC	Ecstacy Capsule 
+ZM	Zittende Magistratuur 
+ZMOK	Zeer moeilijk opvoedbare kinderen 
+ZW	Ziektewet 
+pBBP	Prijsontwikkeling van het Bruto Binnenlands Product 
+pNNI	Prijsontwikkeling van het Netto Nationaal Inkomen 

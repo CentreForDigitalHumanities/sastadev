@@ -1,10 +1,15 @@
 import os
 
+from sastadev.TARSPscreening import hetZn
 from sastadev.conf import settings
 from sastadev.constants import intreebanksfolder, outtreebanksfolder
+from sastadev.datasets import alldatasets, trainingdatasets, testdatasets
+from sastadev.lexicon import de, dets, het, modalverbs
 from sastadev.dedup import filledpauseslexicon
+from sastadev.sastatypes import FileName, SynTree
 from sastadev.treebankfunctions import (getattval, getnodeyield, getstree,
                                         getuttid, getyield, onbvnwdet)
+from typing import List
 
 digits2 = r'\d\d'
 
@@ -15,6 +20,7 @@ dld = 'dld'
 schl = 'schlichting'
 auris = 'auris'
 
+gav = getattval
 
 def shorten(fullname):
     _, filename = os.path.split(fullname)
@@ -22,18 +28,15 @@ def shorten(fullname):
     return basename
 
 
-def getpaths(dataset):
-    result = [os.path.join(settings.DATAROOT, 'VKLStap', intreebanksfolder),
-              os.path.join(settings.DATAROOT, 'VKLStap', outtreebanksfolder)]
+def getpaths(dataset, source='both'):
+    result = []
+    if source in ['in', 'both']:
+        result += [os.path.join(settings.DATAROOT, dataset, intreebanksfolder)]
+    if source in ['out', 'both']:
+        result += [os.path.join(settings.DATAROOT, dataset, outtreebanksfolder)]
     return result
 
 
-paths = {}
-
-paths[stap] = getpaths('VKLStap')
-paths[asta] = getpaths('VKLASTA')
-paths[tarsp] = getpaths('VKLTarsp')
-paths[dld] = getpaths('Auris')
 
 ext = '.xml'
 
@@ -76,14 +79,23 @@ def findmatches(ngram, leaves):
             matches.append(newmatch)
     return matches
 
+def get_paths(ds, source='both') -> List[FileName]:
+    base_path = os.path.join(settings.DATAROOT, ds.name)
+    results = []
+    if source in ['in', 'both']:
+        results += [os.path.join(base_path, intreebanksfolder)]
+    if source in ['out', 'both']:
+        results += [os.path.join(base_path, outtreebanksfolder)]
+    return results
 
-def getfilenames(ds, session=None):
-    inpath = paths[ds]
+
+def getfilenames(ds, session=None, source='both'):
+    thepaths = get_paths(ds, source)
     if session is not None:
         def cond(x): return (x + 1 == session)
     else:
         def cond(_): return True
-    infullnames = [os.path.join(path, ifn) for path in paths[ds] for ifn in os.listdir(path)]
+    infullnames = [os.path.join(path, ifn) for path in thepaths for ifn in os.listdir(path) if ifn.endswith('.xml')]
     return infullnames
 
 
@@ -145,6 +157,15 @@ def det(el): return (pt(el) == 'lid'
 def erhierdaar(el): return lemma(el) in {'er', 'hier', 'daar'}
 
 
+def is_def_det(el):
+    result1 = pt(el) == 'vnw' and (getattval(el, 'vwtype') in {'aanw', 'bez'})  # deze man, mijn huis, Jan zijn vrouw
+    result2 = pt(el) == 'lid' and getattval(el, 'lwtype') == 'bep'              # de man, het huis
+    result3 = pt(el) == 'n' and getattval(el, 'naamval') == 'gen'               # Jans huis
+    result4 = pt(el) == 'vnw' and getattval(el, 'naamval') == 'gen'             # wiens huis maar iemand krijgt de verkeerde naamval
+    result5 = pt(el) == 'vnw' and getattval(el, 'word').lower() == 'iemands'    # iemands huis
+    result = result1 or result2 or result3 or result4 or result5
+    return result
+
 def cond2(ns, _, i): return pt(ns[0]) == 'vz' and det(ns[1]) and (not erhierdaar(ns[1])) and pt(ns[2]) == 'vz' and \
     det(ns[3]) and (not erhierdaar(ns[3]))
 
@@ -159,8 +180,8 @@ def cond8(ns, lvs, i): return word(ns[2]).startswith(word(ns[0])) and word(ns[3]
 
 
 def cond9(ns, _, i): return pt(ns[0]) == 'vnw' and getattval(ns[0], 'vwtype') == 'pers' and pt(ns[1]) == 'ww' and \
-    getattval(ns[1], 'wvorm') == 'pv' and pt(ns[2]) == 'vnw' and pt(ns[3]) == 'ww' and \
-    getattval(ns[3], 'wvorm') == 'pv'  # and \
+    getattval(ns[1], 'wvorm') == 'pv' and pt(ns[2]) == 'vnw' and getattval(ns[2], 'vwtype') == 'pers' and pt(ns[3]) == 'ww' and \
+    getattval(ns[3], 'wvorm') == 'pv'  and getattval(ns[1], 'lemma') not in  ['denken', 'bedoelen'] and getattval(ns[3], 'lemma') != 'geloven' # and \
 # (word(ns[0]) == word(ns[2]) or word(ns[1]) == word(ns[3]) or lemma(ns[1]) == lemma(ns[3]))
 
 
@@ -197,6 +218,71 @@ def cond17a(ns, lvs, i): return lemma(ns[0]) == 'te' and word(ns[1]) == 'kregen'
 
 def cond18(ns, lvs, i): return pt(ns[0]) == 'vz' and lemma(ns[1]) in {'dit', 'dat', 'deze', 'die'}
 
+def cond19(ns, lcs, i): return  pt(ns[0]) == 'vg'  and pt(ns[1]) == 'vg'  and \
+                               gav(ns[0], 'conjtype') == 'onder' and gav(ns[1], 'conjtype') == 'onder' and \
+                               not (lemma(ns[0]) == 'dat' and lemma(ns[1]) == 'als') # omdat doordat
+
+def cond20(ns, _, i): return pt(ns[1]) == 'vnw' and getattval(ns[1], 'vwtype') == 'pers' and pt(ns[0]) == 'ww' and \
+    getattval(ns[0], 'wvorm') == 'pv' and pt(ns[3]) == 'vnw' and getattval(ns[3], 'vwtype') == 'pers' and pt(ns[2]) == 'ww' and \
+    getattval(ns[2], 'wvorm') == 'pv'  and getattval(ns[0], 'lemma') not in  ['denken', 'bedoelen', 'geloven'] and \
+    getattval(ns[2], 'lemma') not in  ['denken', 'bedoelen', 'geloven']
+
+def cond21(ns, _, i): return pt(ns[1]) =='adj' and getattval(ns[1], 'buiging') == 'met-e' and \
+                            pt(ns[2]) == 'n' and getattval(ns[2], 'getal') == 'ev' and \
+                            getattval(ns[2], 'genus') == 'onz' and \
+                            not is_def_det(ns[0]) and not(word(ns[0]) == 'onder' and word(ns[1]) == 'andere')
+
+def cond22(raw_ns, _, i):
+    ns = [n for n in raw_ns if pt(n) != 'let']
+    if len(ns) >= 3:
+        return pt(ns[0]) not in ['vg', 'tsw'] and lemma(ns[1]) in ['die'] and pt(ns[2]) == 'ww' and gav(ns[2], 'wvorm') == 'pv'
+    else:
+        return False
+
+def is_tgw_mv(nd: SynTree) -> bool:
+    result = gav(nd, 'pt') == 'ww' and gav(nd, 'wvorm') == 'pv' and \
+             gav(nd, 'pvtijd') == 'tgw' and gav(nd, 'pvagr') == 'mv'
+    return result
+
+def cond23(ns,_, i):
+    if len(ns) >= 3:
+        result0 = pt(ns[0]) != 'ww'
+        first = ns[1]
+        second = ns[2]
+        result1 = pt(first) == 'ww'
+        result2 = gav(first, 'wvorm') == 'inf'
+        result6 = gav(first, 'lemma') not in modalverbs
+        result7 = gav(first, 'positie') != 'nom'
+        result3 = is_tgw_mv(first)
+        result4 = gav(second, 'lemma') in modalverbs
+        result5 = gav(second, 'wvorm') == 'pv'
+        return  result0 and result1 and (result2 or result3) and result6 and \
+               result4
+    else:
+        return False
+
+def cond24(ns, _, i):
+    if len(ns) >= 3:
+        first = ns[0]
+        second = ns[1]
+        third = ns[2]
+
+        first_word = gav(first, 'word').lower()
+        if first_word in dets[de]:
+            first_dehet = de
+        elif first_word in dets[het]:
+            first_dehet = het
+        else:
+            first_dehet = None
+        is_third_evon = gav(third, 'genus') == 'onz' and gav(third, 'getal') == 'ev'
+        third_pt = gav(third, 'pt')
+        third_dehet = het if is_third_evon else de
+        second_pt = gav(second, 'pt')
+        result = third_pt == 'n' and first_dehet == de and first_dehet != third_dehet and second_pt == 'adj'
+        return result
+    else:
+        return False
+
 
 ngram1 = Ngram(4, cond1)
 ngram2 = Ngram(4, cond2)
@@ -218,33 +304,38 @@ ngram16a = Ngram(4, cond16a)  # geen beroerte een beroerte test
 ngram17 = Ngram(4, cond17)  # te kregen te krijgen
 ngram17a = Ngram(4, cond17a)  # te kregen te krijgen test
 ngram18 = Ngram(2, cond18)  # met dit
-
+ngram19 = Ngram(2, cond19) # omdat doordat
+ngram20 = Ngram(4, cond20) # heb ik zie ik: pv vnw pv vnw
+ngram21 = Ngram(3, cond21) # een mooie meisje
+ngram22 = Ngram(3, cond22) # (dit is een man) die heeft een mooi jasje
+ngram23 = Ngram(3, cond23)  # beesten die *bloeden kunnen*
+ngram24 = Ngram(3, cond24)  # de andere paard
 
 def main():
 
     infullnames = []
-    for ds in [tarsp, asta, stap, dld]:
-        infullnames += getfilenames(ds)
+    thedatasets = trainingdatasets + testdatasets
+    for ds in thedatasets:
+        infullnames = getfilenames(ds, source='in')
 
-    # for ds in [asta]:
-    #    infullnames += getfilenames(ds, session=4)
 
-    for infullname in infullnames:
-        short = shorten(infullname)
-        fulltreebank = getstree(infullname)
-        if fulltreebank is not None:
-            treebank = fulltreebank.getroot()
-            for tree in treebank:
-                uttid = getuttid(tree)
-                leaves = getnodeyield(tree)
-                cleanleaves = [leave for leave in leaves if getattval(leave, 'word') not in filledpauseslexicon]
-                cleanwordlist = [getattval(leave, 'word') for leave in cleanleaves]
-                matches = findmatches(ngram18, cleanleaves)
-                # matches = sipvjpvjsi(cleanleaves, tree)
-                for match in matches:
+        for infullname in infullnames:
+            short = shorten(infullname)
+            fulltreebank = getstree(infullname)
+            if fulltreebank is not None:
+                treebank = fulltreebank.getroot()
+                for tree in treebank:
                     uttid = getuttid(tree)
-                    cleanleaves_str = [word(el) for el in cleanleaves]
-                    print(short, uttid, match, cleanleaves_str, getyield(tree))
+                    leaves = getnodeyield(tree)
+                    cleanleaves = [leave for leave in leaves if getattval(leave, 'word') not in filledpauseslexicon]
+                    cleanwordlist = [getattval(leave, 'word') for leave in cleanleaves]
+                    matches = findmatches(ngram24, cleanleaves)
+                    # matches = sipvjpvjsi(cleanleaves, tree)
+                    for match in matches:
+                        uttid = getuttid(tree)
+                        cleanleaves_str = [word(el) for el in cleanleaves]
+                        match_list = cleanleaves_str[match[0]:match[1]]
+                        print(ds.name, short, uttid, match, match_list, cleanleaves_str, getyield(tree))
 
 
 if __name__ == '__main__':

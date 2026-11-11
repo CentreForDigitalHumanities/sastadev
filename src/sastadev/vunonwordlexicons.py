@@ -13,7 +13,7 @@ interpunction = """.,/:;?!"'"""
 
 
 # initialize lexicons
-lexiconfoldername = 'filledpauseslexicon'
+lexiconfoldername = 'aux_lexicons'
 
 filledpauseslexiconfilename = 'filledpauseslexicon.txt'
 filledpauseslexiconfullname = os.path.join(settings.SD_DIR, lexiconfoldername, filledpauseslexiconfilename)
