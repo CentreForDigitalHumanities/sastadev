@@ -136,17 +136,24 @@ def computeqidscores(methodname) -> QId_Scores_Dict:
     return resultscores
 
 
+def get_qidscores_fullname(methodname) -> str:
+    return os.path.join(outpath, f'scores_by_qid_{methodname}.xlsx')
+
+
+def store_qidscores(methodname, scoresdict: QId_Scores_Dict) -> None:
+    table = [[qid] + list(scores) for qid, scores in scoresdict.items()]
+    wb = mkworkbook(get_qidscores_fullname(methodname), [qidheader], table, freeze_panes=(1, 1))
+    wb.close()
+
+
+def read_stored_qidscores(methodname) -> QId_Scores_Dict:
+    _, data = getxlsxdata(get_qidscores_fullname(methodname))
+    return {row[0]: tuple(row[1:len(qidheader)]) for row in data}
+
+
 def main():
     for methodname in validmethods:
-        scoresdict = computeqidscores(methodname)
-        table = []
-        for qid in scoresdict:
-            newrow = [qid]  + list(scoresdict[qid])
-            table.append(newrow)
-        filename = f'scores_by_qid_{methodname}.xlsx'
-        fullname = os.path.join(outpath, filename)
-        wb =mkworkbook(fullname, [qidheader], table, freeze_panes=(1,1))
-        wb.close()
+        store_qidscores(methodname, computeqidscores(methodname))
 
 if __name__ == '__main__':
     main()

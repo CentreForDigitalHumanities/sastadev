@@ -1,8 +1,8 @@
 from collections import Counter
 import os
-from datetime import datetime
 
-from sastadev.computeqidscores import computeqidscores
+from sastadev.computeqidscores import (computeqidscores, get_qidscores_fullname, read_stored_qidscores,
+                                       store_qidscores)
 from sastadev.conf import settings
 from sastadev.constants import (analysissuffix, byuttscoressuffix, confbyuttfolder, datafolder,
                                 resultsfolder, scores_by_qid_folder)
@@ -118,33 +118,35 @@ def get_sample_scoresbyutt(dataset: DataSet, samplename: SampleName) -> Table:
 
 def fetch_scores_by_query(methodname: MethodName) -> dict:
     resultsdatetime = getresultsdatetime(methodname)
-    inpath = os.path.join(settings.SD_DIR, datafolder, scores_by_qid_folder)
-    infile = f'scores_by_qid_{methodname}.xlsx'
-    infullname = os.path.join(inpath, infile)
-    storedatetime = os.path.getmtime(infullname)
-    if resultsdatetime > storedatetime:
-        # use the stored results
-        pass
-        result = {}
-    else:
-        # recompute the resulst
-        result = computeqidscores(methodname)
-    return result
+    storefullname = get_qidscores_fullname(methodname)
+    storedatetime = os.path.getmtime(storefullname) if os.path.exists(storefullname) else None
+    training_results_available = resultsdatetime > 0
+    store_is_up_to_date = storedatetime is not None and storedatetime >= resultsdatetime
 
-def getresultsdatetime(methodname: MethodName) -> datetime:
+    if store_is_up_to_date:
+        return read_stored_qidscores(methodname)
+    if training_results_available:
+        scores = computeqidscores(methodname)
+        store_qidscores(methodname, scores)
+        return scores
+    settings.LOGGER.warning(
+        f'No stored scores ({storefullname}) and no training results under {settings.DATAROOT} '
+        f'for {methodname}: confidence scores are unavailable')
+    return {}
+
+
+def getresultsdatetime(methodname: MethodName) -> float:
     mostrecentdatetime = 0
     datasets = [ds for ds in trainingdatasets if ds.method == methodname]
     for dataset in datasets:
         resultspath = os.path.join(settings.DATAROOT, dataset.name, resultsfolder)
-        rawfilenames = os.listdir(resultspath)
-        samplefilenames = [fn for fn in rawfilenames if fn.endswith(f'{analysissuffix}.xlsx')]
-        for filename in samplefilenames:
-            fullname = os.path.join(resultspath, filename)
-            modtime = os.path.getmtime(fullname)
-            if modtime > mostrecentdatetime:
-                mostrecentdatetime = modtime
+        if not os.path.isdir(resultspath):
+            continue
+        for filename in os.listdir(resultspath):
+            if filename.endswith(f'{analysissuffix}.xlsx'):
+                modtime = os.path.getmtime(os.path.join(resultspath, filename))
+                mostrecentdatetime = max(mostrecentdatetime, modtime)
     return mostrecentdatetime
-
 
 
 def main():
