@@ -618,7 +618,7 @@ class CHAT_ComplexRegex(CHAT_Regex):
                         pass
                     else:
                         settings.LOGGER.error('Unknown replacementtype: {} in {}'.format(
-                            self.scopereplacement, show(tokens)))
+                            self.bracketreplacement, show(tokens)))
                     tobereplacedtokens = []
                     inc = bracketend - bracketbegin
                 state = wstate
@@ -811,15 +811,15 @@ annotations = [
                     complexmetafunction),
     CHAT_Annotation(CHAT_pause, '7.8.3:62', '9.10.4:66', CHAT_SimpleRegex(r'\(\.\.?\.?\)', eps, False),
                     simplemetafunction(identity)),
-    CHAT_Annotation(CHAT_timed_pause, '7.8.3:62', '9.10.4:66', CHAT_SimpleRegex(r'\([0-9]+\.[0-9]+\)', eps, False),
+    CHAT_Annotation(CHAT_timed_pause, '7.8.3:62', '9.10.4:66', CHAT_SimpleRegex(r'\([0-9]+\.[0-9]*\)', eps, False),
                     simplemetafunction(identity)),
     CHAT_Annotation(CHAT_long_event, '7.8.4:62', '9.10.5:66',
                     CHAT_ComplexRegex(
-                        (r'&{l=[\w:]+', wordpat, r'&}l=[\w:]+'), (keep, eps), True),
+                        (r'&\{l=[\w:]+', r'.+?', r'&\}l=[\w:]+'), (keep, keep), True),
                     complexmetafunction),  # no check that the latter part equals the initial part
     CHAT_Annotation(CHAT_long_nonverbal_event, '7.8.4:62', '9.10.5:66',
                     CHAT_ComplexRegex(
-                        (r'&{n=[\w:]+', wordpat, r'&}n=[\w:]+'), (keep, eps), True),
+                        (r'&\{n=[\w:]+', r'.+?', r'&\}n=[\w:]+'), (keep, keep), True),
                     complexmetafunction),  # no check that the latter part equals the initial part
     CHAT_Annotation(CHAT_trailing_off, '7.9:62', '9.11:66', CHAT_SimpleRegex(r'\+\.\.\.', eps, False),
                     simplemetafunction(identity)),
@@ -960,7 +960,7 @@ annotations = [
     CHAT_Annotation(CHAT_segment_repetition, '10:85,11:89', '13:91', CHAT_InWordRegex(u'\u21AB.*?\u21AB', ''),
                     complexmetafunction),
     CHAT_Annotation(CHAT_joined_words, '6.6.4:46', '8.6.3:51',
-                    CHAT_InWordRegex(r'_', space), complexmetafunction),
+                    CHAT_InWordRegex(r'_', eps), complexmetafunction),    # changed to eps see 2026 version
     # take care extra token!@@
     CHAT_Annotation(CHAT_clitic_boundary, '6.6.15:52', 'not found',
                     CHAT_InWordRegex(r'~', space), complexmetafunction),
