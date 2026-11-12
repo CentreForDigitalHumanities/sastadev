@@ -1,13 +1,15 @@
 """
 This module is intended for an adaptation of auchann output in which words of false starts are marked wit the prefix 1
 """
-from dataclasses import dataclass
-import editdistance
 import itertools
 import re
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+import Levenshtein
+
 from sastadev.basicreplacements import basicreplacements
 from sastadev.xlsx import getxlsxdata
-from typing import Dict, List, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -45,7 +47,7 @@ simple_false_start_pattern = r'\b(\w+)(\s*)(\[//\])'
 scoped_false_start_pattern = r'(<[^>]+>)\s*\[//\]'
 
 def red(word1, word2) -> float:
-    distance = editdistance.distance(word1, word2)
+    distance = Levenshtein.distance(word1, word2)
     result = distance / (max(len(word1), len(word2) ))
     return result
 
@@ -121,7 +123,7 @@ def make_alignment(wordposlist1, wordposlist2) -> Alignment:
 
 def reldistance(utt1: str, utt2:str) -> float:
     maxlen = max(len(utt1), len(utt2))
-    ed = editdistance.distance(utt1, utt2)
+    ed = Levenshtein.distance(utt1, utt2)
     reled = ed / maxlen
     return reled
 

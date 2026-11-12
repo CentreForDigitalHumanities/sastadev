@@ -1,8 +1,9 @@
 import re
-from editdistance import distance
 import unicodedata
 from collections import Counter
 from typing import Any, Callable, List, Match, Optional, Sequence, Set
+
+from Levenshtein import distance
 
 vertbar = '|'
 space = ' '
